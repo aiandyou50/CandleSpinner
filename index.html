@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CandleSpinner: The Galactic Casino</title>
-  <!-- TON Connect UI CDN -->
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
     :root {
       --primary: #6366f1;
@@ -172,15 +170,6 @@
     .hidden {
       display: none;
     }
-
-    /* TonConnect Button Container */
-    #tonConnectUI {
-      margin-top: 1rem;
-      min-height: 50px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
   </style>
 </head>
 <body>
@@ -201,7 +190,10 @@
       <div class="card">
         <h2 data-i18n="connect_wallet">Connect Your TON Wallet</h2>
         <p data-i18n="connect_desc">Play the Galactic Casino with your own CSPIN tokens.</p>
-        <div id="tonConnectUI"></div>
+        <button id="tonConnectBtn" class="btn" style="width: 100%; margin-top: 1rem;">
+          <img src="https://ton.org/assets/icons/ton-logo.svg" alt="TON" width="20" style="vertical-align: middle; margin-right: 8px;">
+          <span data-i18n="connect_wallet">Connect TON Wallet</span>
+        </button>
       </div>
     </div>
 
@@ -304,7 +296,6 @@
 
     let currentLang = "en";
 
-    // 브라우저 언어 자동 감지
     function detectLanguage() {
       const browserLang = navigator.language || navigator.userLanguage;
       const langMap = {
@@ -322,10 +313,9 @@
           return langMap[key];
         }
       }
-      return 'en'; // 기본값 영어
+      return 'en';
     }
 
-    // 저장된 언어 로드
     function loadSavedLanguage() {
       const savedLang = localStorage.getItem('userLanguage');
       if (savedLang && translations[savedLang]) {
@@ -334,19 +324,16 @@
       return detectLanguage();
     }
 
-    // 언어 저장
     function saveLanguage(lang) {
       localStorage.setItem('userLanguage', lang);
     }
 
-    // 언어 설정
     function setLanguage(lang) {
       currentLang = lang;
       saveLanguage(lang);
       updateI18n();
     }
 
-    // 번역 업데이트
     function updateI18n() {
       const i18nElements = document.querySelectorAll("[data-i18n]");
       i18nElements.forEach(el => {
@@ -355,134 +342,79 @@
           el.textContent = translations[currentLang][key];
         }
       });
+      document.getElementById("langSelect").value = currentLang;
     }
 
-    // 언어 드롭다운 이벤트
-    document.getElementById("langSelect").addEventListener("change", (e) => {
-      setLanguage(e.target.value);
-    });
+    // === TON Connect Manual Flow ===
+    const MANIFEST_URL = "https://aiandyou.me/tonconnect-manifest.json";
+    let walletAddress = null;
 
-    // 초기 언어 설정
-    window.addEventListener('DOMContentLoaded', () => {
+    async function connectWallet() {
+      try {
+        const manifestResponse = await fetch(MANIFEST_URL);
+        const manifest = await manifestResponse.json();
+        const protocolVersion = 2;
+        const url = encodeURIComponent(window.location.href);
+        const manifestUrl = encodeURIComponent(MANIFEST_URL);
+
+        // ton://connect deep link
+        const connectUrl = `ton://connect?manifestUrl=${manifestUrl}&v=${protocolVersion}&ret=${url}`;
+        window.open(connectUrl, '_blank');
+      } catch (e) {
+        alert("Failed to load manifest. Please check tonconnect-manifest.json.");
+        console.error(e);
+      }
+    }
+
+    // Check if wallet connected via URL params (after redirect from wallet)
+    function checkWalletConnection() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tonconnect = urlParams.get('tonconnect');
+      if (tonconnect) {
+        try {
+          const data = JSON.parse(atob(tonconnect));
+          if (data && data.address) {
+            walletAddress = data.address;
+            showGameView();
+            // Clean URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (e) {
+          console.warn("Invalid tonconnect param");
+        }
+      }
+    }
+
+    function showGameView() {
+      document.getElementById("landingView").classList.remove("active");
+      document.getElementById("gameView").classList.add("active");
+      document.getElementById("walletAddress").textContent = shortAddress(walletAddress);
+      document.getElementById("balance").textContent = "1000"; // mock
+    }
+
+    function shortAddress(addr) {
+      return addr ? `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}` : "";
+    }
+
+    // === Init ===
+    document.addEventListener('DOMContentLoaded', () => {
       currentLang = loadSavedLanguage();
-      document.getElementById("langSelect").value = currentLang;
       updateI18n();
 
-      // TON Connect UI 초기화
-      const manifestUrl = "https://aiandyou.me/tonconnect-manifest.json";
-      const tonConnectUI = new window.TonConnectUI.TonConnectUI({
-        manifestUrl,
-        buttonRootId: "tonConnectUI",
+      document.getElementById("langSelect").addEventListener("change", (e) => {
+        setLanguage(e.target.value);
       });
 
-      // === State ===
-      let walletAddress = null;
-      let balance = 1000; // Mock balance
-      const CSPIN_JETTON = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV";
-      const GAME_WALLET = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd";
+      document.getElementById("tonConnectBtn").addEventListener("click", connectWallet);
 
-      // === DOM Elements ===
-      const landingView = document.getElementById("landingView");
-      const gameView = document.getElementById("gameView");
-      const balanceEl = document.getElementById("balance");
-      const walletAddressEl = document.getElementById("walletAddress");
-      const spinBtn = document.getElementById("spinBtn");
-      const disconnectBtn = document.getElementById("disconnectBtn");
-      const debugLog = document.getElementById("debugLog");
-
-      // === Dev Mode ===
-      const urlParams = new URLSearchParams(window.location.search);
-      const IS_DEV = urlParams.get('dev') === '1';
-      if (IS_DEV) {
-        debugLog.classList.remove("hidden");
-        balanceEl.textContent = balance;
-        debugLog.textContent = "[DEV] Free play enabled. Add ?dev=1 to URL to activate.";
-      }
-
-      // === Utils ===
-      function shortAddress(addr) {
-        return addr ? `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}` : "";
-      }
-
-      function logDebug(...args) {
-        if (!IS_DEV) return;
-        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(" ");
-        debugLog.textContent += "\n" + msg;
-        debugLog.scrollTop = debugLog.scrollHeight;
-      }
-
-      // === Game Logic ===
-      function simulateSpin() {
-        const symbols = ["🌌", "🚀", "🛸", "🪐", "💫", "⭐", "☄️", "🌀"];
-        const reels = document.querySelectorAll(".reel");
-        reels.forEach(reel => {
-          reel.style.transform = "scale(0.9)";
-          setTimeout(() => {
-            const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-            reel.textContent = randomSymbol;
-            reel.style.transform = "scale(1)";
-          }, 300);
-        });
-      }
-
-      async function handleSpin() {
-        if (!IS_DEV && balance < 10) {
-          alert(translations[currentLang].insufficient_funds);
-          return;
-        }
-
-        spinBtn.disabled = true;
-        spinBtn.textContent = translations[currentLang].spinning;
-
-        // Step 1: Commit (mock)
-        logDebug("[DEV] Calling /commitSpin... → mock commitment");
-
-        // Step 2: Build transfer
-        const amountNano = (10 * 1e9).toString(); // 10 CSPIN
-        const transferUrl = `ton://transfer/${GAME_WALLET}?jetton=${CSPIN_JETTON}&amount=${amountNano}`;
-        logDebug("[DEV] Deep link:", transferUrl);
-
-        if (IS_DEV) {
-          setTimeout(() => {
-            simulateSpin();
-            balance -= 10;
-            balanceEl.textContent = balance;
-            spinBtn.disabled = false;
-            spinBtn.textContent = translations[currentLang].spin;
-            logDebug("[DEV] Spin completed (free mode)");
-          }, 1500);
-        } else {
-          window.open(transferUrl, "_blank");
-          alert(translations[currentLang].transaction_sent);
-          spinBtn.disabled = false;
-          spinBtn.textContent = translations[currentLang].spin;
-        }
-      }
-
-      function disconnect() {
-        tonConnectUI.disconnect();
+      document.getElementById("disconnectBtn").addEventListener("click", () => {
         walletAddress = null;
-        landingView.classList.add("active");
-        gameView.classList.remove("active");
-      }
-
-      // === Events ===
-      spinBtn.addEventListener("click", handleSpin);
-      disconnectBtn.addEventListener("click", disconnect);
-
-      // === Wallet Connection Listener ===
-      tonConnectUI.onStatusChange(wallet => {
-        if (wallet) {
-          walletAddress = wallet.account.address;
-          walletAddressEl.textContent = shortAddress(walletAddress);
-          landingView.classList.remove("active");
-          gameView.classList.add("active");
-          balanceEl.textContent = IS_DEV ? balance : "Loading...";
-          logDebug("[DEV] Wallet connected:", walletAddress);
-        } else {
-          disconnect();
-        }
+        document.getElementById("gameView").classList.remove("active");
+        document.getElementById("landingView").classList.add("active");
       });
+
+      // Check if returning from wallet
+      checkWalletConnection();
     });
   </script>
 </body>
