@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CandleSpinner: The Galactic Casino</title>
+  <!-- TON Connect UI CDN -->
   <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
   <style>
     :root {
@@ -309,7 +310,7 @@
     });
 
     // === TON Connect ===
-    const manifestUrl = "https://candlespinner.pages.dev/tonconnect-manifest.json";
+    const manifestUrl = "https://aiandyou.me/tonconnect-manifest.json";
     const tonConnectUI = new window.TonConnectUI.TonConnectUI({
       manifestUrl,
       buttonRootId: "tonConnectUI",
@@ -331,12 +332,12 @@
     const debugLog = document.getElementById("debugLog");
 
     // === Dev Mode ===
-    const IS_DEV = true; // Simulate Vite dev mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const IS_DEV = urlParams.get('dev') === '1';
     if (IS_DEV) {
       debugLog.classList.remove("hidden");
-      balance = 1000;
       balanceEl.textContent = balance;
-      debugLog.textContent = "[DEV] Free play enabled. No real tokens used.";
+      debugLog.textContent = "[DEV] Free play enabled. Add ?dev=1 to URL to activate.";
     }
 
     // === Utils ===
@@ -374,17 +375,15 @@
       spinBtn.disabled = true;
       spinBtn.textContent = translations[currentLang].spinning;
 
-      // Step 1: Commit
-      logDebug("[DEV] Calling /commitSpin...");
-      const commitment = "mock_commitment_" + Date.now();
+      // Step 1: Commit (mock)
+      logDebug("[DEV] Calling /commitSpin... → mock commitment");
 
       // Step 2: Build transfer
       const amountNano = (10 * 1e9).toString(); // 10 CSPIN
-      const transferUrl = `ton://transfer/${GAME_WALLET}?jetton=${CSPIN_JETTON}&amount=${amountNano}&bin=`;
+      const transferUrl = `ton://transfer/${GAME_WALLET}?jetton=${CSPIN_JETTON}&amount=${amountNano}`;
       logDebug("[DEV] Deep link:", transferUrl);
 
       if (IS_DEV) {
-        // Mock transaction
         setTimeout(() => {
           simulateSpin();
           balance -= 10;
@@ -394,7 +393,6 @@
           logDebug("[DEV] Spin completed (free mode)");
         }, 1500);
       } else {
-        // In real mode, open deep link
         window.open(transferUrl, "_blank");
         alert(translations[currentLang].transaction_sent);
         spinBtn.disabled = false;
@@ -420,7 +418,7 @@
         walletAddressEl.textContent = shortAddress(walletAddress);
         landingView.classList.remove("active");
         gameView.classList.add("active");
-        balanceEl.textContent = balance;
+        balanceEl.textContent = IS_DEV ? balance : "Loading...";
         logDebug("[DEV] Wallet connected:", walletAddress);
       } else {
         disconnect();
@@ -431,4 +429,4 @@
     updateI18n();
   </script>
 </body>
-        </html>
+</html>
