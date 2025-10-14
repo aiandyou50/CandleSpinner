@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CandleSpinner: The Galactic Casino</title>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --bg: #0f0f1b;
+      --card-bg: #1a1a2e;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --border: #2d2d44;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      flex: 1;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: linear-gradient(90deg, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lang-select {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border);
+    }
+
+    .btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .wallet-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 1rem;
+    }
+
+    .address {
+      font-family: monospace;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .slot-machine {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.5rem;
+      margin: 2rem 0;
+    }
+
+    .reel {
+      aspect-ratio: 1;
+      background: #25253a;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      transition: transform 0.4s ease;
+    }
+
+    .spin-btn {
+      margin: 1rem 0;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+    }
+
+    .balance {
+      font-size: 1.2rem;
+      text-align: center;
+      margin: 1rem 0;
+    }
+
+    .debug {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: #1e1b4b;
+      border-radius: 8px;
+      font-family: monospace;
+      white-space: pre-wrap;
+      color: #fbbf24;
+      max-height: 200px;
+      overflow: auto;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">CandleSpinner 🕯️</div>
+      <select id="langSelect" class="lang-select">
+        <option value="en">English</option>
+        <option value="ko">한국어</option>
+        <option value="ja">日本語</option>
+        <option value="zh-CN">简体中文</option>
+        <option value="zh-TW">繁體中文</option>
+      </select>
+    </header>
+
+    <!-- Landing View -->
+    <div id="landingView" class="view active">
+      <div class="card">
+        <h2 data-i18n="connect_wallet">Connect Your TON Wallet</h2>
+        <p data-i18n="connect_desc">Play the Galactic Casino with your own CSPIN tokens.</p>
+        <div id="tonConnectUI"></div>
+      </div>
+    </div>
+
+    <!-- Game View -->
+    <div id="gameView" class="view">
+      <div class="card">
+        <div class="balance">
+          <span data-i18n="balance">Balance:</span> <span id="balance">0</span> CSPIN
+        </div>
+
+        <div class="slot-machine" id="slotMachine">
+          <div class="reel">🌌</div>
+          <div class="reel">🚀</div>
+          <div class="reel">🛸</div>
+          <div class="reel">🪐</div>
+          <div class="reel">💫</div>
+        </div>
+
+        <button id="spinBtn" class="btn spin-btn" data-i18n="spin">SPIN</button>
+
+        <div class="wallet-info">
+          <div class="address" id="walletAddress">...</div>
+          <button id="disconnectBtn" class="btn btn-danger" data-i18n="disconnect">Disconnect</button>
+        </div>
+      </div>
+
+      <div id="debugLog" class="debug hidden"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div>v4.0.0</div>
+    <div style="margin-top: 0.5rem;">CandleSpinner: The Galactic Casino</div>
+  </footer>
+
+  <script>
+    // === I18N ===
+    const translations = {
+      en: {
+        connect_wallet: "Connect Your TON Wallet",
+        connect_desc: "Play the Galactic Casino with your own CSPIN tokens.",
+        spin: "SPIN",
+        disconnect: "Disconnect",
+        balance: "Balance:",
+        connecting: "Connecting...",
+        spinning: "Spinning...",
+        insufficient_funds: "Insufficient CSPIN balance",
+        transaction_sent: "Transaction sent! Confirm in wallet.",
+        dev_mode: "[DEV] Free play enabled",
+      },
+      ko: {
+        connect_wallet: "TON 지갑 연결",
+        connect_desc: "자신의 CSPIN 토큰으로 은하 카지노를 플레이하세요.",
+        spin: "스핀",
+        disconnect: "연결 해제",
+        balance: "잔액:",
+        connecting: "연결 중...",
+        spinning: "스핀 중...",
+        insufficient_funds: "CSPIN 잔액 부족",
+        transaction_sent: "트랜잭션이 전송되었습니다! 지갑에서 승인해주세요.",
+        dev_mode: "[DEV] 무료 플레이 활성화됨",
+      },
+      ja: {
+        connect_wallet: "TONウォレットを接続",
+        connect_desc: "自分のCSPINトークンでギャラクティックカジノをプレイ。",
+        spin: "スピン",
+        disconnect: "切断",
+        balance: "残高:",
+        connecting: "接続中...",
+        spinning: "スピン中...",
+        insufficient_funds: "CSPIN残高不足",
+        transaction_sent: "トランザクションを送信しました！ウォレットで承認してください。",
+        dev_mode: "[DEV] 無料プレイ有効",
+      },
+      "zh-CN": {
+        connect_wallet: "连接您的 TON 钱包",
+        connect_desc: "使用您的 CSPIN 代币畅玩银河赌场。",
+        spin: "旋转",
+        disconnect: "断开连接",
+        balance: "余额：",
+        connecting: "连接中...",
+        spinning: "旋转中...",
+        insufficient_funds: "CSPIN 余额不足",
+        transaction_sent: "交易已发送！请在钱包中确认。",
+        dev_mode: "[DEV] 免费游戏已启用",
+      },
+      "zh-TW": {
+        connect_wallet: "連接您的 TON 錢包",
+        connect_desc: "使用您的 CSPIN 代幣暢玩銀河賭場。",
+        spin: "旋轉",
+        disconnect: "斷開連接",
+        balance: "餘額：",
+        connecting: "連接中...",
+        spinning: "旋轉中...",
+        insufficient_funds: "CSPIN 餘額不足",
+        transaction_sent: "交易已發送！請在錢包中確認。",
+        dev_mode: "[DEV] 免費遊戲已啟用",
+      },
+    };
+
+    let currentLang = "en";
+    const i18nElements = document.querySelectorAll("[data-i18n]");
+
+    function updateI18n() {
+      i18nElements.forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (translations[currentLang][key]) {
+          el.textContent = translations[currentLang][key];
+        }
+      });
+    }
+
+    document.getElementById("langSelect").addEventListener("change", (e) => {
+      currentLang = e.target.value;
+      updateI18n();
+    });
+
+    // === TON Connect ===
+    const manifestUrl = "https://candlespinner.pages.dev/tonconnect-manifest.json";
+    const tonConnectUI = new window.TonConnectUI.TonConnectUI({
+      manifestUrl,
+      buttonRootId: "tonConnectUI",
+    });
+
+    // === State ===
+    let walletAddress = null;
+    let balance = 1000; // Mock balance
+    const CSPIN_JETTON = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV";
+    const GAME_WALLET = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd";
+
+    // === DOM Elements ===
+    const landingView = document.getElementById("landingView");
+    const gameView = document.getElementById("gameView");
+    const balanceEl = document.getElementById("balance");
+    const walletAddressEl = document.getElementById("walletAddress");
+    const spinBtn = document.getElementById("spinBtn");
+    const disconnectBtn = document.getElementById("disconnectBtn");
+    const debugLog = document.getElementById("debugLog");
+
+    // === Dev Mode ===
+    const IS_DEV = true; // Simulate Vite dev mode
+    if (IS_DEV) {
+      debugLog.classList.remove("hidden");
+      balance = 1000;
+      balanceEl.textContent = balance;
+      debugLog.textContent = "[DEV] Free play enabled. No real tokens used.";
+    }
+
+    // === Utils ===
+    function shortAddress(addr) {
+      return addr ? `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}` : "";
+    }
+
+    function logDebug(...args) {
+      if (!IS_DEV) return;
+      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(" ");
+      debugLog.textContent += "\n" + msg;
+      debugLog.scrollTop = debugLog.scrollHeight;
+    }
+
+    // === Game Logic ===
+    function simulateSpin() {
+      const symbols = ["🌌", "🚀", "🛸", "🪐", "💫", "⭐", "☄️", "🌀"];
+      const reels = document.querySelectorAll(".reel");
+      reels.forEach(reel => {
+        reel.style.transform = "scale(0.9)";
+        setTimeout(() => {
+          const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+          reel.textContent = randomSymbol;
+          reel.style.transform = "scale(1)";
+        }, 300);
+      });
+    }
+
+    async function handleSpin() {
+      if (!IS_DEV && balance < 10) {
+        alert(translations[currentLang].insufficient_funds);
+        return;
+      }
+
+      spinBtn.disabled = true;
+      spinBtn.textContent = translations[currentLang].spinning;
+
+      // Step 1: Commit
+      logDebug("[DEV] Calling /commitSpin...");
+      const commitment = "mock_commitment_" + Date.now();
+
+      // Step 2: Build transfer
+      const amountNano = (10 * 1e9).toString(); // 10 CSPIN
+      const transferUrl = `ton://transfer/${GAME_WALLET}?jetton=${CSPIN_JETTON}&amount=${amountNano}&bin=`;
+      logDebug("[DEV] Deep link:", transferUrl);
+
+      if (IS_DEV) {
+        // Mock transaction
+        setTimeout(() => {
+          simulateSpin();
+          balance -= 10;
+          balanceEl.textContent = balance;
+          spinBtn.disabled = false;
+          spinBtn.textContent = translations[currentLang].spin;
+          logDebug("[DEV] Spin completed (free mode)");
+        }, 1500);
+      } else {
+        // In real mode, open deep link
+        window.open(transferUrl, "_blank");
+        alert(translations[currentLang].transaction_sent);
+        spinBtn.disabled = false;
+        spinBtn.textContent = translations[currentLang].spin;
+      }
+    }
+
+    function disconnect() {
+      tonConnectUI.disconnect();
+      walletAddress = null;
+      landingView.classList.add("active");
+      gameView.classList.remove("active");
+    }
+
+    // === Events ===
+    spinBtn.addEventListener("click", handleSpin);
+    disconnectBtn.addEventListener("click", disconnect);
+
+    // === Wallet Connection Listener ===
+    tonConnectUI.onStatusChange(wallet => {
+      if (wallet) {
+        walletAddress = wallet.account.address;
+        walletAddressEl.textContent = shortAddress(walletAddress);
+        landingView.classList.remove("active");
+        gameView.classList.add("active");
+        balanceEl.textContent = balance;
+        logDebug("[DEV] Wallet connected:", walletAddress);
+      } else {
+        disconnect();
+      }
+    });
+
+    // Initialize
+    updateI18n();
+  </script>
+</body>
+        </html>
