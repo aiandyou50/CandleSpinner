@@ -64,6 +64,7 @@
       border: 1px solid var(--border);
       padding: 0.4rem 0.6rem;
       border-radius: 6px;
+      cursor: pointer;
     }
 
     .view {
@@ -170,6 +171,15 @@
 
     .hidden {
       display: none;
+    }
+
+    /* TonConnect Button Container */
+    #tonConnectUI {
+      margin-top: 1rem;
+      min-height: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
   </style>
 </head>
@@ -293,9 +303,52 @@
     };
 
     let currentLang = "en";
-    const i18nElements = document.querySelectorAll("[data-i18n]");
 
+    // 브라우저 언어 자동 감지
+    function detectLanguage() {
+      const browserLang = navigator.language || navigator.userLanguage;
+      const langMap = {
+        'ko': 'ko',
+        'ja': 'ja',
+        'zh-CN': 'zh-CN',
+        'zh-TW': 'zh-TW',
+        'zh-HK': 'zh-TW',
+        'zh-SG': 'zh-CN',
+        'zh': 'zh-CN',
+        'en': 'en'
+      };
+      for (let key in langMap) {
+        if (browserLang.startsWith(key)) {
+          return langMap[key];
+        }
+      }
+      return 'en'; // 기본값 영어
+    }
+
+    // 저장된 언어 로드
+    function loadSavedLanguage() {
+      const savedLang = localStorage.getItem('userLanguage');
+      if (savedLang && translations[savedLang]) {
+        return savedLang;
+      }
+      return detectLanguage();
+    }
+
+    // 언어 저장
+    function saveLanguage(lang) {
+      localStorage.setItem('userLanguage', lang);
+    }
+
+    // 언어 설정
+    function setLanguage(lang) {
+      currentLang = lang;
+      saveLanguage(lang);
+      updateI18n();
+    }
+
+    // 번역 업데이트
     function updateI18n() {
+      const i18nElements = document.querySelectorAll("[data-i18n]");
       i18nElements.forEach(el => {
         const key = el.getAttribute("data-i18n");
         if (translations[currentLang][key]) {
@@ -304,129 +357,133 @@
       });
     }
 
+    // 언어 드롭다운 이벤트
     document.getElementById("langSelect").addEventListener("change", (e) => {
-      currentLang = e.target.value;
+      setLanguage(e.target.value);
+    });
+
+    // 초기 언어 설정
+    window.addEventListener('DOMContentLoaded', () => {
+      currentLang = loadSavedLanguage();
+      document.getElementById("langSelect").value = currentLang;
       updateI18n();
-    });
 
-    // === TON Connect ===
-    const manifestUrl = "https://aiandyou.me/tonconnect-manifest.json";
-    const tonConnectUI = new window.TonConnectUI.TonConnectUI({
-      manifestUrl,
-      buttonRootId: "tonConnectUI",
-    });
-
-    // === State ===
-    let walletAddress = null;
-    let balance = 1000; // Mock balance
-    const CSPIN_JETTON = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV";
-    const GAME_WALLET = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd";
-
-    // === DOM Elements ===
-    const landingView = document.getElementById("landingView");
-    const gameView = document.getElementById("gameView");
-    const balanceEl = document.getElementById("balance");
-    const walletAddressEl = document.getElementById("walletAddress");
-    const spinBtn = document.getElementById("spinBtn");
-    const disconnectBtn = document.getElementById("disconnectBtn");
-    const debugLog = document.getElementById("debugLog");
-
-    // === Dev Mode ===
-    const urlParams = new URLSearchParams(window.location.search);
-    const IS_DEV = urlParams.get('dev') === '1';
-    if (IS_DEV) {
-      debugLog.classList.remove("hidden");
-      balanceEl.textContent = balance;
-      debugLog.textContent = "[DEV] Free play enabled. Add ?dev=1 to URL to activate.";
-    }
-
-    // === Utils ===
-    function shortAddress(addr) {
-      return addr ? `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}` : "";
-    }
-
-    function logDebug(...args) {
-      if (!IS_DEV) return;
-      const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(" ");
-      debugLog.textContent += "\n" + msg;
-      debugLog.scrollTop = debugLog.scrollHeight;
-    }
-
-    // === Game Logic ===
-    function simulateSpin() {
-      const symbols = ["🌌", "🚀", "🛸", "🪐", "💫", "⭐", "☄️", "🌀"];
-      const reels = document.querySelectorAll(".reel");
-      reels.forEach(reel => {
-        reel.style.transform = "scale(0.9)";
-        setTimeout(() => {
-          const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
-          reel.textContent = randomSymbol;
-          reel.style.transform = "scale(1)";
-        }, 300);
+      // TON Connect UI 초기화
+      const manifestUrl = "https://aiandyou.me/tonconnect-manifest.json";
+      const tonConnectUI = new window.TonConnectUI.TonConnectUI({
+        manifestUrl,
+        buttonRootId: "tonConnectUI",
       });
-    }
 
-    async function handleSpin() {
-      if (!IS_DEV && balance < 10) {
-        alert(translations[currentLang].insufficient_funds);
-        return;
+      // === State ===
+      let walletAddress = null;
+      let balance = 1000; // Mock balance
+      const CSPIN_JETTON = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV";
+      const GAME_WALLET = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd";
+
+      // === DOM Elements ===
+      const landingView = document.getElementById("landingView");
+      const gameView = document.getElementById("gameView");
+      const balanceEl = document.getElementById("balance");
+      const walletAddressEl = document.getElementById("walletAddress");
+      const spinBtn = document.getElementById("spinBtn");
+      const disconnectBtn = document.getElementById("disconnectBtn");
+      const debugLog = document.getElementById("debugLog");
+
+      // === Dev Mode ===
+      const urlParams = new URLSearchParams(window.location.search);
+      const IS_DEV = urlParams.get('dev') === '1';
+      if (IS_DEV) {
+        debugLog.classList.remove("hidden");
+        balanceEl.textContent = balance;
+        debugLog.textContent = "[DEV] Free play enabled. Add ?dev=1 to URL to activate.";
       }
 
-      spinBtn.disabled = true;
-      spinBtn.textContent = translations[currentLang].spinning;
+      // === Utils ===
+      function shortAddress(addr) {
+        return addr ? `${addr.substring(0, 6)}...${addr.substring(addr.length - 4)}` : "";
+      }
 
-      // Step 1: Commit (mock)
-      logDebug("[DEV] Calling /commitSpin... → mock commitment");
+      function logDebug(...args) {
+        if (!IS_DEV) return;
+        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(" ");
+        debugLog.textContent += "\n" + msg;
+        debugLog.scrollTop = debugLog.scrollHeight;
+      }
 
-      // Step 2: Build transfer
-      const amountNano = (10 * 1e9).toString(); // 10 CSPIN
-      const transferUrl = `ton://transfer/${GAME_WALLET}?jetton=${CSPIN_JETTON}&amount=${amountNano}`;
-      logDebug("[DEV] Deep link:", transferUrl);
+      // === Game Logic ===
+      function simulateSpin() {
+        const symbols = ["🌌", "🚀", "🛸", "🪐", "💫", "⭐", "☄️", "🌀"];
+        const reels = document.querySelectorAll(".reel");
+        reels.forEach(reel => {
+          reel.style.transform = "scale(0.9)";
+          setTimeout(() => {
+            const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+            reel.textContent = randomSymbol;
+            reel.style.transform = "scale(1)";
+          }, 300);
+        });
+      }
 
-      if (IS_DEV) {
-        setTimeout(() => {
-          simulateSpin();
-          balance -= 10;
-          balanceEl.textContent = balance;
+      async function handleSpin() {
+        if (!IS_DEV && balance < 10) {
+          alert(translations[currentLang].insufficient_funds);
+          return;
+        }
+
+        spinBtn.disabled = true;
+        spinBtn.textContent = translations[currentLang].spinning;
+
+        // Step 1: Commit (mock)
+        logDebug("[DEV] Calling /commitSpin... → mock commitment");
+
+        // Step 2: Build transfer
+        const amountNano = (10 * 1e9).toString(); // 10 CSPIN
+        const transferUrl = `ton://transfer/${GAME_WALLET}?jetton=${CSPIN_JETTON}&amount=${amountNano}`;
+        logDebug("[DEV] Deep link:", transferUrl);
+
+        if (IS_DEV) {
+          setTimeout(() => {
+            simulateSpin();
+            balance -= 10;
+            balanceEl.textContent = balance;
+            spinBtn.disabled = false;
+            spinBtn.textContent = translations[currentLang].spin;
+            logDebug("[DEV] Spin completed (free mode)");
+          }, 1500);
+        } else {
+          window.open(transferUrl, "_blank");
+          alert(translations[currentLang].transaction_sent);
           spinBtn.disabled = false;
           spinBtn.textContent = translations[currentLang].spin;
-          logDebug("[DEV] Spin completed (free mode)");
-        }, 1500);
-      } else {
-        window.open(transferUrl, "_blank");
-        alert(translations[currentLang].transaction_sent);
-        spinBtn.disabled = false;
-        spinBtn.textContent = translations[currentLang].spin;
+        }
       }
-    }
 
-    function disconnect() {
-      tonConnectUI.disconnect();
-      walletAddress = null;
-      landingView.classList.add("active");
-      gameView.classList.remove("active");
-    }
-
-    // === Events ===
-    spinBtn.addEventListener("click", handleSpin);
-    disconnectBtn.addEventListener("click", disconnect);
-
-    // === Wallet Connection Listener ===
-    tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
-        walletAddress = wallet.account.address;
-        walletAddressEl.textContent = shortAddress(walletAddress);
-        landingView.classList.remove("active");
-        gameView.classList.add("active");
-        balanceEl.textContent = IS_DEV ? balance : "Loading...";
-        logDebug("[DEV] Wallet connected:", walletAddress);
-      } else {
-        disconnect();
+      function disconnect() {
+        tonConnectUI.disconnect();
+        walletAddress = null;
+        landingView.classList.add("active");
+        gameView.classList.remove("active");
       }
+
+      // === Events ===
+      spinBtn.addEventListener("click", handleSpin);
+      disconnectBtn.addEventListener("click", disconnect);
+
+      // === Wallet Connection Listener ===
+      tonConnectUI.onStatusChange(wallet => {
+        if (wallet) {
+          walletAddress = wallet.account.address;
+          walletAddressEl.textContent = shortAddress(walletAddress);
+          landingView.classList.remove("active");
+          gameView.classList.add("active");
+          balanceEl.textContent = IS_DEV ? balance : "Loading...";
+          logDebug("[DEV] Wallet connected:", walletAddress);
+        } else {
+          disconnect();
+        }
+      });
     });
-
-    // Initialize
-    updateI18n();
   </script>
 </body>
 </html>
