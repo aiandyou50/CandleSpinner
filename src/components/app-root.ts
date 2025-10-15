@@ -154,12 +154,56 @@ let tonConnectUI: TonConnectUI | null = null;
 // === Helper Functions ===
 
 /**
+ * Detect if running in Telegram WebApp
+ */
+function isTelegramWebApp(): boolean {
+  return typeof window !== 'undefined' && 
+         typeof (window as any).Telegram !== 'undefined' && 
+         typeof (window as any).Telegram.WebApp !== 'undefined';
+}
+
+/**
+ * Try to open wallet deep-link in Telegram in-app browser
+ * Falls back to window.location.href if Telegram WebApp is not available
+ */
+async function tryOpenInTelegramWallet(deepLink: string): Promise<void> {
+  if (isTelegramWebApp()) {
+    try {
+      const tg = (window as any).Telegram.WebApp;
+      // Try to open the link in external app (wallet)
+      tg.openLink(deepLink, { try_instant_view: false });
+      
+      // Set status to indicate wallet should be opening
+      transactionStatus.value = 'Opening Telegram wallet... If wallet doesn\'t open, please approve transaction manually';
+      
+      // After a timeout, provide fallback instructions
+      setTimeout(() => {
+        if (transactionStatus.value.includes('Opening Telegram wallet')) {
+          transactionStatus.value = 'If wallet didn\'t open, please open Tonkeeper manually and approve the transaction';
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to open link via Telegram.WebApp:', error);
+      // Fallback to standard navigation
+      window.location.href = deepLink;
+      transactionStatus.value = 'Please approve transaction in your wallet';
+    }
+  } else {
+    // Not in Telegram, use standard navigation
+    if (typeof window !== 'undefined') {
+      window.location.href = deepLink;
+      transactionStatus.value = 'Please approve transaction in your wallet';
+    }
+  }
+}
+
+/**
  * Generate Jetton transfer BOC for CSPIN token
  */
 function generateJettonTransferBOC(
   amount: bigint,
   destinationAddress: string,
-  forwardAmount: bigint = toNano('0.05')
+  forwardAmount: bigint = toNano('0.005')
 ): { boc: string; deepLink: string } {
   try {
     // Create the transfer message body
@@ -179,7 +223,7 @@ function generateJettonTransferBOC(
     // Create TON deep-link
     const deepLink = `ton://transfer/${GAME_WALLET_ADDRESS}?amount=${forwardAmount}&bin=${encodeURIComponent(boc)}`;
 
-    // Developer mode logging
+    // Developer mode logging - ONLY in dev mode to avoid exposing sensitive data
     if (isDevMode.value) {
       console.log('=== BOC Generation (Dev Mode) ===');
       console.log('Raw BOC (Uint8Array):', body.toBoc());
@@ -209,6 +253,25 @@ async function commitSpin(betAmount: number): Promise<string> {
   
   // Mock response
   return 'mock_commitment_' + Date.now();
+}
+
+/**
+ * Check if user has sufficient TON balance for transaction
+ * Returns true if sufficient, false otherwise
+ */
+async function checkTONBalance(): Promise<{ sufficient: boolean; balance: string }> {
+  // TODO: Implement actual balance check via TON API
+  // For now, assume we need at least 0.01 TON for transaction
+  // In production, this should query the actual wallet balance
+  
+  if (isDevMode.value) {
+    console.log('DEV MODE: Skipping TON balance check');
+    return { sufficient: true, balance: '1.0' };
+  }
+  
+  // Mock implementation - in production, query actual balance
+  // The minimum required is forwardAmount (0.005) + network fees (~0.005)
+  return { sufficient: true, balance: '0.1' }; // Assume sufficient for now
 }
 
 /**
@@ -619,20 +682,31 @@ export class AppRoot extends LitElement {
       const commitment = await commitSpin(betAmount);
       
       if (!isDevMode.value) {
+        // Check TON balance before attempting transaction
+        const balanceCheck = await checkTONBalance();
+        
+        if (!balanceCheck.sufficient) {
+          transactionStatus.value = '⚠️ Insufficient TON for transaction fees. Please add at least 0.01 TON to your wallet. You can buy TON in Tonkeeper or transfer from an exchange.';
+          this._isSpinning = false;
+          
+          // Clear status after 10 seconds
+          setTimeout(() => {
+            transactionStatus.value = '';
+          }, 10000);
+          return;
+        }
+        
         // Step 2: Generate Jetton transfer BOC
         const { boc, deepLink } = generateJettonTransferBOC(
           toNano(betAmount.toString()),
           GAME_WALLET_ADDRESS
         );
         
-        // Step 3: Open deep-link (this will open wallet app)
-        if (typeof window !== 'undefined') {
-          window.location.href = deepLink;
-        }
+        // Step 3: Open deep-link using Telegram WebApp if available, otherwise fallback
+        await tryOpenInTelegramWallet(deepLink);
         
         // In production, we would wait for transaction confirmation
         // and then call revealSpin
-        transactionStatus.value = 'Please approve transaction in your wallet';
       } else {
         // Developer mode: simulate spin
         console.log('DEV MODE: Simulating spin without actual transaction');
@@ -659,11 +733,11 @@ export class AppRoot extends LitElement {
       
     } catch (error) {
       console.error('Spin error:', error);
-      transactionStatus.value = i18next.t('transaction_failed');
+      transactionStatus.value = `${i18next.t('transaction_failed')}: ${error instanceof Error ? error.message : 'Unknown error'}`;
     } finally {
       this._isSpinning = false;
       
-      // Clear status after 5 seconds
+      // Clear status after 5 seconds (or 10 seconds for insufficient balance)
       setTimeout(() => {
         transactionStatus.value = '';
       }, 5000);
