@@ -32,6 +32,9 @@ const resources = {
       transaction_pending: "Transaction pending...",
       transaction_success: "Transaction successful!",
       transaction_failed: "Transaction failed",
+      waiting_confirmation: "Waiting for transaction confirmation...",
+      transaction_insufficient_ton: "Insufficient TON balance for transaction",
+      approve_in_wallet: "Please approve transaction in your wallet",
       
       // Slot Machine
       slot_title: "Galactic Slot Machine",
@@ -67,6 +70,9 @@ const resources = {
       transaction_pending: "트랜잭션 처리 중...",
       transaction_success: "트랜잭션 성공!",
       transaction_failed: "트랜잭션 실패",
+      waiting_confirmation: "트랜잭션 확인 대기 중...",
+      transaction_insufficient_ton: "TON 잔액이 부족합니다",
+      approve_in_wallet: "지갑에서 트랜잭션을 승인하세요",
       
       // Slot Machine
       slot_title: "은하 슬롯머신",
@@ -226,6 +232,241 @@ async function revealSpin(commitment: string): Promise<any> {
     win: 100,
     lines: [1, 5, 12]
   };
+}
+
+/**
+ * Detect available TonConnect APIs
+ * Checks multiple possible TonConnect API locations for compatibility
+ */
+function detectTonConnect(): {
+  available: boolean;
+  api: any;
+  type: string;
+} {
+  try {
+    // Check for TonConnect UI instance (most common)
+    if (tonConnectUI) {
+      return { available: true, api: tonConnectUI, type: 'tonConnectUI' };
+    }
+    
+    // Check for global window.tonConnectUI
+    if (typeof window !== 'undefined' && (window as any).tonConnectUI) {
+      return { available: true, api: (window as any).tonConnectUI, type: 'window.tonConnectUI' };
+    }
+    
+    // Check for window.TonConnect
+    if (typeof window !== 'undefined' && (window as any).TonConnect) {
+      return { available: true, api: (window as any).TonConnect, type: 'window.TonConnect' };
+    }
+    
+    return { available: false, api: null, type: 'none' };
+  } catch (error) {
+    console.error('Error detecting TonConnect:', error);
+    return { available: false, api: null, type: 'none' };
+  }
+}
+
+/**
+ * Get TON balance for an address
+ * Uses public API as fallback to toncenter
+ */
+async function getTonBalance(address: string): Promise<number> {
+  try {
+    // TODO: Implement proper TON balance check via toncenter or other API
+    // For now, we'll use a simple fetch to toncenter API
+    const response = await fetch(
+      `https://toncenter.com/api/v2/getAddressBalance?address=${address}`,
+      { method: 'GET' }
+    );
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch balance');
+    }
+    
+    const data = await response.json();
+    // Balance is returned in nanotons, convert to TON
+    return parseInt(data.result || '0') / 1e9;
+  } catch (error) {
+    console.error('Failed to get TON balance:', error);
+    // In dev mode or on error, return a safe default
+    if (isDevMode.value) {
+      console.log('DEV MODE: Returning mock balance of 10 TON');
+      return 10;
+    }
+    // Return 0 on error to prevent transactions
+    return 0;
+  }
+}
+
+/**
+ * Send transaction via TonConnect
+ * Tries multiple API shapes for compatibility with different TonConnect versions
+ */
+async function sendViaTonConnect(boc: string): Promise<{
+  success: boolean;
+  txHash?: string;
+  txId?: string;
+  error?: string;
+}> {
+  const detection = detectTonConnect();
+  
+  if (!detection.available) {
+    return { success: false, error: 'TonConnect not available' };
+  }
+  
+  const api = detection.api;
+  
+  if (isDevMode.value) {
+    console.log('=== TonConnect Send Attempt (Dev Mode) ===');
+    console.log('API Type:', detection.type);
+    console.log('BOC:', boc);
+  }
+  
+  // Try different API shapes in sequence
+  const attempts = [
+    // Attempt 1: tonConnectUI.sendTransaction with boc
+    async () => {
+      if (api.sendTransaction) {
+        const result = await api.sendTransaction({ boc });
+        return { success: true, txHash: result?.txHash || result?.tx_hash, txId: result?.txId };
+      }
+      throw new Error('sendTransaction method not available');
+    },
+    
+    // Attempt 2: tonConnectUI.connector.sendTransaction
+    async () => {
+      if (api.connector && api.connector.sendTransaction) {
+        const result = await api.connector.sendTransaction({ boc });
+        return { success: true, txHash: result?.txHash || result?.tx_hash, txId: result?.txId };
+      }
+      throw new Error('connector.sendTransaction not available');
+    },
+    
+    // Attempt 3: tonConnectUI.connector.send with type:'boc'
+    async () => {
+      if (api.connector && api.connector.send) {
+        const result = await api.connector.send({ type: 'boc', boc });
+        return { success: true, txHash: result?.txHash || result?.tx_hash, txId: result?.txId };
+      }
+      throw new Error('connector.send not available');
+    },
+    
+    // Attempt 4: tonConnectUI.send
+    async () => {
+      if (api.send) {
+        const result = await api.send({ type: 'boc', boc });
+        return { success: true, txHash: result?.txHash || result?.tx_hash, txId: result?.txId };
+      }
+      throw new Error('send method not available');
+    },
+    
+    // Attempt 5: tonConnectUI.request
+    async () => {
+      if (api.request) {
+        const result = await api.request('send', { boc });
+        return { success: true, txHash: result?.txHash || result?.tx_hash, txId: result?.txId };
+      }
+      throw new Error('request method not available');
+    }
+  ];
+  
+  // Try each method in sequence until one succeeds
+  for (let i = 0; i < attempts.length; i++) {
+    try {
+      const result = await attempts[i]();
+      if (isDevMode.value) {
+        console.log(`Attempt ${i + 1} succeeded:`, result);
+      }
+      return result;
+    } catch (error) {
+      if (isDevMode.value) {
+        console.log(`Attempt ${i + 1} failed:`, error);
+      }
+      // Continue to next attempt
+    }
+  }
+  
+  // All attempts failed
+  return { success: false, error: 'All TonConnect send attempts failed' };
+}
+
+/**
+ * Poll for transaction confirmation
+ * Stub implementation with backend fallback
+ */
+async function pollForConfirmation(txResult: { txHash?: string; txId?: string }): Promise<boolean> {
+  const txIdentifier = txResult.txHash || txResult.txId;
+  
+  if (isDevMode.value) {
+    console.log('=== Polling for Confirmation (Dev Mode) ===');
+    console.log('TX Identifier:', txIdentifier);
+  }
+  
+  // TODO: Implement actual backend API call to /api/tx-status
+  // For now, we'll implement a stub with timeout-based demo logic
+  
+  const maxAttempts = 20; // 20 attempts * 3 seconds = 60 seconds max
+  const pollInterval = 3000; // 3 seconds
+  
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      // Try to call backend API
+      // TODO: Replace with actual endpoint when available
+      const response = await fetch('/api/tx-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txHash: txIdentifier })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.confirmed) {
+          if (isDevMode.value) {
+            console.log('Transaction confirmed via backend API');
+          }
+          return true;
+        }
+      }
+    } catch (error) {
+      // Backend not available, use fallback demo logic
+      if (isDevMode.value && attempt === 0) {
+        console.log('Backend API not available, using demo fallback (12s timeout)');
+      }
+    }
+    
+    // Fallback: In dev mode, automatically confirm after 12 seconds (4 attempts * 3s)
+    if (isDevMode.value && attempt >= 3) {
+      console.log('DEV MODE: Auto-confirming transaction after timeout');
+      return true;
+    }
+    
+    // Wait before next poll
+    await new Promise(resolve => setTimeout(resolve, pollInterval));
+  }
+  
+  if (isDevMode.value) {
+    console.log('Transaction confirmation timeout');
+  }
+  
+  // Timeout reached - assume success in dev mode, failure in production
+  return isDevMode.value;
+}
+
+/**
+ * Check if running in Telegram in-app browser
+ */
+function isTelegramInApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  
+  // Check for Telegram WebView
+  const isTelegram = userAgent.includes('telegram');
+  
+  // Check for Telegram WebApp API
+  const hasTelegramWebApp = (window as any).Telegram && (window as any).Telegram.WebApp;
+  
+  return isTelegram || hasTelegramWebApp;
 }
 
 // === Lit Component ===
@@ -615,7 +856,7 @@ export class AppRoot extends LitElement {
       this._isSpinning = true;
       transactionStatus.value = i18next.t('transaction_pending');
       
-      // Step 1: Commit spin
+      // Step 1: Commit spin to get commitment
       const commitment = await commitSpin(betAmount);
       
       if (!isDevMode.value) {
@@ -625,16 +866,88 @@ export class AppRoot extends LitElement {
           GAME_WALLET_ADDRESS
         );
         
-        // Step 3: Open deep-link (this will open wallet app)
-        if (typeof window !== 'undefined') {
-          window.location.href = deepLink;
+        // Step 3: Check wallet balance
+        if (this._walletAddress) {
+          const tonBalance = await getTonBalance(this._walletAddress);
+          if (isDevMode.value) {
+            console.log('TON Balance:', tonBalance);
+          }
+          
+          // Need at least 0.1 TON for transaction fees
+          if (tonBalance < 0.1) {
+            transactionStatus.value = i18next.t('transaction_insufficient_ton');
+            this._isSpinning = false;
+            setTimeout(() => {
+              transactionStatus.value = '';
+            }, 5000);
+            return;
+          }
         }
         
-        // In production, we would wait for transaction confirmation
-        // and then call revealSpin
-        transactionStatus.value = 'Please approve transaction in your wallet';
+        // Step 4: Attempt TonConnect send first
+        const tonConnectResult = await sendViaTonConnect(boc);
+        
+        if (tonConnectResult.success) {
+          // TonConnect succeeded
+          if (isDevMode.value) {
+            console.log('=== TonConnect Send Successful ===');
+            console.log('TX Hash/ID:', tonConnectResult.txHash || tonConnectResult.txId);
+          }
+          
+          transactionStatus.value = i18next.t('waiting_confirmation');
+          
+          // Step 5: Poll for confirmation
+          const confirmed = await pollForConfirmation(tonConnectResult);
+          
+          if (confirmed) {
+            // Step 6: Reveal spin after confirmation
+            const result = await revealSpin(commitment);
+            slotReels.value = result.reels;
+            
+            // Update balance
+            if (result.win > 0) {
+              balance.value += result.win;
+              transactionStatus.value = `🎉 ${i18next.t('transaction_success')} Won ${result.win} CSPIN!`;
+            } else {
+              balance.value -= betAmount;
+              transactionStatus.value = 'Better luck next time!';
+            }
+          } else {
+            transactionStatus.value = i18next.t('transaction_failed') + ' (confirmation timeout)';
+          }
+        } else {
+          // TonConnect not available or failed, fallback to Telegram/deep-link
+          if (isDevMode.value) {
+            console.log('=== TonConnect Failed, Using Fallback ===');
+            console.log('Error:', tonConnectResult.error);
+          }
+          
+          // Check if we're in Telegram in-app browser
+          if (isTelegramInApp()) {
+            // Try to use Telegram WebApp API to open link
+            try {
+              const telegram = (window as any).Telegram;
+              if (telegram && telegram.WebApp && telegram.WebApp.openLink) {
+                telegram.WebApp.openLink(deepLink);
+                transactionStatus.value = i18next.t('approve_in_wallet');
+              } else {
+                // Fallback to regular deep-link
+                window.location.href = deepLink;
+                transactionStatus.value = i18next.t('approve_in_wallet');
+              }
+            } catch (error) {
+              console.error('Telegram WebApp error:', error);
+              window.location.href = deepLink;
+              transactionStatus.value = i18next.t('approve_in_wallet');
+            }
+          } else {
+            // Not in Telegram, use regular deep-link
+            window.location.href = deepLink;
+            transactionStatus.value = i18next.t('approve_in_wallet');
+          }
+        }
       } else {
-        // Developer mode: simulate spin
+        // Developer mode: simulate spin without actual transaction
         console.log('DEV MODE: Simulating spin without actual transaction');
         
         // Animate reels
@@ -795,6 +1108,8 @@ export class AppRoot extends LitElement {
           ` : ''}
         </div>
 
+        ${isDevMode.value ? this.renderDebugPanel() : ''}
+
         <div class="wallet-info">
           <div>
             <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.25rem;">
@@ -809,6 +1124,20 @@ export class AppRoot extends LitElement {
           <button class="btn btn-secondary" @click=${this.handleDisconnect}>
             ${i18next.t('disconnect')}
           </button>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderDebugPanel() {
+    const detection = detectTonConnect();
+    return html`
+      <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255, 152, 0, 0.1); border-radius: 8px; border: 1px solid var(--warning);">
+        <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--warning);">🔧 Debug Panel (Dev Mode Only)</div>
+        <div style="font-size: 0.85rem; font-family: monospace; color: var(--text-secondary);">
+          <div>TonConnect Available: ${detection.available ? '✅' : '❌'}</div>
+          <div>TonConnect Type: ${detection.type}</div>
+          <div>Telegram In-App: ${isTelegramInApp() ? '✅' : '❌'}</div>
         </div>
       </div>
     `;
