@@ -32,6 +32,9 @@ const resources = {
       transaction_pending: "Transaction pending...",
       transaction_success: "Transaction successful!",
       transaction_failed: "Transaction failed",
+      opening_telegram_wallet: "Opening Telegram wallet...",
+      wallet_open_failed: "Failed to open wallet. Please try again.",
+      approve_transaction: "Please approve transaction in your wallet",
       
       // Slot Machine
       slot_title: "Galactic Slot Machine",
@@ -67,6 +70,9 @@ const resources = {
       transaction_pending: "트랜잭션 처리 중...",
       transaction_success: "트랜잭션 성공!",
       transaction_failed: "트랜잭션 실패",
+      opening_telegram_wallet: "텔레그램 지갑 열기...",
+      wallet_open_failed: "지갑을 열지 못했습니다. 다시 시도해주세요.",
+      approve_transaction: "지갑에서 트랜잭션을 승인해주세요",
       
       // Slot Machine
       slot_title: "은하 슬롯머신",
@@ -88,7 +94,14 @@ const resources = {
       bet_amount: "ベット額",
       version: "v4.0.0",
       app_title: "CandleSpinner: ギャラクシーカジノ",
-      language: "言語"
+      language: "言語",
+      connecting: "接続中...",
+      transaction_pending: "トランザクション処理中...",
+      transaction_success: "トランザクション成功！",
+      transaction_failed: "トランザクション失敗",
+      opening_telegram_wallet: "Telegramウォレットを開いています...",
+      wallet_open_failed: "ウォレットを開けませんでした。もう一度お試しください。",
+      approve_transaction: "ウォレットでトランザクションを承認してください"
     }
   },
   "zh-CN": {
@@ -102,7 +115,14 @@ const resources = {
       bet_amount: "投注金额",
       version: "v4.0.0",
       app_title: "CandleSpinner: 银河赌场",
-      language: "语言"
+      language: "语言",
+      connecting: "连接中...",
+      transaction_pending: "交易处理中...",
+      transaction_success: "交易成功！",
+      transaction_failed: "交易失败",
+      opening_telegram_wallet: "正在打开Telegram钱包...",
+      wallet_open_failed: "无法打开钱包。请重试。",
+      approve_transaction: "请在钱包中批准交易"
     }
   },
   "zh-TW": {
@@ -116,7 +136,14 @@ const resources = {
       bet_amount: "投注金額",
       version: "v4.0.0",
       app_title: "CandleSpinner: 銀河賭場",
-      language: "語言"
+      language: "語言",
+      connecting: "連接中...",
+      transaction_pending: "交易處理中...",
+      transaction_success: "交易成功！",
+      transaction_failed: "交易失敗",
+      opening_telegram_wallet: "正在打開Telegram錢包...",
+      wallet_open_failed: "無法打開錢包。請重試。",
+      approve_transaction: "請在錢包中批准交易"
     }
   }
 };
@@ -152,6 +179,48 @@ const slotReels = signal<number[][]>([
 let tonConnectUI: TonConnectUI | null = null;
 
 // === Helper Functions ===
+
+/**
+ * Detect if the app is running in Telegram in-app browser
+ */
+function isTelegramInApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const ua = window.navigator.userAgent.toLowerCase();
+  return ua.includes('telegram');
+}
+
+/**
+ * Try to open deep-link in Telegram wallet
+ * This function attempts to open the TON payment link using Telegram's wallet integration
+ */
+async function tryOpenInTelegramWallet(deepLink: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Check if Telegram WebApp API is available
+      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp) {
+        const tg = (window as any).Telegram.WebApp;
+        
+        // Try to open the link using Telegram WebApp API
+        if (tg.openLink) {
+          tg.openLink(deepLink);
+          resolve();
+        } else {
+          // Fallback: try opening in new window/tab
+          window.open(deepLink, '_blank');
+          resolve();
+        }
+      } else {
+        // If Telegram API not available, open in new window/tab
+        window.open(deepLink, '_blank');
+        resolve();
+      }
+    } catch (error) {
+      console.error('Failed to open Telegram wallet:', error);
+      reject(error);
+    }
+  });
+}
 
 /**
  * Generate Jetton transfer BOC for CSPIN token
@@ -625,14 +694,28 @@ export class AppRoot extends LitElement {
           GAME_WALLET_ADDRESS
         );
         
-        // Step 3: Open deep-link (this will open wallet app)
+        // Step 3: Open deep-link (use Telegram-safe method if in Telegram)
         if (typeof window !== 'undefined') {
-          window.location.href = deepLink;
+          if (isTelegramInApp()) {
+            // In Telegram in-app browser, use tryOpenInTelegramWallet instead of direct redirect
+            try {
+              await tryOpenInTelegramWallet(deepLink);
+              transactionStatus.value = i18next.t('opening_telegram_wallet');
+            } catch (error) {
+              console.error('Failed to open Telegram wallet:', error);
+              transactionStatus.value = i18next.t('wallet_open_failed');
+            }
+          } else {
+            // Standard behavior for non-Telegram browsers
+            window.location.href = deepLink;
+          }
         }
         
         // In production, we would wait for transaction confirmation
         // and then call revealSpin
-        transactionStatus.value = 'Please approve transaction in your wallet';
+        if (!isTelegramInApp()) {
+          transactionStatus.value = i18next.t('approve_transaction');
+        }
       } else {
         // Developer mode: simulate spin
         console.log('DEV MODE: Simulating spin without actual transaction');
