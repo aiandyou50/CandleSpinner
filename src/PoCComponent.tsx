@@ -25,6 +25,8 @@ export const PoCComponent: React.FC = () => {
   const [lastError, setLastError] = useState<string | null>(null);
   const [txPreview, setTxPreview] = useState<any | null>(null);
   const [showDeepLink, setShowDeepLink] = useState(false);
+  const [decodedPayloadHex, setDecodedPayloadHex] = useState<string | null>(null);
+  const [decodedCellInfo, setDecodedCellInfo] = useState<string | null>(null);
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -170,7 +172,51 @@ export const PoCComponent: React.FC = () => {
             <div>Amount (nano): {txPreview.amount}</div>
             <div>ValidUntil: {new Date(txPreview.validUntil * 1000).toLocaleString()}</div>
             <div>Payload (prefix): <code style={{ wordBreak: 'break-all' }}>{txPreview.payloadBase64}</code></div>
+            <div style={{ marginTop: 8 }}>
+              <button
+                onClick={async () => {
+                  try {
+                    const b = atob(txPreview.payloadBase64);
+                    const bytes = new Uint8Array(b.length);
+                    for (let i = 0; i < b.length; i++) bytes[i] = b.charCodeAt(i);
+                    const hex = Array.from(bytes).map(x => x.toString(16).padStart(2, '0')).join('');
+                    setDecodedPayloadHex(hex);
+
+                    // try to use ton-core BOC parser if available
+                    try {
+                      // dynamic import to avoid bundling issues
+                      const ton = await import('ton-core');
+                      const maybe = (ton as any).Cell || (ton as any).deserializeBoc || (ton as any).fromBoc;
+                      if ((ton as any).Cell && typeof (ton as any).Cell.fromBoc === 'function') {
+                        const cells = (ton as any).Cell.fromBoc(Buffer.from(txPreview.payloadBase64, 'base64'));
+                        const info = `Parsed cells: ${cells.length}`;
+                        setDecodedCellInfo(info);
+                      } else if (typeof (ton as any).deserializeBoc === 'function') {
+                        const cells = (ton as any).deserializeBoc(Buffer.from(txPreview.payloadBase64, 'base64'));
+                        setDecodedCellInfo(`Parsed cells: ${cells.length}`);
+                      } else {
+                        setDecodedCellInfo('No compatible BOC parser found in ton-core build.');
+                      }
+                    } catch (err) {
+                      setDecodedCellInfo('BOC parse attempt failed: ' + String(err));
+                    }
+                  } catch (err) {
+                    setDecodedPayloadHex('Failed to decode payload: ' + String(err));
+                  }
+                }}
+              >
+                Decode payload
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {decodedPayloadHex && (
+        <div style={{ marginTop: 12, padding: 12, border: '1px solid #eee', borderRadius: 6 }}>
+          <strong>Payload Hex</strong>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{decodedPayloadHex}</pre>
+          {decodedCellInfo && <div style={{ marginTop: 8 }}>{decodedCellInfo}</div>}
         </div>
       )}
 
