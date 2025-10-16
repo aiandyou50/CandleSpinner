@@ -49,8 +49,8 @@ export const PoCComponent: React.FC = () => {
   const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
       const payloadBase64 = payloadCell.toBoc().toString("base64");
 
-      // validUntil must not be too far in the future — TON Connect validates this (<= ~5 minutes)
-      const VALID_SECONDS = 60 * 5; // 5 minutes
+  // validUntil: increase from 5 -> 10 minutes to reduce expiration failures
+  const VALID_SECONDS = 60 * 10; // 10 minutes
       const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
 
       // The TON amount sent to the token contract should cover gas/fees. For Jetton operations
@@ -93,13 +93,44 @@ export const PoCComponent: React.FC = () => {
         } catch (e: any) {
           lastErr = e;
           console.warn(`sendTransaction failed (attempt ${attempt + 1}):`, e);
-          // if bridge related error, surface deep-link option for mobile users
-          try {
-            const msg = typeof e === 'string' ? e : JSON.stringify(e);
-            if (msg.includes('bridge') || msg.includes('Bridge') || msg.includes('429') || msg.includes('CORS')) {
-              setShowDeepLink(true);
+          // normalize message
+          let msg = '';
+          try { msg = typeof e === 'string' ? e : JSON.stringify(e); } catch { msg = String(e); }
+
+          // if bridge related error or 429/CORS, show deep link option
+          if (msg.includes('bridge') || msg.includes('Bridge') || msg.includes('429') || msg.includes('CORS')) {
+            setShowDeepLink(true);
+          }
+
+          // if error looks like request expired or transaction not sent due to timeout, open deep-link fallback on mobile
+          const looksExpired = msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('transaction was not sent') || msg.toLowerCase().includes('not sent');
+          if (looksExpired) {
+            setShowDeepLink(true);
+            // if mobile user agent, attempt to open telegram wallet deep link after short delay
+            try {
+              const ua = navigator.userAgent || '';
+              const isMobile = /Android|iPhone|iPad|Mobile/i.test(ua);
+              const openDeepLink = () => {
+                // attempt tg resolve deep link
+                const tg = `tg://resolve?domain=wallet`;
+                try {
+                  if (isMobile) {
+                    window.location.href = tg;
+                  } else {
+                    // open in new tab for desktop as fallback
+                    window.open('https://wallet.ton.org/', '_blank');
+                  }
+                } catch (err) {
+                  try { window.open('https://wallet.ton.org/', '_blank'); } catch {}
+                }
+              };
+              // schedule open so the current error flow can complete first
+              setTimeout(openDeepLink, 900);
+            } catch (err) {
+              console.warn('deep-link open failed:', err);
             }
-          } catch {}
+          }
+
           // If final attempt, throw to outer catch
           if (attempt < MAX_RETRIES) {
             // small backoff
