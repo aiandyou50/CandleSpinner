@@ -22,6 +22,7 @@ export const PoCComponent: React.FC = () => {
 
   const [depositAmount, setDepositAmount] = useState<string>("100");
   const [busy, setBusy] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -90,7 +91,28 @@ export const PoCComponent: React.FC = () => {
       }
     } catch (err: any) {
       console.error("트랜잭션 에러:", err);
-      alert("입금 중 오류가 발생했습니다.");
+      // Capture structured error for display/copy
+      try {
+        setLastError(typeof err === 'string' ? err : JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+      } catch (e) {
+        setLastError(String(err));
+      }
+
+      // Friendly user guidance depending on likely cause
+      const msg = [] as string[];
+      msg.push("입금 중 오류가 발생했습니다.");
+      msg.push("가능한 원인:");
+      msg.push(" - 네트워크 또는 브리지(bridge) 서비스 과부하 (공용 브리지에 429 발생)");
+      msg.push(" - 지갑의 WebView/캐시 문제 또는 시간 동기화 문제");
+      msg.push(" - 수수료 부족(지갑 내 Toncoin 잔액 확인)");
+      msg.push("");
+      msg.push("권장 조치:");
+      msg.push("1) 모바일 Telegram TON Wallet에서 시도하거나 다른 네트워크(모바일 데이터)를 사용하세요.");
+      msg.push("2) Telegram 앱 캐시를 지우고 재로그인하세요.");
+      msg.push("3) 지갑 주소가 연결된 주소와 동일한지 확인하세요(설정 > Connected Apps).");
+      msg.push("4) 문제가 지속되면 오류 상세 정보를 복사하여 앱 개발자나 TON Wallet Support에 전달하세요.");
+
+      alert(msg.join('\n'));
     } finally {
       setBusy(false);
     }
@@ -121,6 +143,35 @@ export const PoCComponent: React.FC = () => {
       <button onClick={handleDeposit} disabled={busy}>
         {busy ? "처리중..." : `${depositAmount} CSPIN 입금`}
       </button>
+      {lastError && (
+        <div style={{ marginTop: 12, padding: 12, border: '1px solid #f1c40f', borderRadius: 6, background: '#fffbea' }}>
+          <strong>마지막 오류 (복사 가능):</strong>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12 }}>{lastError}</pre>
+          <div style={{ marginTop: 8 }}>
+            <button
+              onClick={() => {
+                try {
+                  navigator.clipboard.writeText(lastError as string);
+                  alert('오류 내용이 클립보드에 복사되었습니다.');
+                } catch (e) {
+                  alert('클립보드 복사에 실패했습니다. 콘솔에서 오류를 확인하세요.');
+                }
+              }}
+            >
+              오류 복사
+            </button>
+            <button
+              style={{ marginLeft: 8 }}
+              onClick={() => {
+                // quick retry (user-initiated)
+                setLastError(null);
+              }}
+            >
+              오류 지우기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
