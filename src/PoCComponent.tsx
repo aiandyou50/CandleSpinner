@@ -27,6 +27,7 @@ export const PoCComponent: React.FC = () => {
   const [showDeepLink, setShowDeepLink] = useState(false);
   const [decodedPayloadHex, setDecodedPayloadHex] = useState<string | null>(null);
   const [decodedCellInfo, setDecodedCellInfo] = useState<string | null>(null);
+  const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -42,10 +43,10 @@ export const PoCComponent: React.FC = () => {
       const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
       const amount = amountWhole * 10n ** DECIMALS;
 
-      const toAddress = Address.parse(GAME_WALLET_ADDRESS);
-      const responseAddress = Address.parse(connectedWallet.account.address);
+  const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+  const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
 
-      const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
+  const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
       const payloadBase64 = payloadCell.toBoc().toString("base64");
 
       // validUntil must not be too far in the future — TON Connect validates this (<= ~5 minutes)
@@ -75,6 +76,7 @@ export const PoCComponent: React.FC = () => {
         validUntil,
         payloadDisplay: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
         payloadFull: payloadBase64,
+        responseTo: responseAddress ? connectedWallet.account.address : null,
       });
 
       // Simple retry logic for transient bridge/network issues (e.g. rate limit on public bridge)
@@ -157,6 +159,17 @@ export const PoCComponent: React.FC = () => {
             min={0}
             style={{ width: 120 }}
           />
+        </label>
+      </div>
+
+      <div style={{ marginBottom: 8 }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={includeResponseTo}
+            onChange={(e) => setIncludeResponseTo(e.target.checked)}
+          />{' '}
+          Include response_to (send callback to connected wallet)
         </label>
       </div>
 

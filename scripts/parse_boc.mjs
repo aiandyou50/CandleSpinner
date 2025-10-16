@@ -60,7 +60,7 @@ async function main() {
       if (!cells) throw new Error('All BOC parse attempts failed');
     }
 
-    const slice = cells[0].beginParse();
+  const slice = cells[0].beginParse();
     // read common jetton transfer fields
     const op = slice.loadUint(32);
     const queryId = slice.loadUint(64);
@@ -75,6 +75,16 @@ async function main() {
     console.log('destination address:', dest ? dest.toString() : null);
     console.log('response_to address:', responseTo ? responseTo.toString() : null);
     console.log('forward TON (nanoton):', forward.toString());
+    // compare with expected game wallet address
+    const EXPECTED = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
+    try {
+      const ton = await import('ton-core');
+      const expectedAddr = ton.Address.parseFriendly ? ton.Address.parseFriendly(EXPECTED).address : ton.Address.parse(EXPECTED);
+      console.log('EXPECTED normalized:', expectedAddr.toString());
+      console.log('dest equals EXPECTED?', dest && expectedAddr && dest.toString() === expectedAddr.toString());
+    } catch (e) {
+      console.warn('Could not normalize EXPECTED address:', e && e.message ? e.message : e);
+    }
     process.exit(0);
   } catch (e) {
     console.error('BOC parse failed:', e && e.message ? e.message : e);
