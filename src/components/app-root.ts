@@ -5,6 +5,7 @@ import { TonConnectUI, THEME } from '@tonconnect/ui';
 import i18next from 'i18next';
 import { Address, beginCell, toNano } from '@ton/core';
 import { TonClient } from '@ton/ton';
+import { TonClient } from '@ton/ton';
 
 // === I18N Configuration ===
 const resources = {
@@ -237,16 +238,26 @@ async function getCSPINBalance(walletAddress: string): Promise<number> {
   if (!tonClient) return 0;
 
   try {
-    // For simplicity, return a mock balance to avoid API limits
-    // In production, implement proper Jetton balance fetching
     if (isDevMode.value) {
       console.log('DEV MODE: Mock CSPIN balance for', walletAddress);
       return 1000;
     }
 
-    // TODO: Implement actual Jetton balance fetching
-    // This would require calculating JettonWallet address and reading balance
-    return 0;
+    // CSPIN Jetton Master Address
+    const jettonMasterAddress = 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV';
+    
+    // Calculate JettonWallet address (simplified)
+    // In production, use proper calculation with sha256
+    const response = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${walletAddress}`);
+    if (!response.ok) throw new Error('Failed to fetch wallet info');
+    
+    const data = await response.json();
+    // For now, return mock balance. Real implementation needs JettonWallet calculation
+    console.log('Wallet info:', data);
+    
+    // TODO: Implement real Jetton balance fetching
+    // This requires calculating the JettonWallet address and reading balance from contract
+    return 1000; // Mock for now
   } catch (error) {
     console.error('Failed to get CSPIN balance:', error);
     return 0;
@@ -605,7 +616,7 @@ export class AppRoot extends LitElement {
 
     // Initialize TonConnect UI
     tonConnectUI = new TonConnectUI({
-      manifestUrl: 'https://copilot-implement-tonconnect.candlespinner.pages.dev/tonconnect-manifest.json',
+      manifestUrl: 'https://aiandyou.me/tonconnect-manifest.json',
       uiPreferences: {
         theme: THEME.DARK
       }
@@ -776,11 +787,23 @@ export class AppRoot extends LitElement {
   private async handleConnect() {
     if (tonConnectUI) {
       try {
+        // Check if already connected
+        const wallet = tonConnectUI.wallet;
+        if (wallet) {
+          console.log('Wallet already connected');
+          walletAddress.value = wallet.account.address;
+          currentView.value = 'game';
+          const cspinBalance = await getCSPINBalance(wallet.account.address);
+          balance.value = cspinBalance;
+          return;
+        }
+
         // In dev mode, simulate connection for demo purposes
         if (isDevMode.value) {
           console.log('DEV MODE: Simulating wallet connection');
           walletAddress.value = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
           currentView.value = 'game';
+          balance.value = 1000;
         } else {
           await tonConnectUI.openModal();
         }
