@@ -73,7 +73,8 @@ export const PoCComponent: React.FC = () => {
         to: CSPIN_TOKEN_ADDRESS,
         amount: TON_FEE,
         validUntil,
-        payloadBase64: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
+        payloadDisplay: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
+        payloadFull: payloadBase64,
       });
 
       // Simple retry logic for transient bridge/network issues (e.g. rate limit on public bridge)
@@ -171,7 +172,7 @@ export const PoCComponent: React.FC = () => {
             <div>To: {txPreview.to}</div>
             <div>Amount (nano): {txPreview.amount}</div>
             <div>ValidUntil: {new Date(txPreview.validUntil * 1000).toLocaleString()}</div>
-            <div>Payload (prefix): <code style={{ wordBreak: 'break-all' }}>{txPreview.payloadBase64}</code></div>
+            <div>Payload (prefix): <code style={{ wordBreak: 'break-all' }}>{txPreview.payloadDisplay}</code></div>
             <div style={{ marginTop: 8 }}>
               <button
                 onClick={async () => {
@@ -203,7 +204,7 @@ export const PoCComponent: React.FC = () => {
                   }
 
                   try {
-                    const bytes = base64ToUint8Array(txPreview.payloadBase64);
+                    const bytes = base64ToUint8Array(txPreview.payloadFull);
                     const hex = Array.from(bytes).map(x => x.toString(16).padStart(2, '0')).join('');
                     setDecodedPayloadHex(hex);
 
@@ -212,11 +213,11 @@ export const PoCComponent: React.FC = () => {
                       // dynamic import to avoid bundling issues
                       const ton = await import('ton-core');
                       if ((ton as any).Cell && typeof (ton as any).Cell.fromBoc === 'function') {
-                        const cells = (ton as any).Cell.fromBoc((globalThis as any).Buffer.from(txPreview.payloadBase64, 'base64'));
+                        const cells = (ton as any).Cell.fromBoc((globalThis as any).Buffer.from(txPreview.payloadFull, 'base64'));
                         const info = `Parsed cells: ${cells.length}`;
                         setDecodedCellInfo(info);
                       } else if (typeof (ton as any).deserializeBoc === 'function') {
-                        const cells = (ton as any).deserializeBoc((globalThis as any).Buffer.from(txPreview.payloadBase64, 'base64'));
+                        const cells = (ton as any).deserializeBoc((globalThis as any).Buffer.from(txPreview.payloadFull, 'base64'));
                         setDecodedCellInfo(`Parsed cells: ${cells.length}`);
                       } else {
                         setDecodedCellInfo('No compatible BOC parser found in ton-core build.');
