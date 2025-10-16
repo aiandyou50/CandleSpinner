@@ -4,7 +4,7 @@ import { signal, effect } from '@preact/signals';
 import { TonConnectUI, THEME } from '@tonconnect/ui';
 import i18next from 'i18next';
 import { Address, beginCell, toNano } from '@ton/core';
-import { TonClient } from '@ton/ton';
+import { TonClient, JettonMaster, JettonWallet } from '@ton/ton';
 import { TonClient } from '@ton/ton';
 
 // === I18N Configuration ===
@@ -244,20 +244,26 @@ async function getCSPINBalance(walletAddress: string): Promise<number> {
     }
 
     // CSPIN Jetton Master Address
-    const jettonMasterAddress = 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV';
+    const jettonMasterAddress = Address.parse('EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV');
+    const ownerAddress = Address.parse(walletAddress);
+
+    // Get JettonMaster contract
+    const jettonMaster = tonClient.open(JettonMaster.create(jettonMasterAddress));
     
-    // Calculate JettonWallet address (simplified)
-    // In production, use proper calculation with sha256
-    const response = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${walletAddress}`);
-    if (!response.ok) throw new Error('Failed to fetch wallet info');
+    // Get JettonWallet address for the owner
+    const jettonWalletAddress = await jettonMaster.getWalletAddress(ownerAddress);
     
-    const data = await response.json();
-    // For now, return mock balance. Real implementation needs JettonWallet calculation
-    console.log('Wallet info:', data);
+    // Open JettonWallet contract
+    const jettonWallet = tonClient.open(JettonWallet.create(jettonWalletAddress));
     
-    // TODO: Implement real Jetton balance fetching
-    // This requires calculating the JettonWallet address and reading balance from contract
-    return 1000; // Mock for now
+    // Get balance
+    const balance = await jettonWallet.getBalance();
+    
+    // Convert from nano to CSPIN (9 decimals)
+    const cspinBalance = Number(balance) / 1e9;
+    
+    console.log('Real CSPIN balance for', walletAddress, ':', cspinBalance);
+    return cspinBalance;
   } catch (error) {
     console.error('Failed to get CSPIN balance:', error);
     return 0;
@@ -673,29 +679,41 @@ export class AppRoot extends LitElement {
           GAME_WALLET_ADDRESS
         );
         
-        // Step 3: Open deep-link (this will open wallet app)
-        if (typeof window !== 'undefined') {
-          window.location.href = deepLink;
-        }
-        
-        // In production, we would wait for transaction confirmation
-        // and then call revealSpin
-        transactionStatus.value = 'Please approve transaction in your wallet';
-        
-        // For demo, simulate transaction approval after 3 seconds
-        setTimeout(async () => {
-          const result = await revealSpin(commitment);
-          slotReels.value = result.reels;
+        // Step 3: Send transaction using TonConnect
+        try {
+          const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+            messages: [{
+              address: GAME_WALLET_ADDRESS,
+              amount: toNano('0.05').toString(), // Forward amount
+              payload: boc
+            }]
+          };
           
-          // Update balance
-          if (result.win > 0) {
-            balance.value += result.win;
-            transactionStatus.value = `🎉 Transaction successful! Won ${result.win} CSPIN!`;
-          } else {
-            balance.value -= betAmount;
-            transactionStatus.value = 'Better luck next time!';
-          }
-        }, 3000);
+          const result = await tonConnectUI.sendTransaction(transaction);
+          console.log('Transaction sent:', result);
+          
+          transactionStatus.value = 'Transaction sent! Waiting for confirmation...';
+          
+          // For demo, simulate confirmation after 5 seconds
+          setTimeout(async () => {
+            const revealResult = await revealSpin(commitment);
+            slotReels.value = revealResult.reels;
+            
+            // Update balance
+            if (revealResult.win > 0) {
+              balance.value += revealResult.win;
+              transactionStatus.value = `🎉 Transaction confirmed! Won ${revealResult.win} CSPIN!`;
+            } else {
+              balance.value -= betAmount;
+              transactionStatus.value = 'Transaction confirmed. Better luck next time!';
+            }
+          }, 5000);
+          
+        } catch (error) {
+          console.error('Transaction failed:', error);
+          transactionStatus.value = 'Transaction failed. Please try again.';
+        }
       } else {
         // Developer mode: simulate spin
         console.log('DEV MODE: Simulating spin without actual transaction');
