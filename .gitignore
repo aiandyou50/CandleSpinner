@@ -1,0 +1,16 @@
+***REMOVED***dependencies
+/node_modules
+
+***REMOVED***local env files
+.env
+
+***REMOVED***build output
+/dist
+
+***REMOVED***logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+***REMOVED***misc
+.DS_Store
