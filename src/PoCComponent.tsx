@@ -23,6 +23,8 @@ export const PoCComponent: React.FC = () => {
   const [depositAmount, setDepositAmount] = useState<string>("100");
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [txPreview, setTxPreview] = useState<any | null>(null);
+  const [showDeepLink, setShowDeepLink] = useState(false);
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -64,6 +66,14 @@ export const PoCComponent: React.FC = () => {
         ],
       };
 
+      // populate preview for user verification and deep-link help
+      setTxPreview({
+        to: CSPIN_TOKEN_ADDRESS,
+        amount: TON_FEE,
+        validUntil,
+        payloadBase64: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
+      });
+
       // Simple retry logic for transient bridge/network issues (e.g. rate limit on public bridge)
       let lastErr: any = null;
       const MAX_RETRIES = 2;
@@ -78,6 +88,13 @@ export const PoCComponent: React.FC = () => {
         } catch (e: any) {
           lastErr = e;
           console.warn(`sendTransaction failed (attempt ${attempt + 1}):`, e);
+          // if bridge related error, surface deep-link option for mobile users
+          try {
+            const msg = typeof e === 'string' ? e : JSON.stringify(e);
+            if (msg.includes('bridge') || msg.includes('Bridge') || msg.includes('429') || msg.includes('CORS')) {
+              setShowDeepLink(true);
+            }
+          } catch {}
           // If final attempt, throw to outer catch
           if (attempt < MAX_RETRIES) {
             // small backoff
@@ -140,9 +157,55 @@ export const PoCComponent: React.FC = () => {
         </label>
       </div>
 
-      <button onClick={handleDeposit} disabled={busy}>
+      <button onClick={handleDeposit} disabled={busy} style={{ padding: '8px 14px', fontSize: 16 }}>
         {busy ? "처리중..." : `${depositAmount} CSPIN 입금`}
       </button>
+
+      {/* tx preview */}
+      {txPreview && (
+        <div style={{ marginTop: 12, padding: 12, border: '1px solid #e1e1e1', borderRadius: 6 }}>
+          <strong>트랜잭션 미리보기</strong>
+          <div style={{ fontSize: 13, marginTop: 8 }}>
+            <div>To: {txPreview.to}</div>
+            <div>Amount (nano): {txPreview.amount}</div>
+            <div>ValidUntil: {new Date(txPreview.validUntil * 1000).toLocaleString()}</div>
+            <div>Payload (prefix): <code style={{ wordBreak: 'break-all' }}>{txPreview.payloadBase64}</code></div>
+          </div>
+        </div>
+      )}
+
+      {/* deep link helper when bridge fails */}
+      {showDeepLink && (
+        <div style={{ marginTop: 12, padding: 12, border: '1px solid #cce5ff', borderRadius: 6, background: '#f0f8ff' }}>
+          <strong>브리지 연결 문제가 의심됩니다.</strong>
+          <div style={{ marginTop: 8 }}>
+            모바일에서 직접 지갑을 열어 승인해 보세요.
+          </div>
+          <div style={{ marginTop: 8 }}>
+            <button
+              onClick={() => {
+                // open tg resolve for TON Wallet
+                const url = `tg://resolve?domain=wallet&appname=start&startapp=tonconnect-v__2-id__${encodeURIComponent(
+                  'manual-open'
+                )}-ret__back`;
+                window.location.href = url;
+              }}
+            >
+              Open in Telegram Wallet
+            </button>
+            <button
+              style={{ marginLeft: 8 }}
+              onClick={() => {
+                // fallback to wallet web deep link
+                const url = `https://wallet.ton.org/`;
+                window.open(url, '_blank');
+              }}
+            >
+              Open Wallet Web
+            </button>
+          </div>
+        </div>
+      )}
       {lastError && (
         <div style={{ marginTop: 12, padding: 12, border: '1px solid #f1c40f', borderRadius: 6, background: '#fffbea' }}>
           <strong>마지막 오류 (복사 가능):</strong>
