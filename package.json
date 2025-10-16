@@ -1,7 +1,7 @@
 {
   "name": "candlespinner",
   "version": "1.0.0",
-  "description": "TON 블록체인 기반의 완전 탈중앙화 서버리스 Web3 슬롯머신 게임입니다.",
+  "description": "TON 블록체인 기반의 탈중앙화 서버리스 Web3 슬롯머신 게임입니다.",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -26,6 +26,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.0.4",
+    "buffer": "^6.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "ton-core": "^0.53.0",
