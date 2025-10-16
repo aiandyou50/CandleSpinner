@@ -1,0 +1,38 @@
+{
+  "name": "candlespinner",
+  "version": "1.0.0",
+  "description": "TON 블록체인 기반의 완전 탈중앙화 서버리스 Web3 슬롯머신 게임입니다.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aiandyou50/CandleSpinner.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aiandyou50/CandleSpinner/issues"
+  },
+  "homepage": "https://github.com/aiandyou50/CandleSpinner#readme",
+  "dependencies": {
+    "@tonconnect/ui-react": "^2.3.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "ton-core": "^0.53.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.10"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.0"
+  }
+}
