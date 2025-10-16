@@ -43,20 +43,51 @@ export const PoCComponent: React.FC = () => {
       const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
       const payloadBase64 = payloadCell.toBoc().toString("base64");
 
+      // validUntil must not be too far in the future — TON Connect validates this (<= ~5 minutes)
+      const VALID_SECONDS = 60 * 5; // 5 minutes
+      const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
+
+      // The TON amount sent to the token contract should cover gas/fees. For Jetton operations
+      // TON Wallet often expects the user to have ~1.05 TON available for fees. Use a safe default
+      // for PoC but warn the user before sending real TON.
+      const TON_FEE = toNano("1.1").toString();
+
       const tx = {
-        validUntil: Math.floor(Date.now() / 1000) + 600,
+        validUntil,
         messages: [
           {
             address: CSPIN_TOKEN_ADDRESS,
-            amount: toNano("0.05").toString(),
+            amount: TON_FEE,
             payload: payloadBase64,
           },
         ],
       };
 
-      const result = await tonConnectUI.sendTransaction(tx as any);
-      console.log("트랜잭션 결과:", result);
-      alert("CSPIN 입금 요청이 생성되었습니다. 지갑에서 트랜잭션을 확인하세요.");
+      // Simple retry logic for transient bridge/network issues (e.g. rate limit on public bridge)
+      let lastErr: any = null;
+      const MAX_RETRIES = 2;
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          console.log(`sendTransaction attempt ${attempt + 1}`);
+          const result = await tonConnectUI.sendTransaction(tx as any);
+          console.log("트랜잭션 결과:", result);
+          alert("CSPIN 입금 요청이 생성되었습니다. 지갑에서 트랜잭션을 확인하세요.");
+          lastErr = null;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+          console.warn(`sendTransaction failed (attempt ${attempt + 1}):`, e);
+          // If final attempt, throw to outer catch
+          if (attempt < MAX_RETRIES) {
+            // small backoff
+            await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+            continue;
+          }
+        }
+      }
+      if (lastErr) {
+        throw lastErr;
+      }
     } catch (err: any) {
       console.error("트랜잭션 에러:", err);
       alert("입금 중 오류가 발생했습니다.");
