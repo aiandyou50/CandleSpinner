@@ -616,7 +616,7 @@ export class AppRoot extends LitElement {
 
     // Initialize TonConnect UI
     tonConnectUI = new TonConnectUI({
-      manifestUrl: 'https://aiandyou.me/tonconnect-manifest.json',
+      manifestUrl: 'https://copilot-implement-tonconnect.candlespinner.pages.dev/tonconnect-manifest.json',
       uiPreferences: {
         theme: THEME.DARK
       }
@@ -681,6 +681,21 @@ export class AppRoot extends LitElement {
         // In production, we would wait for transaction confirmation
         // and then call revealSpin
         transactionStatus.value = 'Please approve transaction in your wallet';
+        
+        // For demo, simulate transaction approval after 3 seconds
+        setTimeout(async () => {
+          const result = await revealSpin(commitment);
+          slotReels.value = result.reels;
+          
+          // Update balance
+          if (result.win > 0) {
+            balance.value += result.win;
+            transactionStatus.value = `🎉 Transaction successful! Won ${result.win} CSPIN!`;
+          } else {
+            balance.value -= betAmount;
+            transactionStatus.value = 'Better luck next time!';
+          }
+        }, 3000);
       } else {
         // Developer mode: simulate spin
         console.log('DEV MODE: Simulating spin without actual transaction');
