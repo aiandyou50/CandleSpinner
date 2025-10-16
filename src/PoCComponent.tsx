@@ -175,10 +175,35 @@ export const PoCComponent: React.FC = () => {
             <div style={{ marginTop: 8 }}>
               <button
                 onClick={async () => {
+                  // robust base64 -> Uint8Array helper that supports base64url and missing padding
+                  function base64ToUint8Array(input: string): Uint8Array {
+                    // remove whitespace
+                    let s = input.replace(/\s+/g, '');
+                    // base64url -> base64
+                    s = s.replace(/-/g, '+').replace(/_/g, '/');
+                    // pad with '=' to multiple of 4
+                    while (s.length % 4 !== 0) {
+                      s += '=';
+                    }
+
+                    // try browser atob first
+                    try {
+                      const bin = atob(s);
+                      const bytes = new Uint8Array(bin.length);
+                      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                      return bytes;
+                    } catch (e) {
+                      // fallback to Buffer (polyfilled in app via polyfills.ts)
+                      if (typeof (globalThis as any).Buffer !== 'undefined') {
+                        const buf = (globalThis as any).Buffer.from(s, 'base64');
+                        return new Uint8Array(buf);
+                      }
+                      throw e;
+                    }
+                  }
+
                   try {
-                    const b = atob(txPreview.payloadBase64);
-                    const bytes = new Uint8Array(b.length);
-                    for (let i = 0; i < b.length; i++) bytes[i] = b.charCodeAt(i);
+                    const bytes = base64ToUint8Array(txPreview.payloadBase64);
                     const hex = Array.from(bytes).map(x => x.toString(16).padStart(2, '0')).join('');
                     setDecodedPayloadHex(hex);
 
@@ -186,13 +211,12 @@ export const PoCComponent: React.FC = () => {
                     try {
                       // dynamic import to avoid bundling issues
                       const ton = await import('ton-core');
-                      const maybe = (ton as any).Cell || (ton as any).deserializeBoc || (ton as any).fromBoc;
                       if ((ton as any).Cell && typeof (ton as any).Cell.fromBoc === 'function') {
-                        const cells = (ton as any).Cell.fromBoc(Buffer.from(txPreview.payloadBase64, 'base64'));
+                        const cells = (ton as any).Cell.fromBoc((globalThis as any).Buffer.from(txPreview.payloadBase64, 'base64'));
                         const info = `Parsed cells: ${cells.length}`;
                         setDecodedCellInfo(info);
                       } else if (typeof (ton as any).deserializeBoc === 'function') {
-                        const cells = (ton as any).deserializeBoc(Buffer.from(txPreview.payloadBase64, 'base64'));
+                        const cells = (ton as any).deserializeBoc((globalThis as any).Buffer.from(txPreview.payloadBase64, 'base64'));
                         setDecodedCellInfo(`Parsed cells: ${cells.length}`);
                       } else {
                         setDecodedCellInfo('No compatible BOC parser found in ton-core build.');
