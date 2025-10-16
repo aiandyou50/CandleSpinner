@@ -4,6 +4,7 @@ import { signal, effect } from '@preact/signals';
 import { TonConnectUI, THEME } from '@tonconnect/ui';
 import i18next from 'i18next';
 import { Address, beginCell, toNano } from '@ton/core';
+import { TonClient } from '@ton/ton';
 
 // === I18N Configuration ===
 const resources = {
@@ -150,6 +151,7 @@ const slotReels = signal<number[][]>([
 
 // === TON Connect Initialization (will be done in component) ===
 let tonConnectUI: TonConnectUI | null = null;
+let tonClient: TonClient | null = null;
 
 // === Helper Functions ===
 
@@ -226,6 +228,29 @@ async function revealSpin(commitment: string): Promise<any> {
     win: 100,
     lines: [1, 5, 12]
   };
+}
+
+/**
+ * Get CSPIN Jetton balance for a wallet address
+ */
+async function getCSPINBalance(walletAddress: string): Promise<number> {
+  if (!tonClient) return 0;
+
+  try {
+    // For simplicity, return a mock balance to avoid API limits
+    // In production, implement proper Jetton balance fetching
+    if (isDevMode.value) {
+      console.log('DEV MODE: Mock CSPIN balance for', walletAddress);
+      return 1000;
+    }
+
+    // TODO: Implement actual Jetton balance fetching
+    // This would require calculating JettonWallet address and reading balance
+    return 0;
+  } catch (error) {
+    console.error('Failed to get CSPIN balance:', error);
+    return 0;
+  }
 }
 
 // === Lit Component ===
@@ -572,23 +597,35 @@ export class AppRoot extends LitElement {
   }
 
   override firstUpdated() {
+    // Initialize TonClient
+    tonClient = new TonClient({
+      endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+      apiKey: '' // Public endpoint, no key needed
+    });
+
     // Initialize TonConnect UI
     tonConnectUI = new TonConnectUI({
-      manifestUrl: 'https://aiandyou.me/tonconnect-manifest.json',
+      manifestUrl: 'https://copilot-implement-tonconnect.candlespinner.pages.dev/tonconnect-manifest.json',
       uiPreferences: {
         theme: THEME.DARK
       }
     });
 
     // Listen to wallet status changes
-    tonConnectUI.onStatusChange(wallet => {
+    tonConnectUI.onStatusChange(async (wallet) => {
       if (wallet) {
         walletAddress.value = wallet.account.address;
         currentView.value = 'game';
-        console.log('Wallet connected:', wallet.account.address);
+        
+        // Fetch CSPIN balance
+        const cspinBalance = await getCSPINBalance(wallet.account.address);
+        balance.value = cspinBalance;
+        
+        console.log('Wallet connected:', wallet.account.address, 'CSPIN Balance:', cspinBalance);
       } else {
         walletAddress.value = null;
         currentView.value = 'landing';
+        balance.value = isDevMode.value ? 1000 : 0;
         console.log('Wallet disconnected');
       }
     });
