@@ -76,6 +76,9 @@ export const PoCComponent: React.FC = () => {
   const [jettonBalanceRaw, setJettonBalanceRaw] = useState<string | null>(null); // raw smallest units
   const [tonBalance, setTonBalance] = useState<string | null>(null); // in TON (string)
   const [balanceCheckStatus, setBalanceCheckStatus] = useState<string | null>(null);
+  const [pocMode, setPocMode] = useState<boolean>(false);
+  const [rpcUrl, setRpcUrl] = useState<string>('');
+  const [deriveStatus, setDeriveStatus] = useState<string | null>(null);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -109,7 +112,7 @@ export const PoCComponent: React.FC = () => {
     // Need a jetton-wallet address to check token balance; prefer manual input
     const jettonWallet = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : null;
     if (!jettonWallet) {
-      setBalanceCheckStatus('수동 jetton-wallet 주소가 필요합니다. "보내기 대상: Token Master 사용"을 끄고 jetton-wallet 주소를 입력하세요.');
+      setBalanceCheckStatus('수동 jetton-wallet 주소가 필요합니다. "보내기 대상: Token Master 사용"을 끄고 jetton-wallet 주소를 입력하세요. 또는 Auto-derive 버튼으로 파생 시도');
       return;
     }
 
@@ -249,6 +252,35 @@ export const PoCComponent: React.FC = () => {
     } catch (err) {
       console.error('fetchBalances failed', err);
       setBalanceCheckStatus('잔액 조회 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+    }
+  };
+
+  // Auto-derive jetton-wallet address using ton-core helpers if available (dynamic import)
+  const tryAutoDerive = async () => {
+    setDeriveStatus('파생 시도 중...');
+    try {
+      const masterAddr = CSPIN_TOKEN_ADDRESS;
+      const ownerAddr = connectedWallet?.account?.address;
+      if (!ownerAddr) { setDeriveStatus('연결된 지갑 주소를 찾을 수 없습니다. 지갑을 연결하세요.'); return; }
+      // dynamic import to avoid always bundling ton-core
+      const ton = await import('ton-core');
+      // try common helper names
+      let derived: any = null;
+      if ((ton as any).getJettonWalletAddress) {
+        derived = (ton as any).getJettonWalletAddress(masterAddr, ownerAddr);
+      } else if ((ton as any).JettonWallet && typeof (ton as any).JettonWallet.getAddress === 'function') {
+        derived = (ton as any).JettonWallet.getAddress(masterAddr, ownerAddr);
+      }
+      if (!derived) {
+        setDeriveStatus('ton-core에서 jetton 유도 헬퍼를 찾을 수 없습니다.');
+        return;
+      }
+      const asStr = derived.toString();
+      setManualJettonWallet(asStr);
+      setDeriveStatus('파생 성공: ' + asStr);
+    } catch (err) {
+      console.error('auto derive failed', err);
+      setDeriveStatus('파생 실패: ' + String(err));
     }
   };
 
@@ -478,6 +510,10 @@ export const PoCComponent: React.FC = () => {
           <div>Jetton 잔액: {jettonBalance ?? '알 수 없음'} {jettonBalanceRaw ? `(${jettonBalanceRaw} raw)` : ''}</div>
           <div>TON 잔액: {tonBalance ?? '알 수 없음'}</div>
           <div style={{ color: '#666' }}>{balanceCheckStatus ?? ''}</div>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 12, color: '#666' }}>인덱서 없이 RPC로 직접 조회하려면 RPC URL을 입력하고 Auto-derive 또는 RPC 조회를 사용하세요.</div>
+            <input value={rpcUrl} onChange={(e) => setRpcUrl(e.target.value)} placeholder="RPC URL (예: https://main.ton.dev)" style={{ width: '100%', maxWidth: 520, marginTop: 6 }} />
+          </div>
         </div>
       </div>
 
@@ -513,7 +549,7 @@ export const PoCComponent: React.FC = () => {
         </label>
       </div>
 
-  <button onClick={handleDeposit} disabled={busy || !connectedWallet || (sendType === 'CSPIN' && !sendToTokenMaster && (!jettonBalance || Number(jettonBalance) < Number(depositAmount)) )} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
+  <button onClick={handleDeposit} disabled={busy || !connectedWallet || (sendType === 'CSPIN' && !pocMode && !sendToTokenMaster && (!jettonBalance || Number(jettonBalance) < Number(depositAmount)) )} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
         {busy ? '처리중...' : (
           // show truncated amount with ellipsis when too long, but indicate full value exists
           (typeof depositAmount === 'string' && depositAmount.length > 12)
@@ -665,13 +701,18 @@ export const PoCComponent: React.FC = () => {
           {(() => {
             const displayed = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : manualJettonWallet;
             return (
-              <input
-                value={displayed ?? ''}
-                onChange={(e) => { if (!sendToTokenMaster) setManualJettonWallet(e.target.value); }}
-                readOnly={sendToTokenMaster}
-                style={{ width: '100%', maxWidth: 560 }}
-                placeholder={'보내기 대상: Token Master 사용을 체크하거나 수동으로 jetton-wallet 주소를 입력하세요'}
-              />
+              <div>
+                <input
+                  value={displayed ?? ''}
+                  onChange={(e) => { setManualJettonWallet(e.target.value); }}
+                  style={{ width: '100%', maxWidth: 560 }}
+                  placeholder={'수동으로 jetton-wallet 주소를 입력하거나 Auto-derive로 시도하세요'}
+                />
+                <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button onClick={tryAutoDerive} style={{ padding: '6px 10px' }}>Auto-derive jetton-wallet</button>
+                  <span style={{ color: '#666' }}>{deriveStatus ?? ''}</span>
+                </div>
+              </div>
             );
           })()}
         </div>
@@ -682,6 +723,11 @@ export const PoCComponent: React.FC = () => {
         <div style={{ marginTop: 8 }}>
           <label>
             <input type="checkbox" checked={sendToTokenMaster} onChange={(e) => setSendToTokenMaster(e.target.checked)} /> 보내기 대상: Token Master 사용
+          </label>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>
+            <input type="checkbox" checked={pocMode} onChange={(e) => setPocMode(e.target.checked)} /> PoC 모드 (잔액 검사 우회)
           </label>
         </div>
       </div>
