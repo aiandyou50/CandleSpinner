@@ -497,16 +497,58 @@ export const PoCComponent: React.FC = () => {
         >
           Payload 포함 전송 (테스트)
         </button>
+        <button
+          onClick={async () => {
+            try {
+              setBusy(true);
+              if (!connectedWallet) { alert('지갑을 먼저 연결해주세요.'); return; }
+              const DECIMALS = 9n;
+              const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
+              const amount = amountWhole * 10n ** DECIMALS;
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              if (!recipientForPayload) { alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.'); setBusy(false); return; }
+              const toAddress = Address.parse(recipientForPayload as string);
+              const responseAddr = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+              const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddr);
+              const payloadBase64 = payloadCell.toBoc().toString('base64');
+              const VALID_SECONDS = 60 * 5;
+              const forward = BigInt(0);
+              const TON_FEE_BIG = ensureMessageAmount(forward, useDiagnosticLowFee);
+              const TON_FEE = TON_FEE_BIG.toString();
+              const recipientAddr = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (recipientForPayload as string);
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientAddr, amount: TON_FEE, payload: payloadBase64 }] };
+              const txJson = JSON.stringify(tx, null, 2);
+              setLastTxJson(txJson);
+              console.log('TEST DIRECT PAYLOAD -> jetton-wallet', txJson);
+              await tonConnectUI.sendTransaction(tx as any);
+            } catch (e) { console.error('direct payload tx failed', e); alert('직접 전송 실패: ' + ((e as any)?.message ?? String(e))); } finally { setBusy(false); }
+          }}
+          style={{ padding: '8px 12px', fontSize: 14 }}
+        >
+          Payload → jetton-wallet (직접 전송 테스트)
+        </button>
       </div>
 
       {/* Derived jetton-wallet info */}
-      <div style={{ marginTop: 10 }}>
+        <div style={{ marginTop: 10 }}>
         <strong>파생된 Jetton-wallet 주소</strong>
         <div style={{ marginTop: 6 }}>
-          <input value={derivedJettonWallet ?? manualJettonWallet} onChange={(e) => setManualJettonWallet(e.target.value)} style={{ width: '100%', maxWidth: 560 }} placeholder={derivedJettonWallet ? '자동 파생됨 - 필요 시 덮어쓰기 가능' : '자동 파생 실패: 수동 입력하세요'} />
+          {/* when sendToTokenMaster is on, show token master address in read-only mode */}
+          {(() => {
+            const displayed = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (derivedJettonWallet ?? manualJettonWallet);
+            return (
+              <input
+                value={displayed ?? ''}
+                onChange={(e) => { if (!sendToTokenMaster) setManualJettonWallet(e.target.value); }}
+                readOnly={sendToTokenMaster}
+                style={{ width: '100%', maxWidth: 560 }}
+                placeholder={derivedJettonWallet ? '자동 파생됨 - 필요 시 덮어쓰기 가능' : '자동 파생 실패: 수동 입력하세요'}
+              />
+            );
+          })()}
         </div>
         <div style={{ marginTop: 8 }}>
-          <button onClick={() => { const v = manualJettonWallet || derivedJettonWallet; if (v) { navigator.clipboard.writeText(v); alert('Jetton wallet 주소 복사됨'); } else { alert('복사할 주소가 없습니다'); } }}>주소 복사</button>
+          <button onClick={() => { const v = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (manualJettonWallet || derivedJettonWallet); if (v) { navigator.clipboard.writeText(v); alert('Jetton wallet 주소 복사됨'); } else { alert('복사할 주소가 없습니다'); } }}>주소 복사</button>
           <span style={{ marginLeft: 12, color: '#666' }}>{deriveError ? `Error: ${deriveError}` : (derivedJettonWallet ? '자동 파생 성공' : '자동 파생 중...')}</span>
         </div>
         <div style={{ marginTop: 8 }}>
@@ -719,33 +761,7 @@ export const PoCComponent: React.FC = () => {
                 Decode payload
               </button>
         
-            <button onClick={async () => {
-              // Direct payload -> jetton-wallet test (visible)
-              try {
-                setBusy(true);
-                if (!connectedWallet) { alert('지갑을 먼저 연결해주세요.'); return; }
-                const DECIMALS = 9n;
-                const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
-                const amount = amountWhole * 10n ** DECIMALS;
-                const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
-                if (!recipientForPayload) { alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.'); setBusy(false); return; }
-                const toAddress = Address.parse(recipientForPayload as string);
-                const responseAddr = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
-                const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddr);
-                const payloadBase64 = payloadCell.toBoc().toString('base64');
-                const VALID_SECONDS = 60 * 5;
-                const TON_FEE = (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString();
-                const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientForPayload as string, amount: TON_FEE, payload: payloadBase64 }] };
-                const txJson = JSON.stringify(tx, null, 2);
-                setLastTxJson(txJson);
-                console.log('TEST DIRECT PAYLOAD -> jetton-wallet', txJson);
-                await tonConnectUI.sendTransaction(tx as any);
-              } catch (e) { console.error('direct payload tx failed', e); alert('직접 전송 실패: ' + ((e as any)?.message ?? String(e))); } finally { setBusy(false); }
-            }}
-            style={{ padding: '8px 12px', fontSize: 14 }}
-          >
-            Payload → jetton-wallet (직접 전송 테스트)
-          </button>
+            {/* direct payload button moved to variant buttons for clearer layout */}
             </div>
           </div>
         </div>
