@@ -15,6 +15,18 @@
         input[type=number] { max-width: 100%; }
         button { font-size: 16px; padding: 10px 12px; }
       }
+      /* Improve wrapping for long code/hex strings on mobile */
+      html, body, #root { -webkit-text-size-adjust: 100%; box-sizing: border-box; }
+      *, *:before, *:after { box-sizing: inherit; }
+      pre, code, .error-box, .tx-preview, .payload-hex { 
+        white-space: pre-wrap !important; 
+        word-break: break-word !important; 
+        overflow-wrap: anywhere !important;
+        hyphens: auto; 
+        -webkit-hyphens: auto;
+      }
+      /* ensure code blocks don't force horizontal overflow on small screens */
+      code, pre { max-width: 100%; display: block; }
     </style>
   </head>
   <body>
