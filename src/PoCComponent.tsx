@@ -20,20 +20,18 @@ function parseAddressSafe(s: string | Address | null | undefined): Address {
 }
 
 function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address | null) {
-  // normalize responseTo: if null/undefined, use canonical zero-address to ensure valid encoding
   const resp = responseTo ? responseTo : Address.parse(ZERO_ADDRESS_BOC);
   const cell = beginCell()
-    .storeUint(0xF8A7EA5, 32) // op code 'transfer' (common jetton op)
-    .storeUint(0, 64) // query id
-    .storeCoins(amount) // token amount in smallest units
+    .storeUint(0xF8A7EA5, 32)
+    .storeUint(0, 64)
+    .storeCoins(amount)
     .storeAddress(destination)
     .storeAddress(resp)
-    .storeCoins(BigInt(0)) // forward TON amount
+    .storeCoins(BigInt(0))
     .endCell();
   return cell;
 }
 
-// Ensure message.amount covers forward TON plus a fee margin.
 function ensureMessageAmount(forwardTon: bigint, diagnostic: boolean) : bigint {
   const feeMargin = diagnostic ? toNano('0.05') : toNano('1.1');
   return forwardTon + feeMargin;
@@ -157,6 +155,80 @@ export const PoCComponent: React.FC = () => {
       }
 
       if (!ok || !parsed) {
+        // If indexer failed, try RPC fallback if RPC URL is provided
+        if (rpcUrl) {
+          setBalanceCheckStatus('인덱서에서 정보를 찾지 못해 RPC로 시도합니다...');
+          try {
+            const masterAddr = CSPIN_TOKEN_ADDRESS;
+            const ownerAddrRPC = ownerAddr;
+            const getterCandidates = ['get_wallet_address','get_wallet','wallet_of','walletOf','getWalletAddress'];
+            let derivedAddr: string | null = null;
+            for (const method of getterCandidates) {
+              try {
+                const body = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [masterAddr, method, [{ type: 'address', value: ownerAddrRPC }]] };
+                const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!resp.ok) continue;
+                const j = await resp.json();
+                const txt = JSON.stringify(j.result || j);
+                const addrRegex = /(?:EQ|UQ|Ef)[A-Za-z0-9_-]{40,60}/g;
+                const matches = txt.match(addrRegex);
+                if (matches && matches.length > 0) { derivedAddr = matches[0]; break; }
+              } catch (e) { continue; }
+            }
+            if (!derivedAddr) {
+              setBalanceCheckStatus('RPC로도 jetton-wallet 주소를 찾을 수 없습니다.');
+              return;
+            }
+
+            // Now query the jetton-wallet for its token balance using common getter names
+            const balanceGetters = ['get_balance','balance','getWalletBalance','getWalletData'];
+            let rawBal: string | null = null;
+            for (const bg of balanceGetters) {
+              try {
+                const bbody = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [derivedAddr, bg, []] };
+                const rresp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bbody) });
+                if (!rresp.ok) continue;
+                const jj = await rresp.json();
+                // try to parse known shapes
+                // 1) result.stack with int value
+                if (jj?.result?.stack && Array.isArray(jj.result.stack)) {
+                  for (const el of jj.result.stack) {
+                    if (el?.type === 'int' && el?.value) { rawBal = String(el.value); break; }
+                    if (el?.type === 'num' && el?.value) { rawBal = String(el.value); break; }
+                  }
+                }
+                // 2) fallback: search any digits in JSON
+                if (!rawBal) {
+                  const txt2 = JSON.stringify(jj.result || jj);
+                  const m2 = txt2.match(/\d{3,}/);
+                  if (m2) rawBal = m2[0];
+                }
+                if (rawBal) break;
+              } catch (e) { continue; }
+            }
+            if (!rawBal) {
+              setBalanceCheckStatus('RPC에서 잔액을 추출할 수 없습니다. RPC 응답을 확인하세요.');
+              console.log('derivedAddr', derivedAddr);
+              return;
+            }
+            setJettonBalanceRaw(rawBal);
+            const dec = 9;
+            let human = rawBal;
+            if (dec > 0) {
+              while (human.length <= dec) human = '0' + human;
+              const intPart = human.slice(0, human.length - dec);
+              const fracPart = human.slice(human.length - dec).replace(/0+$/,'');
+              human = fracPart.length > 0 ? `${intPart}.${fracPart}` : `${intPart}`;
+            }
+            setJettonBalance(human);
+            setBalanceCheckStatus('RPC 기반 잔액 조회 완료');
+            return;
+          } catch (err) {
+            console.error('RPC balance fallback failed', err);
+            setBalanceCheckStatus('RPC 기반 잔액 조회 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+            return;
+          }
+        }
         setBalanceCheckStatus('인덱서에서 jetton 잔액 정보를 찾을 수 없습니다. 올바른 indexer URL 또는 API 키를 입력하세요.');
         return;
       }
