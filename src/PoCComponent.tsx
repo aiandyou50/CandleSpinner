@@ -49,8 +49,8 @@ export const PoCComponent: React.FC = () => {
   const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
       const payloadBase64 = payloadCell.toBoc().toString("base64");
 
-  // validUntil: increase from 5 -> 10 minutes to reduce expiration failures
-  const VALID_SECONDS = 60 * 10; // 10 minutes
+  // validUntil: TonConnect expects validUntil not too far in the future — keep 5 minutes
+  const VALID_SECONDS = 60 * 5; // 5 minutes
       const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
 
       // The TON amount sent to the token contract should cover gas/fees. For Jetton operations
