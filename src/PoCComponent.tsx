@@ -70,6 +70,12 @@ export const PoCComponent: React.FC = () => {
   const [sendToTokenMaster, setSendToTokenMaster] = useState<boolean>(true);
   const [lastTxJson, setLastTxJson] = useState<string | null>(null);
   const [manualJettonWallet, setManualJettonWallet] = useState<string>('');
+  const [indexerUrl, setIndexerUrl] = useState<string>('https://toncenter.com/api/v2');
+  const [indexerApiKey, setIndexerApiKey] = useState<string>('');
+  const [jettonBalance, setJettonBalance] = useState<string | null>(null); // in human-readable units (string)
+  const [jettonBalanceRaw, setJettonBalanceRaw] = useState<string | null>(null); // raw smallest units
+  const [tonBalance, setTonBalance] = useState<string | null>(null); // in TON (string)
+  const [balanceCheckStatus, setBalanceCheckStatus] = useState<string | null>(null);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -86,6 +92,165 @@ export const PoCComponent: React.FC = () => {
   }, [tonConnectUI]);
 
   // Removed automatic derivation: PoC now relies on manual jetton-wallet input or token master mode.
+
+  // Helper: attempt to fetch jetton balance and TON balance using a configurable indexer endpoint.
+  const fetchBalances = async () => {
+    setBalanceCheckStatus('조회 중...');
+    setJettonBalance(null);
+    setJettonBalanceRaw(null);
+    setTonBalance(null);
+
+    const ownerAddr = connectedWallet?.account?.address;
+    if (!ownerAddr) {
+      setBalanceCheckStatus('연결된 지갑 주소를 찾을 수 없습니다. 지갑을 다시 연결하세요.');
+      return;
+    }
+
+    // Need a jetton-wallet address to check token balance; prefer manual input
+    const jettonWallet = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : null;
+    if (!jettonWallet) {
+      setBalanceCheckStatus('수동 jetton-wallet 주소가 필요합니다. "보내기 대상: Token Master 사용"을 끄고 jetton-wallet 주소를 입력하세요.');
+      return;
+    }
+
+    // build common fetch options
+    const headers: Record<string,string> = { 'Content-Type': 'application/json' };
+    if (indexerApiKey) headers['X-API-Key'] = indexerApiKey;
+
+    try {
+      // Try a few common indexer GET shapes. Responses differ across indexers, so parse heuristically.
+      // 1) Try: { balance: '123' } or { result: { balance: '123' } }
+      const tryUrls = [
+        // toncenter-style endpoint guesses
+        `${indexerUrl}/getAccount?address=${encodeURIComponent(jettonWallet)}`,
+        `${indexerUrl}/getAddressInformation?address=${encodeURIComponent(jettonWallet)}`,
+        // generic account info
+        `${indexerUrl}/accounts/${encodeURIComponent(jettonWallet)}`,
+        // direct jetton-wallet query placeholder (some indexers expose jetton endpoints)
+        `${indexerUrl}/jetton/${encodeURIComponent(jettonWallet)}`,
+      ];
+
+      let parsed: any = null;
+      let ok = false;
+      for (const url of tryUrls) {
+        try {
+          const resp = await fetch(url, { method: 'GET', headers });
+          if (!resp.ok) continue;
+          const j = await resp.json();
+          // try to find a numeric balance field in common locations
+          const candidates = [j, j.result, j.data, j.account, j.accountState, j.balance, j.result?.balance, j.data?.balance, j.account?.balance, j.result?.data];
+          // flatten any nested objects to search for numeric-like values
+          const flat = JSON.stringify(candidates);
+          if (flat.includes('balance') || flat.match(/\d{2,}/)) {
+            parsed = j;
+            ok = true;
+            break;
+          }
+        } catch (e) {
+          // ignore and try next
+          continue;
+        }
+      }
+
+      if (!ok || !parsed) {
+        setBalanceCheckStatus('인덱서에서 jetton 잔액 정보를 찾을 수 없습니다. 올바른 indexer URL 또는 API 키를 입력하세요.');
+        return;
+      }
+
+      // Heuristically extract a balance and decimals if present
+      // Look for common shapes: parsed.balance, parsed.result.balance, parsed.tokens[...].balance, etc.
+      let rawBalance: string | null = null;
+      let decimals: number | null = null;
+
+      // helper to try to pluck numeric-like fields
+      const pluckNumberString = (obj: any): string | null => {
+        if (!obj) return null;
+        if (typeof obj === 'string' && /^\d+$/.test(obj)) return obj;
+        if (typeof obj === 'number') return String(obj);
+        if (typeof obj === 'object') {
+          for (const k of ['balance', 'value', 'amount']) {
+            if (obj[k] !== undefined && (typeof obj[k] === 'string' || typeof obj[k] === 'number')) {
+              const v = String(obj[k]);
+              if (/^\d+$/.test(v)) return v;
+            }
+          }
+          // inspect arrays of tokens
+          for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (Array.isArray(val)) {
+              for (const it of val) {
+                const r = pluckNumberString(it);
+                if (r) return r;
+              }
+            } else if (typeof val === 'object') {
+              const r = pluckNumberString(val);
+              if (r) return r;
+            }
+          }
+        }
+        return null;
+      };
+
+      rawBalance = pluckNumberString(parsed) ?? null;
+      // decimals heuristics
+      if (parsed && typeof parsed.decimals === 'number') decimals = parsed.decimals;
+      if (!decimals && parsed?.token && typeof parsed.token.decimals === 'number') decimals = parsed.token.decimals;
+
+      if (!rawBalance) {
+        setBalanceCheckStatus('인덱서 응답에서 잔액을 추출할 수 없습니다. 응답을 콘솔에서 확인하세요.');
+        console.log('Indexer parsed object:', parsed);
+        return;
+      }
+
+      setJettonBalanceRaw(rawBalance);
+      const dec = decimals ?? 9;
+      // convert raw (smallest units) to human-readable string
+      let human = rawBalance;
+      if (dec > 0) {
+        // pad
+        while (human.length <= dec) human = '0' + human;
+        const intPart = human.slice(0, human.length - dec);
+        const fracPart = human.slice(human.length - dec).replace(/0+$/,'');
+        human = fracPart.length > 0 ? `${intPart}.${fracPart}` : `${intPart}`;
+      }
+      setJettonBalance(human);
+
+      // TON balance: attempt simple account info fetch for connected wallet address
+      try {
+        const tonUrl = `${indexerUrl}/getAccount?address=${encodeURIComponent(ownerAddr)}`;
+        const resp2 = await fetch(tonUrl, { method: 'GET', headers });
+        if (resp2.ok) {
+          const j2 = await resp2.json();
+          // try common paths
+          let tonRaw: string | null = null;
+          if (j2.balance) tonRaw = String(j2.balance);
+          if (!tonRaw && j2.result && j2.result.balance) tonRaw = String(j2.result.balance);
+          if (!tonRaw && j2.account && j2.account.balance) tonRaw = String(j2.account.balance);
+          if (tonRaw) {
+            // tonRaw may be in nanotons
+            // If value is very large, assume nanotons -> convert to TON
+            let tonHuman = tonRaw;
+            if (/^\d+$/.test(tonRaw)) {
+              // convert from nanoton to TON
+              while (tonHuman.length <= 9) tonHuman = '0' + tonHuman;
+              const intP = tonHuman.slice(0, tonHuman.length - 9);
+              const fracP = tonHuman.slice(tonHuman.length - 9).replace(/0+$/,'');
+              tonHuman = fracP.length > 0 ? `${intP}.${fracP}` : `${intP}`;
+            }
+            setTonBalance(tonHuman);
+          }
+        }
+      } catch (e) {
+        // ignore ton balance failure
+        console.warn('TON balance fetch failed', e);
+      }
+
+      setBalanceCheckStatus('잔액 조회 완료');
+    } catch (err) {
+      console.error('fetchBalances failed', err);
+      setBalanceCheckStatus('잔액 조회 중 오류가 발생했습니다. 콘솔을 확인하세요.');
+    }
+  };
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -310,6 +475,21 @@ export const PoCComponent: React.FC = () => {
         </label>
       </div>
 
+      {/* Indexer configuration and balance check */}
+      <div style={{ marginTop: 8, padding: 8, border: '1px dashed #ddd' }}>
+        <div style={{ marginBottom: 6 }}><strong>인덱서 (잔액조회) 설정</strong></div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input value={indexerUrl} onChange={(e) => setIndexerUrl(e.target.value)} style={{ width: '100%', maxWidth: 520 }} placeholder="Index API URL (예: https://toncenter.com/api/v2)" />
+          <input value={indexerApiKey} onChange={(e) => setIndexerApiKey(e.target.value)} style={{ width: '100%', maxWidth: 220 }} placeholder="API Key (선택)" />
+          <button onClick={fetchBalances} disabled={!connectedWallet || !manualJettonWallet} style={{ padding: '6px 10px' }}>잔액 조회</button>
+        </div>
+        <div style={{ marginTop: 8, color: '#444' }}>
+          <div>Jetton 잔액: {jettonBalance ?? '알 수 없음'} {jettonBalanceRaw ? `(${jettonBalanceRaw} raw)` : ''}</div>
+          <div>TON 잔액: {tonBalance ?? '알 수 없음'}</div>
+          <div style={{ color: '#666' }}>{balanceCheckStatus ?? ''}</div>
+        </div>
+      </div>
+
       <div style={{ marginBottom: 8 }}>
         <label>
           <input
@@ -342,7 +522,7 @@ export const PoCComponent: React.FC = () => {
         </label>
       </div>
 
-      <button onClick={handleDeposit} disabled={busy} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
+  <button onClick={handleDeposit} disabled={busy || !connectedWallet || (sendType === 'CSPIN' && !sendToTokenMaster && (!jettonBalance || Number(jettonBalance) < Number(depositAmount)) )} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
         {busy ? '처리중...' : (
           // show truncated amount with ellipsis when too long, but indicate full value exists
           (typeof depositAmount === 'string' && depositAmount.length > 12)
