@@ -181,13 +181,13 @@ export const PoCComponent: React.FC = () => {
   // For diagnostics we can use a low fee to test flow when wallet has no TON.
   const TON_FEE = (useDiagnosticLowFee ? toNano("0.05") : toNano("1.1")).toString();
 
-      // Important: send the payload to the token master contract (CSPIN_TOKEN_ADDRESS).
-      // The payload itself contains the destination jetton-wallet (payloadDestAddrStr).
+      // Send the payload to the user's jetton-wallet address (preferred) so the jetton-wallet processes the transfer.
+      // Fallback: if payload destination equals the token master for some reason, the token master can be used.
       const tx = {
         validUntil,
         messages: [
           {
-            address: CSPIN_TOKEN_ADDRESS,
+            address: payloadDestAddrStr, // send directly to jetton-wallet (or GAME_WALLET_ADDRESS fallback)
             amount: TON_FEE,
             payload: payloadBase64,
           },
@@ -448,7 +448,8 @@ export const PoCComponent: React.FC = () => {
                 validUntil,
                 messages: [
                   {
-                    address: CSPIN_TOKEN_ADDRESS,
+                    // send payload directly to the user's jetton-wallet (recipient)
+                    address: recipient as string,
                     amount: TON_FEE,
                     payload: payloadBase64,
                   },
@@ -515,7 +516,7 @@ export const PoCComponent: React.FC = () => {
               const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, null, BigInt(0));
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientForPayload as string, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('VARIANT omit response_to', txJson);
@@ -547,7 +548,7 @@ export const PoCComponent: React.FC = () => {
               const VALID_SECONDS = 60 * 5;
               // ensure message TON amount includes forward plus a fee margin (1.1 TON default)
               const msgAmount = (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')) + forward;
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: msgAmount.toString(), payload: payloadBase64 }] };
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientForPayload as string, amount: msgAmount.toString(), payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('VARIANT forward 1 TON (encoded in payload structure)', txJson);
@@ -571,7 +572,8 @@ export const PoCComponent: React.FC = () => {
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
               const highFee = toNano('2.5').toString();
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: highFee, payload: payloadBase64 }] };
+              // send to the payload destination used in payload construction (toAddress)
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: toAddress.toString(), amount: highFee, payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('DIAG high-fee payload tx', txJson);
@@ -600,7 +602,7 @@ export const PoCComponent: React.FC = () => {
               const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, responseAddr, BigInt(0), 0x12345678);
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientForPayload as string, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('VARIANT opcode override', txJson);
