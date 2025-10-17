@@ -58,6 +58,7 @@ export const PoCComponent: React.FC = () => {
   const [tonConnectUI] = useTonConnectUI();
 
   const [depositAmount, setDepositAmount] = useState<string>("100");
+  const [sendType, setSendType] = useState<'CSPIN'|'TON'>('CSPIN');
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [txPreview, setTxPreview] = useState<any | null>(null);
@@ -129,18 +130,34 @@ export const PoCComponent: React.FC = () => {
   const requiredAmount = ensureMessageAmount(forwardAmount, useDiagnosticLowFee);
   const TON_FEE = requiredAmount.toString();
 
-      // Choose recipient based on toggle: token master or jetton-wallet (payload destination)
-      const recipientAddress = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
-      const tx = {
-        validUntil,
-        messages: [
-          {
-            address: recipientAddress,
-            amount: TON_FEE,
-            payload: payloadBase64,
-          },
-        ],
-      };
+      // Determine tx based on sendType
+      let tx: any;
+      if (sendType === 'CSPIN') {
+        // Choose recipient based on toggle: token master or jetton-wallet (payload destination)
+        const recipientAddress = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
+        tx = {
+          validUntil,
+          messages: [
+            {
+              address: recipientAddress,
+              amount: TON_FEE,
+              payload: payloadBase64,
+            },
+          ],
+        };
+      } else {
+        // TON transfer: send native TON to payloadDestAddrStr (or token master if selected)
+        const recipientAddress = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
+        tx = {
+          validUntil,
+          messages: [
+            {
+              address: recipientAddress,
+              amount: ensureMessageAmount(BigInt(0), useDiagnosticLowFee).toString(),
+            },
+          ],
+        };
+      }
 
       // Detailed logging to help debug TonConnect delivery issues
       console.log('Prepared tx:', {
@@ -315,10 +332,22 @@ export const PoCComponent: React.FC = () => {
         </label>
       </div>
 
+      <div style={{ marginBottom: 8 }}>
+        <label>
+          전송 타입:
+          <select value={sendType} onChange={(e) => setSendType(e.target.value as any)} style={{ marginLeft: 8 }}>
+            <option value="CSPIN">CSPIN 토큰 전송</option>
+            <option value="TON">TON(네이티브) 전송</option>
+          </select>
+        </label>
+      </div>
+
       <button onClick={handleDeposit} disabled={busy} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
         {busy ? '처리중...' : (
-          // if the deposit amount string is very long, show a short, stable label to avoid overflow
-          (typeof depositAmount === 'string' && depositAmount.length > 12) ? 'CSPIN 토큰 입금' : `${depositAmount} CSPIN 입금`
+          // show truncated amount with ellipsis when too long, but indicate full value exists
+          (typeof depositAmount === 'string' && depositAmount.length > 12)
+            ? `${depositAmount.slice(0,12)}... ${sendType === 'CSPIN' ? 'CSPIN' : 'TON'} 입금`
+            : `${depositAmount} ${sendType === 'CSPIN' ? 'CSPIN' : 'TON'} 입금`
         )}
       </button>
 
