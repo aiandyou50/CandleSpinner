@@ -285,13 +285,27 @@ export const PoCComponent: React.FC = () => {
             const j = await resp.json();
             // try to extract address-like string from result
             const res = j.result || j;
-            // naive search
+            // robust search for friendly TON addresses (common prefixes EQ, UQ, Ef, etc.)
             const txt = JSON.stringify(res);
-            const m = txt.match(/[EQA-Za-z0-9_-]{48,}/);
-            if (m) {
-              setManualJettonWallet(m[0]);
-              setDeriveStatus('RPC 파생 성공: ' + m[0]);
-              return;
+            const addrRegex = /(?:EQ|UQ|Ef)[A-Za-z0-9_-]{40,60}/g;
+            const matches = txt.match(addrRegex);
+            if (matches && matches.length > 0) {
+              // pick the first candidate
+              const candidate = matches[0];
+              try {
+                // validate via ton-core Address.parse if available
+                try {
+                  const tonCore = await import('ton-core');
+                  try { tonCore.Address.parse(candidate); } catch { throw new Error('invalid address'); }
+                } catch (e) {
+                  // if ton-core not available, accept candidate heuristically
+                }
+                setManualJettonWallet(candidate);
+                setDeriveStatus('RPC 파생 성공: ' + candidate);
+                return;
+              } catch (e) {
+                console.warn('candidate address validation failed', e);
+              }
             }
             setDeriveStatus('RPC 응답에서 주소를 추출할 수 없습니다. 콘솔을 확인하세요.');
             console.log('RPC result', j);
@@ -504,6 +518,24 @@ export const PoCComponent: React.FC = () => {
     } finally {
       setBusy(false);
     }
+  };
+
+  // Helper: download a debug pack with last TX JSON and payload BOC
+  const downloadDebugPack = () => {
+    const parts: Record<string,string> = {};
+    if (lastTxJson) parts['tx.json'] = lastTxJson;
+    if (txPreview && txPreview.payloadFull) parts['payload.b64.txt'] = txPreview.payloadFull;
+    if (Object.keys(parts).length === 0) { alert('다운로드할 디버그 데이터가 없습니다.'); return; }
+    const zipContent = Object.entries(parts).map(([name, body]) => `--- ${name} ---\n${body}`).join('\n\n');
+    const blob = new Blob([zipContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cspin-debug-pack.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   if (!connectedWallet) {
@@ -781,6 +813,7 @@ export const PoCComponent: React.FC = () => {
         <div style={{ marginTop: 8 }}>
           <button onClick={() => { if (lastTxJson) { navigator.clipboard.writeText(lastTxJson); alert('TX JSON이 클립보드에 복사되었습니다.'); } else { alert('복사할 TX JSON이 없습니다.'); } }}>TX JSON 복사</button>
           <button style={{ marginLeft: 8 }} onClick={() => setLastTxJson(null)}>지우기</button>
+          <button style={{ marginLeft: 8 }} onClick={downloadDebugPack}>디버그 팩 다운로드</button>
         </div>
 
         <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
