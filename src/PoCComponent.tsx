@@ -16,6 +16,19 @@ function buildJettonTransferPayload(amount: bigint, destination: Address, respon
   return cell;
 }
 
+function buildJettonTransferPayloadVariant(amount: bigint, destination: Address, responseTo: Address | null, forwardTon: bigint = BigInt(0), opcodeOverride?: number) {
+  const op = typeof opcodeOverride === 'number' ? opcodeOverride : 0xF8A7EA5;
+  const cell = beginCell()
+    .storeUint(op, 32)
+    .storeUint(0, 64)
+    .storeCoins(amount)
+    .storeAddress(destination)
+    .storeAddress(responseTo)
+    .storeCoins(forwardTon)
+    .endCell();
+  return cell;
+}
+
 export const PoCComponent: React.FC = () => {
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
@@ -29,6 +42,7 @@ export const PoCComponent: React.FC = () => {
   const [decodedCellInfo, setDecodedCellInfo] = useState<string | null>(null);
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
+  const [lastTxJson, setLastTxJson] = useState<string | null>(null);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -277,7 +291,9 @@ export const PoCComponent: React.FC = () => {
                   },
                 ],
               };
-              console.log('TEST SIMPLE TX', JSON.stringify(tx, null, 2));
+              const txJson = JSON.stringify(tx, null, 2);
+              console.log('TEST SIMPLE TX', txJson);
+              setLastTxJson(txJson);
               await tonConnectUI.sendTransaction(tx as any);
               alert('간단 전송 요청을 보냈습니다. 지갑에서 확인하세요.');
             } catch (e) {
@@ -326,7 +342,9 @@ export const PoCComponent: React.FC = () => {
                 ],
               };
 
-              console.log('TEST PAYLOAD TX', JSON.stringify(tx, null, 2));
+              const txJson = JSON.stringify(tx, null, 2);
+              console.log('TEST PAYLOAD TX', txJson);
+              setLastTxJson(txJson);
               // send through TonConnect UI
               await tonConnectUI.sendTransaction(tx as any);
               alert('페이로드 포함 전송 요청을 보냈습니다. 지갑에서 확인하세요.');
@@ -341,6 +359,89 @@ export const PoCComponent: React.FC = () => {
         >
           Payload 포함 전송 (테스트)
         </button>
+      </div>
+
+      {/* Last TX JSON display + variant test buttons */}
+      <div style={{ marginTop: 12 }}>
+        <strong>최근 전송 TX JSON (복사 가능)</strong>
+        <div style={{ marginTop: 8 }}>
+          <textarea readOnly value={lastTxJson ?? ''} style={{ width: '100%', height: 140, fontSize: 12 }} />
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <button onClick={() => { if (lastTxJson) { navigator.clipboard.writeText(lastTxJson); alert('TX JSON이 클립보드에 복사되었습니다.'); } else { alert('복사할 TX JSON이 없습니다.'); } }}>TX JSON 복사</button>
+          <button style={{ marginLeft: 8 }} onClick={() => setLastTxJson(null)}>지우기</button>
+        </div>
+
+        <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={async () => {
+            // variant: omit response_to
+            try {
+              setBusy(true);
+              const DECIMALS = 9n;
+              const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
+              const amount = amountWhole * 10n ** DECIMALS;
+              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, null, BigInt(0));
+              const payloadBase64 = payloadCell.toBoc().toString('base64');
+              const VALID_SECONDS = 60 * 5;
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
+              const txJson = JSON.stringify(tx, null, 2);
+              setLastTxJson(txJson);
+              console.log('VARIANT omit response_to', txJson);
+              await tonConnectUI.sendTransaction(tx as any);
+            } catch (e) {
+              console.error('variant omit failed', e);
+              alert('variant omit failed: ' + ((e as any)?.message ?? String(e)));
+            } finally { setBusy(false); }
+          }}>Variant: omit response_to</button>
+
+          <button onClick={async () => {
+            // variant: set forward TON to 1 TON
+            try {
+              setBusy(true);
+              const DECIMALS = 9n;
+              const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
+              const amount = amountWhole * 10n ** DECIMALS;
+              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const forward = toNano('1').toString();
+              const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, includeResponseTo ? Address.parse(connectedWallet.account.address) : null, BigInt(0));
+              // note: forward TON is not used in payload here for compatibility; stored as last bytes if needed
+              const payloadBase64 = payloadCell.toBoc().toString('base64');
+              const VALID_SECONDS = 60 * 5;
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
+              const txJson = JSON.stringify(tx, null, 2);
+              setLastTxJson(txJson);
+              console.log('VARIANT forward 1 TON (encoded in payload structure)', txJson);
+              await tonConnectUI.sendTransaction(tx as any);
+            } catch (e) {
+              console.error('variant forward failed', e);
+              alert('variant forward failed: ' + ((e as any)?.message ?? String(e)));
+            } finally { setBusy(false); }
+          }}>Variant: forward 1 TON</button>
+
+          <button onClick={async () => {
+            // variant: opcode override to a different value (for testing)
+            try {
+              setBusy(true);
+              const DECIMALS = 9n;
+              const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
+              const amount = amountWhole * 10n ** DECIMALS;
+              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const responseAddr = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+              const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, responseAddr, BigInt(0), 0x12345678);
+              const payloadBase64 = payloadCell.toBoc().toString('base64');
+              const VALID_SECONDS = 60 * 5;
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
+              const txJson = JSON.stringify(tx, null, 2);
+              setLastTxJson(txJson);
+              console.log('VARIANT opcode override', txJson);
+              await tonConnectUI.sendTransaction(tx as any);
+            } catch (e) {
+              console.error('variant opcode failed', e);
+              alert('variant opcode failed: ' + ((e as any)?.message ?? String(e)));
+            } finally { setBusy(false); }
+          }}>Variant: opcode override</button>
+        </div>
       </div>
 
       {/* tx preview */}
