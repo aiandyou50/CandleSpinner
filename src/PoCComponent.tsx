@@ -65,8 +65,6 @@ export const PoCComponent: React.FC = () => {
             address: CSPIN_TOKEN_ADDRESS,
             amount: TON_FEE,
             payload: payloadBase64,
-            // explicit sendMode can help with some wallet/bridge requirements
-            sendMode: 3,
           },
         ],
       };
