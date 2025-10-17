@@ -160,13 +160,20 @@ export const PoCComponent: React.FC = () => {
 
       // populate preview for user verification and deep-link help
       setTxPreview({
-        to: CSPIN_TOKEN_ADDRESS,
+        to: recipientAddrStr,
         amount: TON_FEE,
         validUntil,
         payloadDisplay: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
         payloadFull: payloadBase64,
         responseTo: responseAddress ? connectedWallet.account.address : null,
       });
+
+      // store full tx json for copy/debug
+      try {
+        setLastTxJson(JSON.stringify(tx, null, 2));
+      } catch (e) {
+        setLastTxJson(String(tx));
+      }
 
       // Simple retry logic for transient bridge/network issues (e.g. rate limit on public bridge)
       let lastErr: any = null;
