@@ -236,7 +236,10 @@ export const PoCComponent: React.FC = () => {
       </div>
 
       <button onClick={handleDeposit} disabled={busy} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
-        {busy ? "처리중..." : `${depositAmount} CSPIN 입금`}
+        {busy ? '처리중...' : (
+          // if the deposit amount string is very long, show a short, stable label to avoid overflow
+          (typeof depositAmount === 'string' && depositAmount.length > 12) ? 'CSPIN 토큰 입금' : `${depositAmount} CSPIN 입금`
+        )}
       </button>
 
       {/* tx preview */}
