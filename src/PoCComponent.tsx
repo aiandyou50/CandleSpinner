@@ -242,6 +242,43 @@ export const PoCComponent: React.FC = () => {
         )}
       </button>
 
+      {/* Test button: send a simple transaction without payload to help isolate payload-related rejections */}
+      <div style={{ marginTop: 10 }}>
+        <button
+          onClick={async () => {
+            try {
+              setBusy(true);
+              if (!connectedWallet) {
+                alert('지갑을 먼저 연결해주세요.');
+                return;
+              }
+              const VALID_SECONDS = 60 * 5;
+              const tx = {
+                validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS,
+                messages: [
+                  {
+                    address: CSPIN_TOKEN_ADDRESS,
+                    amount: toNano('0.05').toString(),
+                    // intentionally no payload
+                  },
+                ],
+              };
+              console.log('TEST SIMPLE TX', JSON.stringify(tx, null, 2));
+              await tonConnectUI.sendTransaction(tx as any);
+              alert('간단 전송 요청을 보냈습니다. 지갑에서 확인하세요.');
+            } catch (e) {
+              console.error('simple tx failed', e);
+              alert('간단 전송 실패: ' + (e && (e as any).message ? (e as any).message : String(e)));
+            } finally {
+              setBusy(false);
+            }
+          }}
+          style={{ marginTop: 6, padding: '8px 12px', fontSize: 14 }}
+        >
+          Payload 없이 전송 (테스트)
+        </button>
+      </div>
+
       {/* tx preview */}
       {txPreview && (
         <div style={{ marginTop: 12, padding: 12, border: '1px solid #e1e1e1', borderRadius: 6 }}>
