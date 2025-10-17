@@ -66,7 +66,7 @@ export const PoCComponent: React.FC = () => {
   const [decodedCellInfo, setDecodedCellInfo] = useState<string | null>(null);
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
-  const [sendToTokenMaster, setSendToTokenMaster] = useState<boolean>(false);
+  const [sendToTokenMaster, setSendToTokenMaster] = useState<boolean>(true);
   const [lastTxJson, setLastTxJson] = useState<string | null>(null);
   const [derivedJettonWallet, setDerivedJettonWallet] = useState<string | null>(null);
   const [manualJettonWallet, setManualJettonWallet] = useState<string>('');
@@ -176,6 +176,17 @@ export const PoCComponent: React.FC = () => {
   const payloadDestAddrStr = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : (derivedJettonWallet ? derivedJettonWallet : GAME_WALLET_ADDRESS as string);
   const toAddress = Address.parse(payloadDestAddrStr);
   const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+
+  // Safety guard: if payload destination equals the connected wallet (owner) address, don't send payload directly to owner.
+  // This prevents accidental TON-only approvals where wallet shows native TON transfer UI instead of token transfer.
+  if (!sendToTokenMaster) {
+    const ownerAddr = connectedWallet.account.address;
+    if (payloadDestAddrStr === ownerAddr) {
+      alert('경고: 페이로드 대상이 연결된 지갑(Owner)입니다. 직접 owner로 전송하면 지갑이 TON 승인으로 표시할 수 있습니다. \n\n해결 방법:\n- "보내기 대상: Token Master 사용" 옵션을 켜고 재시도하거나\n- 수동으로 올바른 jetton-wallet 주소를 입력하세요.');
+      setBusy(false);
+      return;
+    }
+  }
 
   const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
   const payloadBase64 = payloadCell.toBoc().toString("base64");
