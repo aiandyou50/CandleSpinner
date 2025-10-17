@@ -43,6 +43,9 @@ export const PoCComponent: React.FC = () => {
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
   const [lastTxJson, setLastTxJson] = useState<string | null>(null);
+  const [derivedJettonWallet, setDerivedJettonWallet] = useState<string | null>(null);
+  const [manualJettonWallet, setManualJettonWallet] = useState<string>('');
+  const [deriveError, setDeriveError] = useState<string | null>(null);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -57,6 +60,56 @@ export const PoCComponent: React.FC = () => {
     }
     // no cleanup: keep helper available for debugging during session
   }, [tonConnectUI]);
+
+  // Attempt to derive user's jetton-wallet address (owner's jetton wallet) from master + owner
+  React.useEffect(() => {
+    let cancelled = false;
+    async function derive() {
+      setDeriveError(null);
+      setDerivedJettonWallet(null);
+      try {
+        if (!connectedWallet) return;
+        // dynamic import ton-core
+        const ton = await import('ton-core');
+        // attempt several helper names used across ton-core builds
+        const master = CSPIN_TOKEN_ADDRESS; // token master
+        const owner = connectedWallet.account.address;
+
+        // prefer a helper if present
+        if (typeof (ton as any).getJettonWalletAddress === 'function') {
+          const addr = (ton as any).getJettonWalletAddress(master, owner);
+          if (!cancelled) setDerivedJettonWallet(String(addr));
+          return;
+        }
+
+        if ((ton as any).JettonWallet && typeof (ton as any).JettonWallet.getAddress === 'function') {
+          const addr = (ton as any).JettonWallet.getAddress(master, owner);
+          if (!cancelled) setDerivedJettonWallet(String(addr));
+          return;
+        }
+
+        // fallback: try to compute via Contract.getAddress-like API if available
+        if (typeof (ton as any).Contract === 'function' && typeof (ton as any).Contract.create === 'function') {
+          try {
+            // attempt to build state init and derive address (best-effort)
+            // This block is best-effort and may fail depending on ton-core export shape in the browser bundle
+            const { beginCell, Address } = ton as any;
+            // Many ton-core builds don't expose a standard helper; bail out gracefully
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        // If we reach here, we couldn't auto-derive
+        if (!cancelled) setDeriveError('자동 파생 불가: 브라우저 번들에서 jetton helper를 찾을 수 없습니다. 수동으로 jetton-wallet 주소를 붙여넣어 주세요.');
+      } catch (e: any) {
+        console.warn('derive jetton wallet failed', e);
+        if (!cancelled) setDeriveError('자동 파생 중 오류: ' + ((e && e.message) || String(e)));
+      }
+    }
+    derive();
+    return () => { cancelled = true; };
+  }, [connectedWallet]);
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -322,8 +375,17 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const masterAddress = Address.parse(GAME_WALLET_ADDRESS);
               const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+
+              // recipient should be the user's jetton-wallet address (derived or manual override)
+              const recipient = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              if (!recipient) {
+                alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
+                setBusy(false);
+                return;
+              }
+              const toAddress = Address.parse(recipient as string);
               const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
               const payloadBase64 = payloadCell.toBoc().toString('base64');
 
@@ -359,6 +421,18 @@ export const PoCComponent: React.FC = () => {
         >
           Payload 포함 전송 (테스트)
         </button>
+      </div>
+
+      {/* Derived jetton-wallet info */}
+      <div style={{ marginTop: 10 }}>
+        <strong>파생된 Jetton-wallet 주소</strong>
+        <div style={{ marginTop: 6 }}>
+          <input value={derivedJettonWallet ?? manualJettonWallet} onChange={(e) => setManualJettonWallet(e.target.value)} style={{ width: '100%', maxWidth: 560 }} placeholder={derivedJettonWallet ? '자동 파생됨 - 필요 시 덮어쓰기 가능' : '자동 파생 실패: 수동 입력하세요'} />
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <button onClick={() => { const v = manualJettonWallet || derivedJettonWallet; if (v) { navigator.clipboard.writeText(v); alert('Jetton wallet 주소 복사됨'); } else { alert('복사할 주소가 없습니다'); } }}>주소 복사</button>
+          <span style={{ marginLeft: 12, color: '#666' }}>{deriveError ? `Error: ${deriveError}` : (derivedJettonWallet ? '자동 파생 성공' : '자동 파생 중...')}</span>
+        </div>
       </div>
 
       {/* Last TX JSON display + variant test buttons */}
