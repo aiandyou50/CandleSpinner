@@ -4,13 +4,30 @@ import { useTonWallet, useTonConnectUI } from "@tonconnect/ui-react";
 import { Address, toNano, beginCell } from "ton-core";
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from "./constants.js";
 
+// A canonical zero address (workchain 0) used as a safe placeholder when no response_to is provided.
+// This avoids producing an invalid '0' address encoding which breaks parsers.
+const ZERO_ADDRESS_BOC = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
+
+function parseAddressSafe(s: string | Address | null | undefined): Address {
+  if (!s) return Address.parse(ZERO_ADDRESS_BOC);
+  try {
+    if (typeof s === 'string') return Address.parse(s);
+    return s as Address;
+  } catch (e) {
+    // fallback to zero address if parsing fails
+    try { return Address.parse(ZERO_ADDRESS_BOC); } catch { throw e; }
+  }
+}
+
 function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address | null) {
+  // normalize responseTo: if null/undefined, use canonical zero-address to ensure valid encoding
+  const resp = responseTo ? responseTo : Address.parse(ZERO_ADDRESS_BOC);
   const cell = beginCell()
     .storeUint(0xF8A7EA5, 32) // op code 'transfer' (common jetton op)
     .storeUint(0, 64) // query id
     .storeCoins(amount) // token amount in smallest units
     .storeAddress(destination)
-    .storeAddress(responseTo)
+    .storeAddress(resp)
     .storeCoins(BigInt(0)) // forward TON amount
     .endCell();
   return cell;
@@ -18,12 +35,13 @@ function buildJettonTransferPayload(amount: bigint, destination: Address, respon
 
 function buildJettonTransferPayloadVariant(amount: bigint, destination: Address, responseTo: Address | null, forwardTon: bigint = BigInt(0), opcodeOverride?: number) {
   const op = typeof opcodeOverride === 'number' ? opcodeOverride : 0xF8A7EA5;
+  const resp = responseTo ? responseTo : Address.parse(ZERO_ADDRESS_BOC);
   const cell = beginCell()
     .storeUint(op, 32)
     .storeUint(0, 64)
     .storeCoins(amount)
     .storeAddress(destination)
-    .storeAddress(responseTo)
+    .storeAddress(resp)
     .storeCoins(forwardTon)
     .endCell();
   return cell;
@@ -93,6 +111,33 @@ export const PoCComponent: React.FC = () => {
           } catch (e) {
             // ignore
           }
+        }
+
+        // Fallback: try to compute address from known JettonWallet code BOC if available (dynamic import)
+        try {
+    const mod = await import('./jetton_wallet_code_base64.js');
+          const JETTON_WALLET_CODE_BOC_BASE64 = mod?.JETTON_WALLET_CODE_BOC_BASE64;
+          if (JETTON_WALLET_CODE_BOC_BASE64 && typeof JETTON_WALLET_CODE_BOC_BASE64 === 'string' && JETTON_WALLET_CODE_BOC_BASE64.indexOf('REPLACE_WITH_REAL_BOC') === -1) {
+            try {
+              const codeBuf = (globalThis as any).Buffer.from(JETTON_WALLET_CODE_BOC_BASE64, 'base64');
+              const codeCell = (ton as any).Cell.fromBoc ? (ton as any).Cell.fromBoc(codeBuf)[0] : null;
+              if (!codeCell) throw new Error('codeCell parse failed');
+
+              // Build data cell for JettonWallet state: owner address
+              const dataCell = (ton as any).beginCell().storeAddress((ton as any).Address.parse(owner)).endCell();
+
+              // Build stateInit and compute address using Address.createFromStateInit if available
+              if ((ton as any).Address && typeof (ton as any).Address.createFromStateInit === 'function') {
+                const addr = (ton as any).Address.createFromStateInit({ code: codeCell, data: dataCell });
+                if (!cancelled) setDerivedJettonWallet(String(addr));
+                return;
+              }
+            } catch (e) {
+              // ignore fallback failures
+            }
+          }
+        } catch (e) {
+          // ignore dynamic import failures
         }
 
         // No convenient helper found in this build. Inform user to paste jetton-wallet manually.
@@ -460,7 +505,13 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              if (!recipientForPayload) {
+                alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
+                setBusy(false);
+                return;
+              }
+              const toAddress = Address.parse(recipientForPayload as string);
               const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, null, BigInt(0));
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
@@ -482,7 +533,13 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              if (!recipientForPayload) {
+                alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
+                setBusy(false);
+                return;
+              }
+              const toAddress = Address.parse(recipientForPayload as string);
               const forward = toNano('1');
               // include forward in payload and ensure message.amount covers forward plus fee margin
               const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, includeResponseTo ? Address.parse(connectedWallet.account.address) : null, forward);
@@ -532,7 +589,13 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              if (!recipientForPayload) {
+                alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
+                setBusy(false);
+                return;
+              }
+              const toAddress = Address.parse(recipientForPayload as string);
               const responseAddr = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
               const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, responseAddr, BigInt(0), 0x12345678);
               const payloadBase64 = payloadCell.toBoc().toString('base64');
@@ -621,6 +684,34 @@ export const PoCComponent: React.FC = () => {
               >
                 Decode payload
               </button>
+        
+            <button onClick={async () => {
+              // Direct payload -> jetton-wallet test (visible)
+              try {
+                setBusy(true);
+                if (!connectedWallet) { alert('지갑을 먼저 연결해주세요.'); return; }
+                const DECIMALS = 9n;
+                const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
+                const amount = amountWhole * 10n ** DECIMALS;
+                const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+                if (!recipientForPayload) { alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.'); setBusy(false); return; }
+                const toAddress = Address.parse(recipientForPayload as string);
+                const responseAddr = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+                const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddr);
+                const payloadBase64 = payloadCell.toBoc().toString('base64');
+                const VALID_SECONDS = 60 * 5;
+                const TON_FEE = (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString();
+                const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientForPayload as string, amount: TON_FEE, payload: payloadBase64 }] };
+                const txJson = JSON.stringify(tx, null, 2);
+                setLastTxJson(txJson);
+                console.log('TEST DIRECT PAYLOAD -> jetton-wallet', txJson);
+                await tonConnectUI.sendTransaction(tx as any);
+              } catch (e) { console.error('direct payload tx failed', e); alert('직접 전송 실패: ' + ((e as any)?.message ?? String(e))); } finally { setBusy(false); }
+            }}
+            style={{ padding: '8px 12px', fontSize: 14 }}
+          >
+            Payload → jetton-wallet (직접 전송 테스트)
+          </button>
             </div>
           </div>
         </div>
