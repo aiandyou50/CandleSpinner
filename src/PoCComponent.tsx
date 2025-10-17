@@ -195,9 +195,9 @@ export const PoCComponent: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 12, maxWidth: 980, margin: '0 auto' }}>
       <h2>CSPIN 입금하기</h2>
-      <p>연결된 지갑: {connectedWallet.account.address}</p>
+      <p style={{ wordBreak: 'break-all', overflowWrap: 'break-word' }}>연결된 지갑: {connectedWallet.account.address}</p>
 
       <div style={{ marginBottom: 8 }}>
         <label>
@@ -207,7 +207,7 @@ export const PoCComponent: React.FC = () => {
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             min={0}
-            style={{ width: 120 }}
+            style={{ width: '100%', maxWidth: 160 }}
           />
         </label>
       </div>
@@ -223,7 +223,7 @@ export const PoCComponent: React.FC = () => {
         </label>
       </div>
 
-      <button onClick={handleDeposit} disabled={busy} style={{ padding: '8px 14px', fontSize: 16 }}>
+      <button onClick={handleDeposit} disabled={busy} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
         {busy ? "처리중..." : `${depositAmount} CSPIN 입금`}
       </button>
 
