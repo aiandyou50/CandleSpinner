@@ -71,36 +71,31 @@ export const PoCComponent: React.FC = () => {
         if (!connectedWallet) return;
         // dynamic import ton-core
         const ton = await import('ton-core');
-        // attempt several helper names used across ton-core builds
-        const master = CSPIN_TOKEN_ADDRESS; // token master
+        const master = CSPIN_TOKEN_ADDRESS;
         const owner = connectedWallet.account.address;
 
-        // prefer a helper if present
+        // prefer a helper if present in this ton-core build
         if (typeof (ton as any).getJettonWalletAddress === 'function') {
-          const addr = (ton as any).getJettonWalletAddress(master, owner);
-          if (!cancelled) setDerivedJettonWallet(String(addr));
-          return;
+          try {
+            const addr = (ton as any).getJettonWalletAddress(master, owner);
+            if (!cancelled) setDerivedJettonWallet(String(addr));
+            return;
+          } catch (e) {
+            // ignore and try other options
+          }
         }
 
         if ((ton as any).JettonWallet && typeof (ton as any).JettonWallet.getAddress === 'function') {
-          const addr = (ton as any).JettonWallet.getAddress(master, owner);
-          if (!cancelled) setDerivedJettonWallet(String(addr));
-          return;
-        }
-
-        // fallback: try to compute via Contract.getAddress-like API if available
-        if (typeof (ton as any).Contract === 'function' && typeof (ton as any).Contract.create === 'function') {
           try {
-            // attempt to build state init and derive address (best-effort)
-            // This block is best-effort and may fail depending on ton-core export shape in the browser bundle
-            const { beginCell, Address } = ton as any;
-            // Many ton-core builds don't expose a standard helper; bail out gracefully
+            const addr = (ton as any).JettonWallet.getAddress(master, owner);
+            if (!cancelled) setDerivedJettonWallet(String(addr));
+            return;
           } catch (e) {
             // ignore
           }
         }
 
-        // If we reach here, we couldn't auto-derive
+        // No convenient helper found in this build. Inform user to paste jetton-wallet manually.
         if (!cancelled) setDeriveError('자동 파생 불가: 브라우저 번들에서 jetton helper를 찾을 수 없습니다. 수동으로 jetton-wallet 주소를 붙여넣어 주세요.');
       } catch (e: any) {
         console.warn('derive jetton wallet failed', e);
@@ -488,12 +483,14 @@ export const PoCComponent: React.FC = () => {
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
               const toAddress = Address.parse(GAME_WALLET_ADDRESS);
-              const forward = toNano('1').toString();
-              const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, includeResponseTo ? Address.parse(connectedWallet.account.address) : null, BigInt(0));
-              // note: forward TON is not used in payload here for compatibility; stored as last bytes if needed
+              const forward = toNano('1');
+              // include forward in payload and ensure message.amount covers forward plus fee margin
+              const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, includeResponseTo ? Address.parse(connectedWallet.account.address) : null, forward);
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
+              // ensure message TON amount includes forward plus a fee margin (1.1 TON default)
+              const msgAmount = (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')) + forward;
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: msgAmount.toString(), payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('VARIANT forward 1 TON (encoded in payload structure)', txJson);
@@ -503,6 +500,30 @@ export const PoCComponent: React.FC = () => {
               alert('variant forward failed: ' + ((e as any)?.message ?? String(e)));
             } finally { setBusy(false); }
           }}>Variant: forward 1 TON</button>
+
+          <button onClick={async () => {
+            // diagnostic: send with higher TON fee (2.5 TON) to rule out fee/simulation mismatch
+            try {
+              setBusy(true);
+              const DECIMALS = 9n;
+              const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
+              const amount = amountWhole * 10n ** DECIMALS;
+              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const responseAddr = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+              const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddr);
+              const payloadBase64 = payloadCell.toBoc().toString('base64');
+              const VALID_SECONDS = 60 * 5;
+              const highFee = toNano('2.5').toString();
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: CSPIN_TOKEN_ADDRESS, amount: highFee, payload: payloadBase64 }] };
+              const txJson = JSON.stringify(tx, null, 2);
+              setLastTxJson(txJson);
+              console.log('DIAG high-fee payload tx', txJson);
+              await tonConnectUI.sendTransaction(tx as any);
+            } catch (e) {
+              console.error('high-fee payload failed', e);
+              alert('high-fee payload failed: ' + ((e as any)?.message ?? String(e)));
+            } finally { setBusy(false); }
+          }}>Diagnostic: High TON fee (2.5 TON)</button>
 
           <button onClick={async () => {
             // variant: opcode override to a different value (for testing)
