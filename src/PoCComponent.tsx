@@ -70,6 +70,9 @@ export const PoCComponent: React.FC = () => {
   const [manualJettonWallet, setManualJettonWallet] = useState<string>('');
   const [indexerUrl, setIndexerUrl] = useState<string>('');
   const [indexerApiKey, setIndexerApiKey] = useState<string>('');
+  // 수동 증빙(state)
+  const [manualEvidenceText, setManualEvidenceText] = useState<string>('');
+  const [evidenceList, setEvidenceList] = useState<Array<{ id: string; name: string; content: string; type: 'text' | 'file'; created: number }>>([]);
   const [jettonBalance, setJettonBalance] = useState<string | null>(null); // in human-readable units (string)
   const [jettonBalanceRaw, setJettonBalanceRaw] = useState<string | null>(null); // raw smallest units
   const [tonBalance, setTonBalance] = useState<string | null>(null); // in TON (string)
@@ -610,6 +613,39 @@ export const PoCComponent: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Manual evidence handlers
+  const addManualEvidence = () => {
+    if (!manualEvidenceText || manualEvidenceText.trim().length === 0) { alert('증빙 내용을 입력하세요.'); return; }
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    setEvidenceList(prev => [{ id, name: `evidence-${prev.length + 1}.txt`, content: manualEvidenceText, type: 'text', created: Date.now() }, ...prev]);
+    setManualEvidenceText('');
+  };
+
+  const handleFileUpload = async (file: File | null) => {
+    if (!file) return;
+    const buf = await file.text();
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+    setEvidenceList(prev => [{ id, name: file.name, content: buf, type: 'file', created: Date.now() }, ...prev]);
+  };
+
+  const removeEvidence = (id: string) => {
+    setEvidenceList(prev => prev.filter(e => e.id !== id));
+  };
+
+  const downloadEvidencePack = () => {
+    if (evidenceList.length === 0) { alert('저장된 증빙이 없습니다.'); return; }
+    const parts = evidenceList.map(e => `--- ${e.name} ---\n${e.content}`).join('\n\n');
+    const blob = new Blob([parts], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'manual-evidence-pack.txt';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   if (!connectedWallet) {
     return <p>게임을 시작하려면 지갑을 연결해주세요.</p>;
   }
@@ -874,6 +910,43 @@ export const PoCComponent: React.FC = () => {
       {/* Add token symbol/amount preview */}
       <div style={{ marginTop: 8 }}>
         <span style={{ color: '#333' }}>{depositAmount || '0'} CSPIN</span>
+      </div>
+
+      {/* 수동 증빙 (Manual evidence) */}
+      <div style={{ marginTop: 12, padding: 10, border: '1px dashed #e6e6e6', borderRadius: 6 }}>
+        <strong>수동 증빙 추가</strong>
+        <div style={{ marginTop: 8 }}>
+          <textarea value={manualEvidenceText} onChange={(e) => setManualEvidenceText(e.target.value)} placeholder="오류 로그 또는 트랜잭션 설명을 붙여넣으세요." style={{ width: '100%', height: 90, fontSize: 13 }} />
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={addManualEvidence} style={{ padding: '6px 10px' }}>증빙 추가</button>
+            <label style={{ display: 'inline-block', padding: '6px 10px', background: '#f5f5f5', borderRadius: 4, cursor: 'pointer' }}>
+              파일 업로드
+              <input type="file" style={{ display: 'none' }} onChange={(ev) => { const f = (ev.target as HTMLInputElement).files?.[0] ?? null; handleFileUpload(f); }} />
+            </label>
+            <button onClick={downloadEvidencePack} style={{ padding: '6px 10px' }}>증빙 팩 다운로드</button>
+          </div>
+        </div>
+
+        {evidenceList.length > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <strong>저장된 증빙</strong>
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {evidenceList.map(e => (
+                <div key={e.id} style={{ padding: 8, border: '1px solid #efefef', borderRadius: 6, background: '#fff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 13 }}><strong>{e.name}</strong> <span style={{ color: '#666', fontSize: 12 }}>&nbsp;·&nbsp;{new Date(e.created).toLocaleString()}</span></div>
+                    <div>
+                      <button onClick={() => { navigator.clipboard.writeText(e.content); alert('증빙 내용이 복사되었습니다.'); }}>복사</button>
+                      <button style={{ marginLeft: 8 }} onClick={() => { const blob = new Blob([e.content], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = e.name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }}>다운로드</button>
+                      <button style={{ marginLeft: 8 }} onClick={() => removeEvidence(e.id)}>삭제</button>
+                    </div>
+                  </div>
+                  <pre style={{ whiteSpace: 'pre-wrap', marginTop: 8, fontSize: 12 }}>{e.content.slice(0, 1000)}</pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Last TX JSON display + variant test buttons */}
