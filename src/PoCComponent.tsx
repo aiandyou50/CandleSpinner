@@ -33,6 +33,12 @@ function buildJettonTransferPayload(amount: bigint, destination: Address, respon
   return cell;
 }
 
+// Ensure message.amount covers forward TON plus a fee margin.
+function ensureMessageAmount(forwardTon: bigint, diagnostic: boolean) : bigint {
+  const feeMargin = diagnostic ? toNano('0.05') : toNano('1.1');
+  return forwardTon + feeMargin;
+}
+
 function buildJettonTransferPayloadVariant(amount: bigint, destination: Address, responseTo: Address | null, forwardTon: bigint = BigInt(0), opcodeOverride?: number) {
   const op = typeof opcodeOverride === 'number' ? opcodeOverride : 0xF8A7EA5;
   const resp = responseTo ? responseTo : Address.parse(ZERO_ADDRESS_BOC);
@@ -60,6 +66,7 @@ export const PoCComponent: React.FC = () => {
   const [decodedCellInfo, setDecodedCellInfo] = useState<string | null>(null);
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
+  const [sendToTokenMaster, setSendToTokenMaster] = useState<boolean>(false);
   const [lastTxJson, setLastTxJson] = useState<string | null>(null);
   const [derivedJettonWallet, setDerivedJettonWallet] = useState<string | null>(null);
   const [manualJettonWallet, setManualJettonWallet] = useState<string>('');
@@ -177,17 +184,19 @@ export const PoCComponent: React.FC = () => {
   const VALID_SECONDS = 60 * 5; // 5 minutes
       const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
 
-  // The TON amount sent to the token contract should cover gas/fees.
-  // For diagnostics we can use a low fee to test flow when wallet has no TON.
-  const TON_FEE = (useDiagnosticLowFee ? toNano("0.05") : toNano("1.1")).toString();
+  // Compute forward amount (we used zero for buildJettonTransferPayload)
+  const forwardAmount = BigInt(0);
+  // compute required message amount to cover forward + fee margin
+  const requiredAmount = ensureMessageAmount(forwardAmount, useDiagnosticLowFee);
+  const TON_FEE = requiredAmount.toString();
 
-      // Send the payload to the user's jetton-wallet address (preferred) so the jetton-wallet processes the transfer.
-      // Fallback: if payload destination equals the token master for some reason, the token master can be used.
+      // Choose recipient based on toggle: token master or jetton-wallet (payload destination)
+      const recipientAddress = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
       const tx = {
         validUntil,
         messages: [
           {
-            address: payloadDestAddrStr, // send directly to jetton-wallet (or GAME_WALLET_ADDRESS fallback)
+            address: recipientAddress,
             amount: TON_FEE,
             payload: payloadBase64,
           },
@@ -442,14 +451,18 @@ export const PoCComponent: React.FC = () => {
 
               const VALID_SECONDS = 60 * 5;
               const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
-              const TON_FEE = (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString();
+              // compute forward (0 here) and required message amount
+              const forward = BigInt(0);
+              const TON_FEE_BIG = ensureMessageAmount(forward, useDiagnosticLowFee);
+              const TON_FEE = TON_FEE_BIG.toString();
+              const recipientAddress = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (recipient as string);
 
               const tx = {
                 validUntil,
                 messages: [
                   {
-                    // send payload directly to the user's jetton-wallet (recipient)
-                    address: recipient as string,
+                    // send payload to selected recipient
+                    address: recipientAddress,
                     amount: TON_FEE,
                     payload: payloadBase64,
                   },
@@ -484,6 +497,11 @@ export const PoCComponent: React.FC = () => {
         <div style={{ marginTop: 8 }}>
           <button onClick={() => { const v = manualJettonWallet || derivedJettonWallet; if (v) { navigator.clipboard.writeText(v); alert('Jetton wallet 주소 복사됨'); } else { alert('복사할 주소가 없습니다'); } }}>주소 복사</button>
           <span style={{ marginLeft: 12, color: '#666' }}>{deriveError ? `Error: ${deriveError}` : (derivedJettonWallet ? '자동 파생 성공' : '자동 파생 중...')}</span>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>
+            <input type="checkbox" checked={sendToTokenMaster} onChange={(e) => setSendToTokenMaster(e.target.checked)} /> 보내기 대상: Token Master 사용
+          </label>
         </div>
       </div>
 
@@ -546,9 +564,10 @@ export const PoCComponent: React.FC = () => {
               const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, includeResponseTo ? Address.parse(connectedWallet.account.address) : null, forward);
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
-              // ensure message TON amount includes forward plus a fee margin (1.1 TON default)
-              const msgAmount = (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')) + forward;
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientForPayload as string, amount: msgAmount.toString(), payload: payloadBase64 }] };
+              // ensure message TON amount includes forward plus a fee margin
+              const msgAmountBig = ensureMessageAmount(forward, useDiagnosticLowFee);
+              const recipientAddr = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (recipientForPayload as string);
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientAddr, amount: msgAmountBig.toString(), payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('VARIANT forward 1 TON (encoded in payload structure)', txJson);
@@ -571,9 +590,9 @@ export const PoCComponent: React.FC = () => {
               const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddr);
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
-              const highFee = toNano('2.5').toString();
-              // send to the payload destination used in payload construction (toAddress)
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: toAddress.toString(), amount: highFee, payload: payloadBase64 }] };
+              const highFeeBig = toNano('2.5');
+              const recipientAddr = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : toAddress.toString();
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientAddr, amount: highFeeBig.toString(), payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('DIAG high-fee payload tx', txJson);
@@ -602,7 +621,9 @@ export const PoCComponent: React.FC = () => {
               const payloadCell = buildJettonTransferPayloadVariant(amount, toAddress, responseAddr, BigInt(0), 0x12345678);
               const payloadBase64 = payloadCell.toBoc().toString('base64');
               const VALID_SECONDS = 60 * 5;
-              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientForPayload as string, amount: (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString(), payload: payloadBase64 }] };
+              const msgAmountBig = ensureMessageAmount(BigInt(0), useDiagnosticLowFee);
+              const recipientAddr = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (recipientForPayload as string);
+              const tx = { validUntil: Math.floor(Date.now() / 1000) + VALID_SECONDS, messages: [{ address: recipientAddr, amount: msgAmountBig.toString(), payload: payloadBase64 }] };
               const txJson = JSON.stringify(tx, null, 2);
               setLastTxJson(txJson);
               console.log('VARIANT opcode override', txJson);
