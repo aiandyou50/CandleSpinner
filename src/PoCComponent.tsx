@@ -65,9 +65,17 @@ export const PoCComponent: React.FC = () => {
             address: CSPIN_TOKEN_ADDRESS,
             amount: TON_FEE,
             payload: payloadBase64,
+            // explicit sendMode can help with some wallet/bridge requirements
+            sendMode: 3,
           },
         ],
       };
+
+      // Detailed logging to help debug TonConnect delivery issues
+      console.log('Prepared tx:', {
+        validUntil,
+        messages: tx.messages.map((m: any) => ({ address: m.address, amount: m.amount, payloadLen: m.payload ? m.payload.length : 0, sendMode: m.sendMode })),
+      });
 
       // populate preview for user verification and deep-link help
       setTxPreview({
@@ -85,14 +93,27 @@ export const PoCComponent: React.FC = () => {
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
           console.log(`sendTransaction attempt ${attempt + 1}`);
+          // log timestamp for correlating with bridge/wallet logs
+          console.log('sendTransaction timestamp:', new Date().toISOString());
           const result = await tonConnectUI.sendTransaction(tx as any);
-          console.log("트랜잭션 결과:", result);
+          console.log('sendTransaction result:', result);
           alert("CSPIN 입금 요청이 생성되었습니다. 지갑에서 트랜잭션을 확인하세요.");
           lastErr = null;
           break;
         } catch (e: any) {
           lastErr = e;
-          console.warn(`sendTransaction failed (attempt ${attempt + 1}):`, e);
+          // richer error logging for debugging: include name/message/stack and any sdk fields
+          try {
+            console.error(`sendTransaction failed (attempt ${attempt + 1}):`, {
+              errorName: e && e.name,
+              errorMessage: e && e.message,
+              errorStack: e && e.stack,
+              raw: e,
+            });
+          } catch (logErr) {
+            console.warn('sendTransaction failed, but error logging also failed', logErr);
+            console.warn('original error:', e);
+          }
           // normalize message
           let msg = '';
           try { msg = typeof e === 'string' ? e : JSON.stringify(e); } catch { msg = String(e); }
