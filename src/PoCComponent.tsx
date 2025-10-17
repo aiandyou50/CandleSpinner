@@ -145,7 +145,7 @@ export const PoCComponent: React.FC = () => {
         validUntil,
         messages: [
           {
-            address: CSPIN_TOKEN_ADDRESS,
+            address: recipientAddrStr,
             amount: TON_FEE,
             payload: payloadBase64,
           },
