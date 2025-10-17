@@ -68,9 +68,7 @@ export const PoCComponent: React.FC = () => {
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
   const [sendToTokenMaster, setSendToTokenMaster] = useState<boolean>(true);
   const [lastTxJson, setLastTxJson] = useState<string | null>(null);
-  const [derivedJettonWallet, setDerivedJettonWallet] = useState<string | null>(null);
   const [manualJettonWallet, setManualJettonWallet] = useState<string>('');
-  const [deriveError, setDeriveError] = useState<string | null>(null);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -86,77 +84,7 @@ export const PoCComponent: React.FC = () => {
     // no cleanup: keep helper available for debugging during session
   }, [tonConnectUI]);
 
-  // Attempt to derive user's jetton-wallet address (owner's jetton wallet) from master + owner
-  React.useEffect(() => {
-    let cancelled = false;
-    async function derive() {
-      setDeriveError(null);
-      setDerivedJettonWallet(null);
-      try {
-        if (!connectedWallet) return;
-        // dynamic import ton-core
-        const ton = await import('ton-core');
-        const master = CSPIN_TOKEN_ADDRESS;
-        const owner = connectedWallet.account.address;
-
-        // prefer a helper if present in this ton-core build
-        if (typeof (ton as any).getJettonWalletAddress === 'function') {
-          try {
-            const addr = (ton as any).getJettonWalletAddress(master, owner);
-            if (!cancelled) setDerivedJettonWallet(String(addr));
-            return;
-          } catch (e) {
-            // ignore and try other options
-          }
-        }
-
-        if ((ton as any).JettonWallet && typeof (ton as any).JettonWallet.getAddress === 'function') {
-          try {
-            const addr = (ton as any).JettonWallet.getAddress(master, owner);
-            if (!cancelled) setDerivedJettonWallet(String(addr));
-            return;
-          } catch (e) {
-            // ignore
-          }
-        }
-
-        // Fallback: try to compute address from known JettonWallet code BOC if available (dynamic import)
-        try {
-    const mod = await import('./jetton_wallet_code_base64.js');
-          const JETTON_WALLET_CODE_BOC_BASE64 = mod?.JETTON_WALLET_CODE_BOC_BASE64;
-          if (JETTON_WALLET_CODE_BOC_BASE64 && typeof JETTON_WALLET_CODE_BOC_BASE64 === 'string' && JETTON_WALLET_CODE_BOC_BASE64.indexOf('REPLACE_WITH_REAL_BOC') === -1) {
-            try {
-              const codeBuf = (globalThis as any).Buffer.from(JETTON_WALLET_CODE_BOC_BASE64, 'base64');
-              const codeCell = (ton as any).Cell.fromBoc ? (ton as any).Cell.fromBoc(codeBuf)[0] : null;
-              if (!codeCell) throw new Error('codeCell parse failed');
-
-              // Build data cell for JettonWallet state: owner address
-              const dataCell = (ton as any).beginCell().storeAddress((ton as any).Address.parse(owner)).endCell();
-
-              // Build stateInit and compute address using Address.createFromStateInit if available
-              if ((ton as any).Address && typeof (ton as any).Address.createFromStateInit === 'function') {
-                const addr = (ton as any).Address.createFromStateInit({ code: codeCell, data: dataCell });
-                if (!cancelled) setDerivedJettonWallet(String(addr));
-                return;
-              }
-            } catch (e) {
-              // ignore fallback failures
-            }
-          }
-        } catch (e) {
-          // ignore dynamic import failures
-        }
-
-        // No convenient helper found in this build. Inform user to paste jetton-wallet manually.
-        if (!cancelled) setDeriveError('자동 파생 불가: 브라우저 번들에서 jetton helper를 찾을 수 없습니다. 수동으로 jetton-wallet 주소를 붙여넣어 주세요.');
-      } catch (e: any) {
-        console.warn('derive jetton wallet failed', e);
-        if (!cancelled) setDeriveError('자동 파생 중 오류: ' + ((e && e.message) || String(e)));
-      }
-    }
-    derive();
-    return () => { cancelled = true; };
-  }, [connectedWallet]);
+  // Removed automatic derivation: PoC now relies on manual jetton-wallet input or token master mode.
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -173,7 +101,7 @@ export const PoCComponent: React.FC = () => {
       const amount = amountWhole * 10n ** DECIMALS;
 
   // choose recipient-jt-wallet for payload destination: manual override > derived jetton-wallet > fallback to GAME_WALLET_ADDRESS
-  const payloadDestAddrStr = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : (derivedJettonWallet ? derivedJettonWallet : GAME_WALLET_ADDRESS as string);
+    const payloadDestAddrStr = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : (GAME_WALLET_ADDRESS as string);
   const toAddress = Address.parse(payloadDestAddrStr);
   const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
 
@@ -450,7 +378,7 @@ export const PoCComponent: React.FC = () => {
               const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
 
               // recipient should be the user's jetton-wallet address (derived or manual override)
-              const recipient = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              const recipient = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : null;
               if (!recipient) {
                 alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
                 setBusy(false);
@@ -505,7 +433,7 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : null;
               if (!recipientForPayload) { alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.'); setBusy(false); return; }
               const toAddress = Address.parse(recipientForPayload as string);
               const responseAddr = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
@@ -535,21 +463,21 @@ export const PoCComponent: React.FC = () => {
         <div style={{ marginTop: 6 }}>
           {/* when sendToTokenMaster is on, show token master address in read-only mode */}
           {(() => {
-            const displayed = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (derivedJettonWallet ?? manualJettonWallet);
+            const displayed = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : manualJettonWallet;
             return (
               <input
                 value={displayed ?? ''}
                 onChange={(e) => { if (!sendToTokenMaster) setManualJettonWallet(e.target.value); }}
                 readOnly={sendToTokenMaster}
                 style={{ width: '100%', maxWidth: 560 }}
-                placeholder={derivedJettonWallet ? '자동 파생됨 - 필요 시 덮어쓰기 가능' : '자동 파생 실패: 수동 입력하세요'}
+                placeholder={'보내기 대상: Token Master 사용을 체크하거나 수동으로 jetton-wallet 주소를 입력하세요'}
               />
             );
           })()}
         </div>
         <div style={{ marginTop: 8 }}>
           <button onClick={() => { const v = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (manualJettonWallet || derivedJettonWallet); if (v) { navigator.clipboard.writeText(v); alert('Jetton wallet 주소 복사됨'); } else { alert('복사할 주소가 없습니다'); } }}>주소 복사</button>
-          <span style={{ marginLeft: 12, color: '#666' }}>{deriveError ? `Error: ${deriveError}` : (derivedJettonWallet ? '자동 파생 성공' : '자동 파생 중...')}</span>
+          <span style={{ marginLeft: 12, color: '#666' }}>{sendToTokenMaster ? 'Token Master 대상 사용 중' : '수동 jetton-wallet 주소 사용'}</span>
         </div>
         <div style={{ marginTop: 8 }}>
           <label>
@@ -577,7 +505,7 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : null;
               if (!recipientForPayload) {
                 alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
                 setBusy(false);
@@ -605,7 +533,7 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : null;
               if (!recipientForPayload) {
                 alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
                 setBusy(false);
@@ -663,7 +591,7 @@ export const PoCComponent: React.FC = () => {
               const DECIMALS = 9n;
               const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
               const amount = amountWhole * 10n ** DECIMALS;
-              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : derivedJettonWallet;
+              const recipientForPayload = manualJettonWallet && manualJettonWallet.length > 0 ? manualJettonWallet : null;
               if (!recipientForPayload) {
                 alert('Jetton wallet 주소를 파생할 수 없습니다. 수동으로 jetton-wallet 주소를 입력하세요.');
                 setBusy(false);
