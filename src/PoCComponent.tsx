@@ -28,6 +28,7 @@ export const PoCComponent: React.FC = () => {
   const [decodedPayloadHex, setDecodedPayloadHex] = useState<string | null>(null);
   const [decodedCellInfo, setDecodedCellInfo] = useState<string | null>(null);
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
+  const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
 
   const handleDeposit = async () => {
     if (!connectedWallet) {
@@ -53,10 +54,9 @@ export const PoCComponent: React.FC = () => {
   const VALID_SECONDS = 60 * 5; // 5 minutes
       const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
 
-      // The TON amount sent to the token contract should cover gas/fees. For Jetton operations
-      // TON Wallet often expects the user to have ~1.05 TON available for fees. Use a safe default
-      // for PoC but warn the user before sending real TON.
-      const TON_FEE = toNano("1.1").toString();
+  // The TON amount sent to the token contract should cover gas/fees.
+  // For diagnostics we can use a low fee to test flow when wallet has no TON.
+  const TON_FEE = (useDiagnosticLowFee ? toNano("0.05") : toNano("1.1")).toString();
 
       const tx = {
         validUntil,
@@ -72,7 +72,7 @@ export const PoCComponent: React.FC = () => {
       // Detailed logging to help debug TonConnect delivery issues
       console.log('Prepared tx:', {
         validUntil,
-        messages: tx.messages.map((m: any) => ({ address: m.address, amount: m.amount, payloadLen: m.payload ? m.payload.length : 0, sendMode: m.sendMode })),
+        messages: tx.messages.map((m: any) => ({ address: m.address, amount: m.amount, payloadLen: m.payload ? m.payload.length : 0 })),
       });
 
       // populate preview for user verification and deep-link help
@@ -90,28 +90,29 @@ export const PoCComponent: React.FC = () => {
       const MAX_RETRIES = 2;
       for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
         try {
-          console.log(`sendTransaction attempt ${attempt + 1}`);
+          const attemptId = `${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+          console.log(`sendTransaction attempt ${attempt + 1} id=${attemptId}`);
           // log timestamp for correlating with bridge/wallet logs
-          console.log('sendTransaction timestamp:', new Date().toISOString());
+          console.log('sendTransaction timestamp:', new Date().toISOString(), 'attemptId=', attemptId, 'useDiagnosticLowFee=', useDiagnosticLowFee);
           const result = await tonConnectUI.sendTransaction(tx as any);
-          console.log('sendTransaction result:', result);
+          console.log('sendTransaction result:', result, 'attemptId=', attemptId);
           alert("CSPIN 입금 요청이 생성되었습니다. 지갑에서 트랜잭션을 확인하세요.");
           lastErr = null;
           break;
         } catch (e: any) {
           lastErr = e;
           // richer error logging for debugging: include name/message/stack and any sdk fields
-          try {
-            console.error(`sendTransaction failed (attempt ${attempt + 1}):`, {
-              errorName: e && e.name,
-              errorMessage: e && e.message,
-              errorStack: e && e.stack,
-              raw: e,
-            });
-          } catch (logErr) {
-            console.warn('sendTransaction failed, but error logging also failed', logErr);
-            console.warn('original error:', e);
-          }
+            try {
+              console.error(`sendTransaction failed (attempt ${attempt + 1}):`, {
+                errorName: e && e.name,
+                errorMessage: e && e.message,
+                errorStack: e && e.stack,
+                raw: e,
+              });
+            } catch (logErr) {
+              console.warn('sendTransaction failed, but error logging also failed', logErr);
+              console.warn('original error:', e);
+            }
           // normalize message
           let msg = '';
           try { msg = typeof e === 'string' ? e : JSON.stringify(e); } catch { msg = String(e); }
@@ -223,6 +224,17 @@ export const PoCComponent: React.FC = () => {
         </label>
       </div>
 
+      <div style={{ marginBottom: 8 }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={useDiagnosticLowFee}
+            onChange={(e) => setUseDiagnosticLowFee(e.target.checked)}
+          />{' '}
+          Diagnostic low fee (0.05 TON) — only for testing
+        </label>
+      </div>
+
       <button onClick={handleDeposit} disabled={busy} style={{ padding: '10px 14px', fontSize: 16, width: '100%', maxWidth: 220 }}>
         {busy ? "처리중..." : `${depositAmount} CSPIN 입금`}
       </button>
@@ -235,7 +247,10 @@ export const PoCComponent: React.FC = () => {
             <div>To: {txPreview.to}</div>
             <div>Amount (nano): {txPreview.amount}</div>
             <div>ValidUntil: {new Date(txPreview.validUntil * 1000).toLocaleString()}</div>
-            <div>Payload (prefix): <code style={{ wordBreak: 'break-all' }}>{txPreview.payloadDisplay}</code></div>
+            <div>Payload (prefix):</div>
+            <div style={{ maxWidth: '100%', overflowX: 'auto', wordBreak: 'normal' }}>
+              <code style={{ whiteSpace: 'pre', display: 'block' }}>{txPreview.payloadDisplay}</code>
+            </div>
             <div style={{ marginTop: 8 }}>
               <button
                 onClick={async () => {
