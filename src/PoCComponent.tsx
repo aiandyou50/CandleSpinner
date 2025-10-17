@@ -30,6 +30,20 @@ export const PoCComponent: React.FC = () => {
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
 
+  // expose a console helper so you can paste a TX JSON in devtools and resend it
+  React.useEffect(() => {
+    try {
+      (window as any).sendTestTx = async (tx: any) => {
+        if (!tonConnectUI) throw new Error('tonConnectUI not available');
+        console.log('window.sendTestTx invoked', tx);
+        return await tonConnectUI.sendTransaction(tx as any);
+      };
+    } catch (e) {
+      console.warn('failed to install window.sendTestTx helper', e);
+    }
+    // no cleanup: keep helper available for debugging during session
+  }, [tonConnectUI]);
+
   const handleDeposit = async () => {
     if (!connectedWallet) {
       alert("지갑을 먼저 연결해주세요.");
@@ -242,7 +256,7 @@ export const PoCComponent: React.FC = () => {
         )}
       </button>
 
-      {/* Test button: send a simple transaction without payload to help isolate payload-related rejections */}
+  {/* Test button: send a simple transaction without payload to help isolate payload-related rejections */}
       <div style={{ marginTop: 10 }}>
         <button
           onClick={async () => {
@@ -276,6 +290,58 @@ export const PoCComponent: React.FC = () => {
           style={{ marginTop: 6, padding: '8px 12px', fontSize: 14 }}
         >
           Payload 없이 전송 (테스트)
+        </button>
+      </div>
+
+      {/* Payload test button: prepare real jetton transfer payload and send using current diagnostic fee setting */}
+      <div style={{ marginTop: 10 }}>
+        <button
+          onClick={async () => {
+            try {
+              setBusy(true);
+              if (!connectedWallet) {
+                alert('지갑을 먼저 연결해주세요.');
+                return;
+              }
+
+              // reuse same logic as handleDeposit for building payload/amount
+              const DECIMALS = 9n;
+              const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
+              const amount = amountWhole * 10n ** DECIMALS;
+              const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+              const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+              const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
+              const payloadBase64 = payloadCell.toBoc().toString('base64');
+
+              const VALID_SECONDS = 60 * 5;
+              const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
+              const TON_FEE = (useDiagnosticLowFee ? toNano('0.05') : toNano('1.1')).toString();
+
+              const tx = {
+                validUntil,
+                messages: [
+                  {
+                    address: CSPIN_TOKEN_ADDRESS,
+                    amount: TON_FEE,
+                    payload: payloadBase64,
+                  },
+                ],
+              };
+
+              console.log('TEST PAYLOAD TX', JSON.stringify(tx, null, 2));
+              // send through TonConnect UI
+              await tonConnectUI.sendTransaction(tx as any);
+              alert('페이로드 포함 전송 요청을 보냈습니다. 지갑에서 확인하세요.');
+            } catch (e) {
+              console.error('payload tx failed', e);
+              alert('payload 전송 실패: ' + (e && (e as any).message ? (e as any).message : String(e)));
+            } finally {
+              setBusy(false);
+            }
+          }}
+          style={{ marginTop: 6, marginLeft: 8, padding: '8px 12px', fontSize: 14 }}
+        >
+          Payload 포함 전송 (테스트)
         </button>
       </div>
 
