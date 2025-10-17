@@ -125,7 +125,9 @@ export const PoCComponent: React.FC = () => {
       const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
       const amount = amountWhole * 10n ** DECIMALS;
 
-  const toAddress = Address.parse(GAME_WALLET_ADDRESS);
+  // choose recipient: manual override > derived jetton-wallet > fallback to GAME_WALLET_ADDRESS
+  const recipientAddrStr = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : (derivedJettonWallet ? derivedJettonWallet : GAME_WALLET_ADDRESS as string);
+  const toAddress = Address.parse(recipientAddrStr);
   const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
 
   const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
