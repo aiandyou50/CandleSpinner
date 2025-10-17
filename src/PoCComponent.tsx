@@ -125,13 +125,13 @@ export const PoCComponent: React.FC = () => {
       const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
       const amount = amountWhole * 10n ** DECIMALS;
 
-  // choose recipient: manual override > derived jetton-wallet > fallback to GAME_WALLET_ADDRESS
-  const recipientAddrStr = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : (derivedJettonWallet ? derivedJettonWallet : GAME_WALLET_ADDRESS as string);
-  const toAddress = Address.parse(recipientAddrStr);
+  // choose recipient-jt-wallet for payload destination: manual override > derived jetton-wallet > fallback to GAME_WALLET_ADDRESS
+  const payloadDestAddrStr = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : (derivedJettonWallet ? derivedJettonWallet : GAME_WALLET_ADDRESS as string);
+  const toAddress = Address.parse(payloadDestAddrStr);
   const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
 
   const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
-      const payloadBase64 = payloadCell.toBoc().toString("base64");
+  const payloadBase64 = payloadCell.toBoc().toString("base64");
 
   // validUntil: TonConnect expects validUntil not too far in the future — keep 5 minutes
   const VALID_SECONDS = 60 * 5; // 5 minutes
@@ -141,11 +141,13 @@ export const PoCComponent: React.FC = () => {
   // For diagnostics we can use a low fee to test flow when wallet has no TON.
   const TON_FEE = (useDiagnosticLowFee ? toNano("0.05") : toNano("1.1")).toString();
 
+      // Important: send the payload to the token master contract (CSPIN_TOKEN_ADDRESS).
+      // The payload itself contains the destination jetton-wallet (payloadDestAddrStr).
       const tx = {
         validUntil,
         messages: [
           {
-            address: recipientAddrStr,
+            address: CSPIN_TOKEN_ADDRESS,
             amount: TON_FEE,
             payload: payloadBase64,
           },
@@ -160,7 +162,7 @@ export const PoCComponent: React.FC = () => {
 
       // populate preview for user verification and deep-link help
       setTxPreview({
-        to: recipientAddrStr,
+        to: payloadDestAddrStr,
         amount: TON_FEE,
         validUntil,
         payloadDisplay: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
