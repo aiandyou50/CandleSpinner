@@ -79,6 +79,7 @@ export const PoCComponent: React.FC = () => {
   const [pocMode, setPocMode] = useState<boolean>(false);
   const [rpcUrl, setRpcUrl] = useState<string>('');
   const [deriveStatus, setDeriveStatus] = useState<string | null>(null);
+  const [forceTokenPresentation, setForceTokenPresentation] = useState<boolean>(true);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -272,7 +273,36 @@ export const PoCComponent: React.FC = () => {
         derived = (ton as any).JettonWallet.getAddress(masterAddr, ownerAddr);
       }
       if (!derived) {
-        setDeriveStatus('ton-core에서 jetton 유도 헬퍼를 찾을 수 없습니다.');
+        setDeriveStatus('ton-core에서 jetton 유도 헬퍼를 찾을 수 없습니다. RPC 시도로 대체합니다...');
+        // attempt RPC-based getter if rpcUrl provided
+        if (rpcUrl) {
+          try {
+            const body = {
+              jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [masterAddr, 'get_wallet_address', [ { type: 'address', value: ownerAddr } ]]
+            };
+            const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            if (!resp.ok) throw new Error('RPC 응답이 정상이 아닙니다: ' + resp.status);
+            const j = await resp.json();
+            // try to extract address-like string from result
+            const res = j.result || j;
+            // naive search
+            const txt = JSON.stringify(res);
+            const m = txt.match(/[EQA-Za-z0-9_-]{48,}/);
+            if (m) {
+              setManualJettonWallet(m[0]);
+              setDeriveStatus('RPC 파생 성공: ' + m[0]);
+              return;
+            }
+            setDeriveStatus('RPC 응답에서 주소를 추출할 수 없습니다. 콘솔을 확인하세요.');
+            console.log('RPC result', j);
+            return;
+          } catch (e) {
+            console.error('RPC derive failed', e);
+            setDeriveStatus('RPC 기반 파생 실패: ' + String(e));
+            return;
+          }
+        }
+        setDeriveStatus('ton-core에서 jetton 유도 헬퍼를 찾을 수 없습니다. RPC URL을 입력하면 RPC 기반 파생을 시도합니다.');
         return;
       }
       const asStr = derived.toString();
@@ -321,8 +351,8 @@ export const PoCComponent: React.FC = () => {
       // Determine tx based on sendType
       let tx: any;
       if (sendType === 'CSPIN') {
-        // Choose recipient based on toggle: token master or jetton-wallet (payload destination)
-        const recipientAddress = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
+        // Choose recipient: if forceTokenPresentation is enabled, prefer sending payload to token master
+        const recipientAddress = (forceTokenPresentation || sendToTokenMaster) ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
         tx = {
           validUntil,
           messages: [
@@ -335,7 +365,7 @@ export const PoCComponent: React.FC = () => {
         };
       } else {
         // TON transfer: send native TON to payloadDestAddrStr (or token master if selected)
-        const recipientAddress = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
+        const recipientAddress = (forceTokenPresentation || sendToTokenMaster) ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
         tx = {
           validUntil,
           messages: [
@@ -723,6 +753,11 @@ export const PoCComponent: React.FC = () => {
         <div style={{ marginTop: 8 }}>
           <label>
             <input type="checkbox" checked={sendToTokenMaster} onChange={(e) => setSendToTokenMaster(e.target.checked)} /> 보내기 대상: Token Master 사용
+          </label>
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <label>
+            <input type="checkbox" checked={forceTokenPresentation} onChange={(e) => setForceTokenPresentation(e.target.checked)} /> Force token presentation (지갑에 token transfer UI 표출을 시도)
           </label>
         </div>
         <div style={{ marginTop: 8 }}>
