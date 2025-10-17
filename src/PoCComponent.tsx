@@ -459,7 +459,7 @@ export const PoCComponent: React.FC = () => {
 
       {/* Derived jetton-wallet info */}
         <div style={{ marginTop: 10 }}>
-        <strong>파생된 Jetton-wallet 주소</strong>
+          <strong>Jetton 수신지</strong>
         <div style={{ marginTop: 6 }}>
           {/* when sendToTokenMaster is on, show token master address in read-only mode */}
           {(() => {
@@ -476,7 +476,7 @@ export const PoCComponent: React.FC = () => {
           })()}
         </div>
         <div style={{ marginTop: 8 }}>
-          <button onClick={() => { const v = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : (manualJettonWallet || derivedJettonWallet); if (v) { navigator.clipboard.writeText(v); alert('Jetton wallet 주소 복사됨'); } else { alert('복사할 주소가 없습니다'); } }}>주소 복사</button>
+          <button onClick={() => { const v = sendToTokenMaster ? CSPIN_TOKEN_ADDRESS : manualJettonWallet; if (v) { navigator.clipboard.writeText(v); alert('Jetton wallet 주소 복사됨'); } else { alert('복사할 주소가 없습니다'); } }}>주소 복사</button>
           <span style={{ marginLeft: 12, color: '#666' }}>{sendToTokenMaster ? 'Token Master 대상 사용 중' : '수동 jetton-wallet 주소 사용'}</span>
         </div>
         <div style={{ marginTop: 8 }}>
@@ -484,6 +484,11 @@ export const PoCComponent: React.FC = () => {
             <input type="checkbox" checked={sendToTokenMaster} onChange={(e) => setSendToTokenMaster(e.target.checked)} /> 보내기 대상: Token Master 사용
           </label>
         </div>
+      </div>
+
+      {/* Add token symbol/amount preview */}
+      <div style={{ marginTop: 8 }}>
+        <span style={{ color: '#333' }}>{depositAmount || '0'} CSPIN</span>
       </div>
 
       {/* Last TX JSON display + variant test buttons */}
