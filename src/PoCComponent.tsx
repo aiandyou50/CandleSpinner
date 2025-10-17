@@ -256,8 +256,8 @@ export const PoCComponent: React.FC = () => {
         )}
       </button>
 
-  {/* Test button: send a simple transaction without payload to help isolate payload-related rejections */}
-      <div style={{ marginTop: 10 }}>
+      {/* Test buttons container: simple tx and payload tx - aligned */}
+      <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <button
           onClick={async () => {
             try {
@@ -287,14 +287,12 @@ export const PoCComponent: React.FC = () => {
               setBusy(false);
             }
           }}
-          style={{ marginTop: 6, padding: '8px 12px', fontSize: 14 }}
+          style={{ padding: '8px 12px', fontSize: 14 }}
         >
           Payload 없이 전송 (테스트)
         </button>
-      </div>
 
-      {/* Payload test button: prepare real jetton transfer payload and send using current diagnostic fee setting */}
-      <div style={{ marginTop: 10 }}>
+        {/* Payload test button: prepare real jetton transfer payload and send using current diagnostic fee setting */}
         <button
           onClick={async () => {
             try {
@@ -339,7 +337,7 @@ export const PoCComponent: React.FC = () => {
               setBusy(false);
             }
           }}
-          style={{ marginTop: 6, marginLeft: 8, padding: '8px 12px', fontSize: 14 }}
+          style={{ padding: '8px 12px', fontSize: 14 }}
         >
           Payload 포함 전송 (테스트)
         </button>
