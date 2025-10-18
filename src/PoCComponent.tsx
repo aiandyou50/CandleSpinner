@@ -417,54 +417,81 @@ export const PoCComponent: React.FC = () => {
       const amountWhole = BigInt(Math.max(0, Number(depositAmount)));
       const amount = amountWhole * 10n ** DECIMALS;
 
-  // choose recipient-jt-wallet for payload destination: manual override > derived jetton-wallet > fallback to GAME_WALLET_ADDRESS
-    const payloadDestAddrStr = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : (GAME_WALLET_ADDRESS as string);
-  const toAddress = Address.parse(payloadDestAddrStr);
-  const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+    // We need to send the jetton-transfer payload to the user's jetton-wallet contract (so tokens are deducted from user).
+    // payload.destination must be the game's receive address (GAME_WALLET_ADDRESS). The message address (where we send the message)
+    // should be the user's jetton-wallet (manual input or RPC-derived).
+    const ownerAddrStr = connectedWallet.account.address;
+    let userJettonWalletAddrStr: string | null = (manualJettonWallet && manualJettonWallet.length > 0) ? manualJettonWallet : null;
 
-  // Note: We allow sending to any manual payload destination (including owner) for testing purposes.
-
-  const payloadCell = buildJettonTransferPayload(amount, toAddress, responseAddress);
-  const payloadBase64 = payloadCell.toBoc().toString("base64");
-
-  // validUntil: TonConnect expects validUntil not too far in the future — keep 5 minutes
-  const VALID_SECONDS = 60 * 5; // 5 minutes
-      const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
-
-  // Compute forward amount (we used zero for buildJettonTransferPayload)
-  const forwardAmount = BigInt(0);
-  // compute required message amount to cover forward + fee margin
-  const requiredAmount = ensureMessageAmount(forwardAmount, useDiagnosticLowFee);
-  const TON_FEE = requiredAmount.toString();
-
-      // Determine tx based on sendType
-      let tx: any;
-      if (sendType === 'CSPIN') {
-        // Choose recipient: if forceTokenPresentation is enabled, prefer sending payload to token master
-        const recipientAddress = (forceTokenPresentation || sendToTokenMaster) ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
-        tx = {
-          validUntil,
-          messages: [
-            {
-              address: recipientAddress,
-              amount: TON_FEE,
-              payload: payloadBase64,
-            },
-          ],
-        };
-      } else {
-        // TON transfer: send native TON to payloadDestAddrStr (or token master if selected)
-        const recipientAddress = (forceTokenPresentation || sendToTokenMaster) ? CSPIN_TOKEN_ADDRESS : payloadDestAddrStr;
-        tx = {
-          validUntil,
-          messages: [
-            {
-              address: recipientAddress,
-              amount: ensureMessageAmount(BigInt(0), useDiagnosticLowFee).toString(),
-            },
-          ],
-        };
+    // If user didn't provide a manual jetton-wallet, try an RPC-based derivation here (synchronously) when rpcUrl is available.
+    if (!userJettonWalletAddrStr) {
+      if (rpcUrl) {
+        setDeriveStatus('입금용 jetton-wallet을 RPC로 파생 중...');
+        const getterCandidates = ['get_wallet_address','get_wallet','wallet_of','walletOf','getWalletAddress'];
+        try {
+          for (const method of getterCandidates) {
+            try {
+              const body = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [CSPIN_TOKEN_ADDRESS, method, [{ type: 'address', value: ownerAddrStr }]] };
+              const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              if (!resp.ok) continue;
+              const j = await resp.json();
+              const txt = JSON.stringify(j.result || j);
+              const addrRegex = /(?:EQ|UQ|Ef)[A-Za-z0-9_-]{40,60}/g;
+              const matches = txt.match(addrRegex);
+              if (matches && matches.length > 0) { userJettonWalletAddrStr = matches[0]; break; }
+            } catch (e) { continue; }
+          }
+        } catch (e) {
+          console.warn('입금 파생 RPC 시도 중 오류', e);
+        }
       }
+    }
+
+    if (!userJettonWalletAddrStr) {
+      throw new Error('Jetton-wallet 주소를 찾을 수 없습니다. 수동으로 jetton-wallet 주소를 입력하거나 RPC URL을 제공하고 Auto-derive를 시도하세요.');
+    }
+
+    // Build payload: destination is GAME_WALLET_ADDRESS (the game's receive address)
+    const payloadDestination = Address.parse(GAME_WALLET_ADDRESS as string);
+    const responseAddress = includeResponseTo ? Address.parse(connectedWallet.account.address) : null;
+    const payloadCell = buildJettonTransferPayload(amount, payloadDestination, responseAddress);
+    const payloadBase64 = payloadCell.toBoc().toString('base64');
+
+    // validUntil: TonConnect expects validUntil not too far in the future — keep 5 minutes
+    const VALID_SECONDS = 60 * 5; // 5 minutes
+    const validUntil = Math.floor(Date.now() / 1000) + VALID_SECONDS;
+
+    // Compute forward amount (we used zero for buildJettonTransferPayload)
+    const forwardAmount = BigInt(0);
+    // compute required message amount to cover forward + fee margin
+    const requiredAmount = ensureMessageAmount(forwardAmount, useDiagnosticLowFee);
+    const TON_FEE = requiredAmount.toString();
+
+    // Determine tx: for CSPIN we MUST send payload to user's jetton-wallet so the wallet executes the transfer
+    let tx: any;
+    if (sendType === 'CSPIN') {
+      tx = {
+        validUntil,
+        messages: [
+          {
+            address: userJettonWalletAddrStr,
+            amount: TON_FEE,
+            payload: payloadBase64,
+          },
+        ],
+      };
+    } else {
+      // TON native transfer to the game's receive address (not a token transfer)
+      tx = {
+        validUntil,
+        messages: [
+          {
+            address: payloadDestination.toString(),
+            amount: ensureMessageAmount(BigInt(0), useDiagnosticLowFee).toString(),
+          },
+        ],
+      };
+    }
 
       // Detailed logging to help debug TonConnect delivery issues
       console.log('Prepared tx:', {
@@ -474,7 +501,7 @@ export const PoCComponent: React.FC = () => {
 
       // populate preview for user verification and deep-link help
       setTxPreview({
-        to: payloadDestAddrStr,
+        to: userJettonWalletAddrStr ?? (payloadDestination ? payloadDestination.toString() : ''),
         amount: TON_FEE,
         validUntil,
         payloadDisplay: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
