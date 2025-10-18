@@ -24,6 +24,7 @@ function buildJettonTransferPayload(amount: bigint, destination: Address, respon
     .storeAddress(destination)
     .storeAddress(resp)
     .storeCoins(BigInt(0))
+    .storeBit(0)
     .endCell();
   return cell;
 }
