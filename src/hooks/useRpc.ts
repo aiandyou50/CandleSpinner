@@ -78,5 +78,30 @@ export function useRpc() {
     }
   };
 
-  return { rpcUrl, setRpcUrl, pingResult, pingTimestamp, performPing, rpcFetch };
+  const getJettonWalletAddress = async (masterAddress: string, ownerAddress: string): Promise<string | null> => {
+    try {
+      const body = {
+        rpcBody: {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'runGetMethod',
+          params: {
+            address: masterAddress,
+            method: 'get_wallet_address',
+            stack: [['tvm.Slice', ownerAddress]]
+          }
+        }
+      };
+      const resp = await rpcFetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await resp.json();
+      if (j.result && j.result.stack && j.result.stack[0] && j.result.stack[0][1]) {
+        return j.result.stack[0][1];
+      }
+    } catch (e) {
+      console.warn('RPC getJettonWalletAddress failed', e);
+    }
+    return null;
+  };
+
+  return { rpcUrl, setRpcUrl, pingResult, pingTimestamp, performPing, getJettonWalletAddress };
 }
