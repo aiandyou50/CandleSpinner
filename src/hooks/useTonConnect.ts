@@ -13,6 +13,7 @@ export function useTonConnect() {
 
   const getJettonWalletAddressRpc = async (masterAddress: string, ownerAddress: string): Promise<string | null> => {
     try {
+      console.log('Trying RPC derive for', masterAddress, ownerAddress);
       const body = {
         rpcBody: {
           jsonrpc: '2.0',
@@ -27,6 +28,7 @@ export function useTonConnect() {
       };
       const resp = await rpcFetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await resp.json();
+      console.log('RPC response:', j);
       if (j.result && j.result.stack && j.result.stack[0] && j.result.stack[0][1]) {
         return j.result.stack[0][1];
       }

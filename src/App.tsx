@@ -14,7 +14,6 @@ function App() {
 
         <main style={{ display: "flex", justifyContent: "center", marginTop: 80 }}>
           <div style={{ width: 720 }}>
-            <h1>CandleSpinner PoC</h1>
             <PoCComponent />
           </div>
         </main>
