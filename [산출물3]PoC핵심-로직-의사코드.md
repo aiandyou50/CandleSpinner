@@ -3,7 +3,7 @@
   * **프로젝트명:** CandleSpinner
   * **대상 단계:** Phase 0: PoC (Proof of Concept)
   * **목표:** React 환경에서 TON Connect를 사용하여 CSPIN 토큰 전송 트랜잭션을 성공적으로 실행하는 로직을 정의한다.
-  * **상태 :** 2025.10.18.기준으로 PoC 검증은 완료 되었습니다. 해당문서는 개발 시 참고하지 말아주세요.
+  * **상태 :** 2025.10.18.기준으로 PoC 검증은 완료 되었습니다.
 
 ### **1. 전역 설정 (Global Configuration)**
 
