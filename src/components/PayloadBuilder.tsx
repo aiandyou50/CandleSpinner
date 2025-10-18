@@ -60,19 +60,19 @@ export const PayloadBuilder: React.FC = () => {
 
   return (
     <div>
-      <h2>Payload Builder</h2>
-      <input type="number" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="Amount" />
+      <h2>페이로드 빌더</h2>
+      <input type="number" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="수량" />
       <select value={sendType} onChange={e => setSendType(e.target.value as 'CSPIN'|'TON')}>
         <option value="CSPIN">CSPIN</option>
         <option value="TON">TON</option>
       </select>
-      <label><input type="checkbox" checked={includeResponseTo} onChange={e => setIncludeResponseTo(e.target.checked)} /> Include response_to</label>
-      <label><input type="checkbox" checked={useDiagnosticLowFee} onChange={e => setUseDiagnosticLowFee(e.target.checked)} /> Diagnostic low fee</label>
-      <label><input type="checkbox" checked={sendToTokenMaster} onChange={e => setSendToTokenMaster(e.target.checked)} /> Send to Token Master</label>
-      <button onClick={buildPayload}>Build Payload</button>
+      <label><input type="checkbox" checked={includeResponseTo} onChange={e => setIncludeResponseTo(e.target.checked)} /> response_to 포함</label>
+      <label><input type="checkbox" checked={useDiagnosticLowFee} onChange={e => setUseDiagnosticLowFee(e.target.checked)} /> 진단용 낮은 수수료</label>
+      <label><input type="checkbox" checked={sendToTokenMaster} onChange={e => setSendToTokenMaster(e.target.checked)} /> 토큰 마스터로 전송</label>
+      <button onClick={buildPayload}>페이로드 빌드</button>
       {txPreview && <pre>{JSON.stringify(txPreview, null, 2)}</pre>}
-      {decodedPayloadHex && <pre>Payload Hex: {decodedPayloadHex}</pre>}
-      {decodedCellInfo && <pre>Cell Info: {decodedCellInfo}</pre>}
+      {decodedPayloadHex && <pre>페이로드 헥스: {decodedPayloadHex}</pre>}
+      {decodedCellInfo && <pre>셀 정보: {decodedCellInfo}</pre>}
     </div>
   );
 };
