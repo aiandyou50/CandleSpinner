@@ -1,0 +1,9 @@
+name = "candlespinner"
+compatibility_date = "2023-12-01"
+pages_build_output_dir = "dist"
+
+# KV 네임스페이스 바인딩
+[[kv_namespaces]]
+binding = "CREDIT_KV"
+id = "your_kv_namespace_id_here"
+preview_id = "your_kv_namespace_id_here"
