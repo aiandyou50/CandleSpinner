@@ -1,0 +1,16 @@
+# PoC Directory Protection
+# Mark PoC directory files as protected/critical
+# These files should not be modified - they are for reference and learning only
+
+# All files in PoC directory are marked as protected
+PoC/** linguist-documentation
+PoC/docs/** linguist-documentation
+PoC/src/** linguist-vendored=false
+PoC/functions/** linguist-vendored=false
+
+# Mark PoC protection documentation as critical
+PoC/PROTECTION.md linguist-documentation
+PoC/docs/PoC-restoration-guide.md linguist-documentation
+
+# PoC backup file should not be treated as binary diff
+PoC/*.zip binary
