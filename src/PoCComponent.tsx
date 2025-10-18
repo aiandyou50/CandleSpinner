@@ -19,7 +19,7 @@ export const PoCComponent: React.FC = () => {
     setBusy(true);
     try {
       // Placeholder for actual send logic
-      alert('Deposit logic to be implemented');
+      alert('입금 로직이 구현되지 않았습니다');
     } catch (e) {
       setLastError(String(e));
     } finally {
@@ -47,33 +47,33 @@ export const PoCComponent: React.FC = () => {
       <h1>CandleSpinner PoC</h1>
       <PayloadBuilder />
       <div>
-        <h2>RPC Settings</h2>
+        <h2>RPC 설정</h2>
         <input value={rpcUrl} onChange={e => setRpcUrl(e.target.value)} placeholder='RPC URL' />
-        <button onClick={() => performPing()}>RPC Ping</button>
+        <button onClick={() => performPing()}>RPC 핑</button>
         {pingResult && <pre>{JSON.stringify(pingResult, null, 2)}</pre>}
       </div>
       <div>
-        <h2>Wallet</h2>
+        <h2>지갑</h2>
         {connectedWallet ? (
           <div>
-            <p>Connected: {connectedWallet.account.address}</p>
-            <input value={manualJettonWallet} onChange={e => setManualJettonWallet(e.target.value)} placeholder='Jetton Wallet' />
-            <p>Derive Status: {deriveStatus}</p>
+            <p>연결됨: {connectedWallet.account.address}</p>
+            <input value={manualJettonWallet} onChange={e => setManualJettonWallet(e.target.value)} placeholder='젯톤 지갑' />
+            <p>파생 상태: {deriveStatus}</p>
           </div>
         ) : (
-          <p>Not connected</p>
+          <p>연결되지 않음</p>
         )}
       </div>
       <div>
-        <h2>Actions</h2>
-        <button onClick={handleDeposit} disabled={busy}>Deposit</button>
-        <button onClick={downloadDebugPack}>Download Debug Pack</button>
-        {lastError && <p>Error: {lastError}</p>}
+        <h2>작업</h2>
+        <button onClick={handleDeposit} disabled={busy}>입금</button>
+        <button onClick={downloadDebugPack}>디버그 팩 다운로드</button>
+        {lastError && <p>오류: {lastError}</p>}
       </div>
       <div>
-        <h2>Evidence</h2>
+        <h2>증거</h2>
         <textarea value={manualEvidenceText} onChange={e => setManualEvidenceText(e.target.value)} />
-        <button onClick={() => setEvidenceList([...evidenceList, { id: Date.now().toString(), name: 'Manual', content: manualEvidenceText, type: 'text', created: Date.now() }])}>Add Evidence</button>
+        <button onClick={() => setEvidenceList([...evidenceList, { id: Date.now().toString(), name: '수동', content: manualEvidenceText, type: 'text', created: Date.now() }])}>증거 추가</button>
         {evidenceList.map(e => <p key={e.id}>{e.content}</p>)}
       </div>
     </div>
