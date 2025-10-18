@@ -61,18 +61,55 @@ export async function onRequest(context) {
   const body = await request.json()
   const backend = env.BACKEND_RPC_URL || body.rpcUrl
   if (!backend) return new Response(JSON.stringify({ error: 'no rpc backend configured' }), { status: 400 })
-
-  try {
-    const resp = await fetch(backend, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body.rpcBody ?? body)
-    })
-    const text = await resp.text()
-    const headers = { 'Content-Type': resp.headers.get('Content-Type') || 'application/json' }
-    headers['Access-Control-Allow-Origin'] = origin || '*'
-    return new Response(text, { status: resp.status, headers })
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 })
+  // helper: fetch with a couple retries for transient backend errors (522/5xx)
+  async function fetchWithRetries(url, init, attempts = 3, backoffMs = 300) {
+    let lastError = null
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const r = await fetch(url, init)
+        const text = await r.text().catch(() => null)
+        return { ok: r.ok, status: r.status, text }
+      } catch (e) {
+        lastError = e
+        // small backoff before retrying
+        await new Promise(res => setTimeout(res, backoffMs))
+      }
+    }
+    return { ok: false, status: null, text: null, error: lastError && String(lastError) }
   }
+
+  const init = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body.rpcBody ?? body)
+  }
+
+  const proxyResp = await fetchWithRetries(backend, init, 3, 350)
+
+  // Always include CORS header so the browser JS can read the body when the request fails
+  const respHeaders = { 'Access-Control-Allow-Origin': origin || '*', 'Content-Type': 'application/json' }
+
+  if (proxyResp.error) {
+    return new Response(JSON.stringify({ error: 'backend fetch error', message: proxyResp.error, backend }), { status: 502, headers: respHeaders })
+  }
+
+  // If backend returned a non-2xx status, surface it with the body (if any) for easier debugging
+  if (!proxyResp.ok) {
+    const bodyText = proxyResp.text || null
+    // If backend returned JSON, try to parse and forward it; otherwise include as text
+    let parsed = null
+    try { parsed = bodyText ? JSON.parse(bodyText) : null } catch (e) { parsed = null }
+    const payload = {
+      error: 'backend returned non-2xx',
+      backend,
+      status: proxyResp.status,
+      body: parsed ?? bodyText
+    }
+    return new Response(JSON.stringify(payload), { status: proxyResp.status || 502, headers: respHeaders })
+  }
+
+  // Success: backend returned 2xx. Attempt to forward the exact body and content-type if possible.
+  const contentTypeResp = 'application/json'
+  const finalHeaders = { 'Access-Control-Allow-Origin': origin || '*', 'Content-Type': contentTypeResp }
+  return new Response(proxyResp.text || '', { status: proxyResp.status || 200, headers: finalHeaders })
 }
