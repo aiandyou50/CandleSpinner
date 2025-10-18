@@ -10,7 +10,7 @@ function App() {
       <h1>CandleSpinner MVP</h1>
       <p>🚧 MVP 개발 준비 중입니다.</p>
       <p>PoC 코드는 <code>PoC/</code> 폴더에 보존되어 있습니다.</p>
-      <p>📖 <a href="./PoC/docs/PoC-restoration-guide.md" target="_blank">PoC 복원 가이드 문서</a>도 참고하세요.</p>
+      <p>📖 자세한 복원 방법은 <code>PoC/docs/PoC-restoration-guide.md</code> 파일을 참고하세요.</p>
 
       {/* ============================================
          PoC로 돌아가기 위한 방법 (자세한 가이드)
