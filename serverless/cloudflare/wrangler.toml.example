@@ -1,0 +1,14 @@
+[name]
+type = "javascript"
+
+# Account and project settings
+# Set these when deploying
+account_id = "<CF_ACCOUNT_ID>"
+workers_dev = true
+
+[build]
+command = ""
+
+[vars]
+# RPC_URL is the backend RPC endpoint the worker will forward to. Set to a reliable RPC provider.
+RPC_URL = "https://main.ton.dev/"
