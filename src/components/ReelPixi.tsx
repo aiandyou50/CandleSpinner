@@ -33,9 +33,7 @@ export const ReelPixi: React.FC<ReelPixiProps> = ({ spinning, reels = ['‚≠ê','ü
         appRef.current = app;
 
         // @ts-ignore
-        const TextStyle = (PIXI as any).TextStyle || (PIXI as any).TextStyle;
-        // @ts-ignore
-        const style = new TextStyle({ fontSize: 36 });
+        const style = new (PIXI as any).TextStyle({ fontSize: 36, fill: 0xffffff });
 
         const texts: any[] = [];
         for (let i = 0; i < 3; i++) {
