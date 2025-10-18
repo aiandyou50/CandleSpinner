@@ -78,8 +78,8 @@ export const PoCComponent: React.FC = () => {
   const [tonBalance, setTonBalance] = useState<string | null>(null); // in TON (string)
   const [balanceCheckStatus, setBalanceCheckStatus] = useState<string | null>(null);
   const [pocMode, setPocMode] = useState<boolean>(false);
-  // default to local proxy path if deployed (Cloudflare Worker or serverless proxy)
-  const [rpcUrl, setRpcUrl] = useState<string>('/rpc');
+  // default to Pages Functions path for RPC proxy
+  const [rpcUrl, setRpcUrl] = useState<string>('/api/rpc');
   const [deriveStatus, setDeriveStatus] = useState<string | null>(null);
   const [forceTokenPresentation, setForceTokenPresentation] = useState<boolean>(true);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
