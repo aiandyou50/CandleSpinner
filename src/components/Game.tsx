@@ -285,6 +285,49 @@ export const Game: React.FC = () => {
     }
   };
 
+  // CSPIN 인출 처리
+  const handleWithdraw = async () => {
+    if (!connectedWallet) {
+      alert('지갑을 먼저 연결해주세요');
+      return;
+    }
+
+    if (userCredit <= 0) {
+      alert('인출할 크레딧이 없습니다');
+      return;
+    }
+
+    const confirmed = confirm(`정말 ${userCredit} CSPIN을 모두 인출하시겠습니까?\n\n인출은 처리까지 몇 분 정도 소요될 수 있습니다.`);
+    if (!confirmed) return;
+
+    try {
+      setMessage('인출 요청 중...');
+      
+      const resp = await fetch('/api/initiate-withdrawal', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          walletAddress: connectedWallet.account.address
+        }) 
+      });
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        setUserCredit(0);
+        setMessage(`인출 요청 완료: ${data.withdrawalAmount} CSPIN이 처리 중입니다`);
+        alert(`인출 요청이 완료되었습니다!\n\n금액: ${data.withdrawalAmount} CSPIN\n\n처리까지 몇 분 정도 소요될 수 있습니다.`);
+      } else {
+        const errorData = await resp.json();
+        setMessage('인출 요청 실패: ' + (errorData.error || '알 수 없는 오류'));
+        alert('인출 요청 실패: ' + (errorData.error || '알 수 없는 오류'));
+      }
+    } catch (e) {
+      console.error('withdraw error', e);
+      setMessage('인출 요청 호출 실패');
+      alert('인출 요청 실패: ' + String(e));
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-indigo-900 text-white p-4">
       {/* Inline keyframes for simple slow spin and delay helpers */}
@@ -367,8 +410,8 @@ export const Game: React.FC = () => {
             </div>
           </div>
 
-          <div className="text-center space-x-4">
-            <div className="flex items-center justify-center space-x-2 mb-4">
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center space-x-2">
               <label className="text-sm">입금 금액 (CSPIN):</label>
               <input 
                 type="number" 
@@ -379,14 +422,50 @@ export const Game: React.FC = () => {
               />
               <button
                 onClick={handleDeposit}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
+                disabled={!connectedWallet || isDerivingWallet || !jettonWalletAddress}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg text-sm"
               >
-                CSPIN 입금
+                💰 CSPIN 입금
+              </button>
+              <button
+                onClick={handleWithdraw}
+                disabled={!connectedWallet || userCredit <= 0}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg text-sm"
+              >
+                💸 CSPIN 인출
               </button>
             </div>
+            
+            {/* Bet Amount Controls */}
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <label className="text-sm">베팅 금액:</label>
+              <button
+                onClick={() => setBetAmount(Math.max(10, betAmount - 10))}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded"
+              >
+                -
+              </button>
+              <input 
+                type="number" 
+                value={betAmount} 
+                onChange={e => setBetAmount(Math.max(10, parseInt(e.target.value) || 10))}
+                className="bg-gray-700 text-white px-2 py-1 rounded text-center w-24" 
+                min="10"
+                step="10"
+              />
+              <button
+                onClick={() => setBetAmount(betAmount + 10)}
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded"
+              >
+                +
+              </button>
+              <span className="text-xs text-gray-400">CSPIN</span>
+            </div>
+            
             <button
               onClick={handleSpinClick}
-              className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg text-xl"
+              disabled={isSpinning || betAmount > userCredit}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-gray-500 disabled:cursor-not-allowed text-white font-bold py-3 px-8 rounded-lg text-xl"
             >
               🎰 SPIN!
             </button>
