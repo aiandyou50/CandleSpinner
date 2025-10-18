@@ -15,8 +15,8 @@ function parseAddressSafe(s: string | Address | null | undefined): Address {
   }
 }
 
-function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address | null) {
-  const resp = responseTo ? responseTo : Address.parse(ZERO_ADDRESS_BOC);
+function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address) {
+  const resp = responseTo;
   const cell = beginCell()
     .storeUint(0xF8A7EA5, 32)
     .storeUint(0, 64)
@@ -33,7 +33,7 @@ function ensureMessageAmount(forwardTon: bigint, diagnostic: boolean): bigint {
   return forwardTon + feeMargin;
 }
 
-export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (payload: any) => void }> = ({ jettonWallet, onPayloadBuilt }) => {
+export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (payload: any) => void; senderAddress: string }> = ({ jettonWallet, onPayloadBuilt, senderAddress }) => {
   const [depositAmount, setDepositAmount] = useState<string>("100");
   const [sendType, setSendType] = useState<'CSPIN'|'TON'>('CSPIN');
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
@@ -47,7 +47,7 @@ export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (p
     try {
       const amount = BigInt(depositAmount) * BigInt(10 ** 9); // Assume 9 decimals for CSPIN
       const destination = Address.parse(GAME_WALLET_ADDRESS);
-      const responseTo = includeResponseTo ? null : Address.parse(ZERO_ADDRESS_BOC);
+      const responseTo = includeResponseTo ? Address.parse(senderAddress) : Address.parse(ZERO_ADDRESS_BOC);
       const payload = buildJettonTransferPayload(amount, destination, responseTo);
       const hex = payload.toBoc().toString('hex');
       setDecodedPayloadHex(hex);

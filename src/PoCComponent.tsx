@@ -51,7 +51,12 @@ export const PoCComponent: React.FC = () => {
       txJson: lastTxJson,
       lastError,
       pingResult,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      connectedWallet: connectedWallet?.account.address,
+      manualJettonWallet,
+      deriveStatus,
+      lastPayload,
+      rpcUrl
     };
     const blob = new Blob([JSON.stringify(pack, null, 2)], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -64,7 +69,7 @@ export const PoCComponent: React.FC = () => {
   return (
     <div>
       <h1>CandleSpinner PoC</h1>
-      <PayloadBuilder jettonWallet={manualJettonWallet} onPayloadBuilt={setLastPayload} />
+      <PayloadBuilder jettonWallet={manualJettonWallet} onPayloadBuilt={setLastPayload} senderAddress={connectedWallet?.account.address || ''} />
       <div>
         <h2>RPC 설정</h2>
         <input value={rpcUrl} onChange={e => setRpcUrl(e.target.value)} placeholder='RPC URL' />
