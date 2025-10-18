@@ -5,5 +5,5 @@ pages_build_output_dir = "dist"
 # KV 네임스페이스 바인딩
 [[kv_namespaces]]
 binding = "CREDIT_KV"
-id = "your_kv_namespace_id_here"
-preview_id = "your_kv_namespace_id_here"
+id = "e573c59cb09b4d58b5f38a56ef65dd6f"
+preview_id = "e573c59cb09b4d58b5f38a56ef65dd6f"
