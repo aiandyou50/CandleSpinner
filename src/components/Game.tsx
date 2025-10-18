@@ -4,6 +4,7 @@ import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, toNano, beginCell } from 'ton-core';
 import ReelPixi from './ReelPixi';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
+import { useJettonWallet } from '../hooks/useJettonWallet';
 
 // Zustand 스토어
 interface GameStore {
@@ -55,6 +56,11 @@ export const Game: React.FC = () => {
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
   const [showReel, setShowReel] = useState<boolean>(true);
+  
+  // Derive user's jetton wallet address for CSPIN transfers
+  const { jettonWalletAddress, isLoading: isDerivingWallet, error: walletError } = useJettonWallet(
+    connectedWallet?.account.address || null
+  );
 
   const handleSpinClick = async () => {
     setMessage('스핀을 실행 중...');
@@ -143,14 +149,14 @@ export const Game: React.FC = () => {
 
   const [depositAmount, setDepositAmount] = useState<string>("100");
 
-  // CSPIN 전송 페이로드 빌드 (PoC 로직 기반)
+  // CSPIN 전송 페이로드 빌드 (PoC 로직 기반 - TEP-74 표준 준수)
   const buildCSPINTransferPayload = (amount: bigint, destination: Address, responseTo: Address) => {
     const cell = beginCell()
-      .storeUint(0xF8A7EA5, 32)     // op: transfer
+      .storeUint(0xF8A7EA5, 32)     // op: transfer (TEP-74 standard)
       .storeUint(0, 64)             // query_id
       .storeCoins(amount)            // amount
-      .storeAddress(destination)     // destination
-      .storeAddress(responseTo)      // response_destination
+      .storeAddress(destination)     // destination (게임 지갑)
+      .storeAddress(responseTo)      // response_destination (사용자 지갑)
       .storeBit(0)                   // custom_payload: none
       .storeCoins(BigInt(0))         // forward_ton_amount
       .storeBit(0)                   // forward_payload: none
@@ -161,43 +167,62 @@ export const Game: React.FC = () => {
   // CSPIN 입금 처리
   const handleDeposit = async () => {
     if (!connectedWallet) {
-      alert('지갑을 연결하세요');
+      alert('지갑을 먼저 연결해주세요');
+      return;
+    }
+
+    if (!jettonWalletAddress) {
+      alert('젯톤 지갑 주소를 확인하는 중입니다. 잠시만 기다려주세요.');
+      return;
+    }
+
+    if (isDerivingWallet) {
+      alert('젯톤 지갑 주소를 가져오는 중입니다...');
+      return;
+    }
+
+    if (walletError) {
+      alert('젯톤 지갑 주소를 가져오는데 실패했습니다: ' + walletError);
       return;
     }
 
     try {
-      const amount = BigInt(depositAmount) * BigInt(10 ** 9); // CSPIN 9 decimals
-      const destination = Address.parse(GAME_WALLET_ADDRESS);
-      const responseTo = Address.parse(connectedWallet.account.address);
+      setMessage('입금 트랜잭션 준비 중...');
       
+      const amount = BigInt(depositAmount) * BigInt(10 ** 9); // CSPIN 9 decimals
+      const destination = Address.parse(GAME_WALLET_ADDRESS); // 게임 지갑 (토큰 수신자)
+      const responseTo = Address.parse(connectedWallet.account.address); // 사용자 지갑 (가스비 반환용)
+      
+      // TEP-74 표준에 따른 jetton transfer 페이로드 생성
       const payloadCell = buildCSPINTransferPayload(amount, destination, responseTo);
       const boc = payloadCell.toBoc();
       const hex = boc.toString('hex');
       const base64 = Buffer.from(hex, 'hex').toString('base64');
 
-      // 제톤 지갑 주소 파생 (간단히 수동으로 설정, 실제로는 RPC 필요)
-      const jettonWalletAddress = "EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs"; // 게임 지갑의 CSPIN 지갑
-
+      // 트랜잭션: 사용자의 젯톤 지갑으로 전송
       const tx = {
-        validUntil: Math.floor(Date.now() / 1000) + 600,
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10분 유효
         messages: [{
-          address: jettonWalletAddress,
+          address: jettonWalletAddress, // 사용자의 CSPIN 젯톤 지갑
           amount: '100000000', // 0.1 TON for gas
           payload: base64
         }]
       };
 
+      setMessage('트랜잭션 서명 대기 중...');
       const result: any = await tonConnectUI.sendTransaction(tx);
       
       if (result && result.boc) {
+        setMessage('온체인 입금 확인 중...');
         // 온체인 성공, 백엔드에 크레딧 등록
         await handleDepositSuccess(result.boc, connectedWallet.account.address, parseInt(depositAmount));
       } else {
-        setMessage('트랜잭션이 전송되었으나 결과 boc를 찾을 수 없습니다.');
+        setMessage('트랜잭션이 전송되었으나 결과를 확인할 수 없습니다.');
       }
     } catch (e) {
-      console.warn('deposit failed', e);
-      alert('입금 트랜잭션 실패: ' + String(e));
+      console.error('deposit failed', e);
+      setMessage('입금 트랜잭션 실패: ' + String(e));
+      alert('입금 실패: ' + String(e));
     }
   };
 
@@ -282,7 +307,18 @@ export const Game: React.FC = () => {
         <div className="bg-black/50 rounded-lg p-8 mb-6">
           <div className="text-right mb-4">
             {connectedWallet ? (
-              <div className="text-sm text-green-300">지갑 연결됨: {connectedWallet.account.address}</div>
+              <div>
+                <div className="text-sm text-green-300">지갑 연결됨: {connectedWallet.account.address}</div>
+                {isDerivingWallet && (
+                  <div className="text-xs text-yellow-300">젯톤 지갑 주소 확인 중...</div>
+                )}
+                {walletError && (
+                  <div className="text-xs text-red-300">젯톤 지갑 오류: {walletError}</div>
+                )}
+                {jettonWalletAddress && (
+                  <div className="text-xs text-gray-300">젯톤 지갑: {jettonWalletAddress.slice(0, 8)}...{jettonWalletAddress.slice(-6)}</div>
+                )}
+              </div>
             ) : (
               <div className="text-sm text-red-300">지갑 미연결</div>
             )}
