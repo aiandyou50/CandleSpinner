@@ -46,6 +46,7 @@
     "node_modules",
     "dist",
     "PoC/**",
-    "functions/**"
+    "functions/**",
+    "vite.config.ts"
   ]
 }
