@@ -33,7 +33,7 @@ function ensureMessageAmount(forwardTon: bigint, diagnostic: boolean): bigint {
   return forwardTon + feeMargin;
 }
 
-export const PayloadBuilder: React.FC = () => {
+export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (payload: any) => void }> = ({ jettonWallet, onPayloadBuilt }) => {
   const [depositAmount, setDepositAmount] = useState<string>("100");
   const [sendType, setSendType] = useState<'CSPIN'|'TON'>('CSPIN');
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
@@ -52,7 +52,9 @@ export const PayloadBuilder: React.FC = () => {
       const hex = payload.toBoc().toString('hex');
       setDecodedPayloadHex(hex);
       setDecodedCellInfo(`Opcode: 0xF8A7EA5, Amount: ${amount}, Destination: ${destination.toString()}`);
-      setTxPreview({ to: sendToTokenMaster ? 'token_master' : 'jetton_wallet', value: ensureMessageAmount(BigInt(0), useDiagnosticLowFee).toString(), data: hex });
+      const tx = { to: jettonWallet, value: ensureMessageAmount(BigInt(0), useDiagnosticLowFee).toString(), data: hex };
+      setTxPreview(tx);
+      onPayloadBuilt(tx);
     } catch (e) {
       setDecodedPayloadHex(`Error: ${String(e)}`);
     }

@@ -14,12 +14,31 @@ export const PoCComponent: React.FC = () => {
   const [lastTxJson, setLastTxJson] = useState<string | null>(null);
   const [manualEvidenceText, setManualEvidenceText] = useState<string>('');
   const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>([]);
+  const [lastPayload, setLastPayload] = useState<any | null>(null);
 
   const handleDeposit = async () => {
+    if (!lastPayload) {
+      alert('먼저 페이로드를 빌드하세요');
+      return;
+    }
+    if (!connectedWallet) {
+      alert('지갑을 연결하세요');
+      return;
+    }
     setBusy(true);
     try {
-      // Placeholder for actual send logic
-      alert('입금 로직이 구현되지 않았습니다');
+      const payloadBase64 = Buffer.from(lastPayload.data, 'hex').toString('base64');
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
+        messages: [{
+          address: lastPayload.to,
+          amount: lastPayload.value,
+          payload: payloadBase64
+        }]
+      };
+      const result = await tonConnectUI.sendTransaction(tx);
+      setLastTxJson(JSON.stringify(result));
+      alert('트랜잭션 전송됨: ' + result.boc);
     } catch (e) {
       setLastError(String(e));
     } finally {
@@ -45,7 +64,7 @@ export const PoCComponent: React.FC = () => {
   return (
     <div>
       <h1>CandleSpinner PoC</h1>
-      <PayloadBuilder />
+      <PayloadBuilder jettonWallet={manualJettonWallet} onPayloadBuilt={setLastPayload} />
       <div>
         <h2>RPC 설정</h2>
         <input value={rpcUrl} onChange={e => setRpcUrl(e.target.value)} placeholder='RPC URL' />
