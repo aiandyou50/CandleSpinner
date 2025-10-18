@@ -302,10 +302,14 @@ export const Game: React.FC = () => {
               <li>✅ 지갑 연결/연결 해제</li>
               <li>✅ 크레딧 표시 및 갱신</li>
               <li>✅ SPIN 클릭 시 서버 호출(또는 모킹)</li>
-              <li>✅ 릴 애니메이션(간단 모킹)</li>
-              <li>⚠️ PoC CSPIN 입금 로직 통합(요청 시 통합됨)</li>
-              <li>⚠️ `/api/spin` 서버 로직 구현 필요(현: 프론트 모킹 가능)</li>
-              <li>⚠️ Provably Fair 완전 구현(클라이언트-서버 시드 교환 필요)</li>
+              <li>✅ 릴 애니메이션(PixiJS 구현)</li>
+              <li>✅ PoC CSPIN 입금 로직 통합</li>
+              <li>✅ `/api/spin` 서버 로직 구현</li>
+              <li>✅ Provably Fair 완전 구현</li>
+              <li>✅ 미니게임(더블업) 구현</li>
+              <li>✅ 상금 수령 기능 구현</li>
+              <li>✅ Buffer polyfill 적용</li>
+              <li>✅ TypeScript 오류 해결</li>
             </ul>
             <div className="mt-3 flex space-x-2">
               <button onClick={async () => {
