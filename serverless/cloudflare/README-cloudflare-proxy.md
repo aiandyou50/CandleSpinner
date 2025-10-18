@@ -19,4 +19,10 @@ Security notes (must consider before production)
 - Authentication: for public projects consider a short-lived token or secret between frontend and worker.
 - Logging & monitoring: use Cloudflare logs to monitor errors and suspicious activity.
 
+Additional recommended settings
+- `WORKER_API_KEY` (wrangler secret): set a short token and have the frontend include it in `X-API-KEY` header for extra protection.
+- `ALLOWED_ORIGIN` (wrangler var): set to your production frontend host (e.g. `https://example.com`) so worker rejects other origins.
+
+This example includes a naive in-memory rate limiter and origin/API-key checks. For production use, consider more robust rate-limiting (e.g. Cloudflare Workers KV or Durable Objects) and stricter authentication.
+
 This is an example for PoC usage only. Harden before using in production.

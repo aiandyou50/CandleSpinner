@@ -82,6 +82,8 @@ export const PoCComponent: React.FC = () => {
   const [rpcUrl, setRpcUrl] = useState<string>('/rpc');
   const [deriveStatus, setDeriveStatus] = useState<string | null>(null);
   const [forceTokenPresentation, setForceTokenPresentation] = useState<boolean>(true);
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [simResult, setSimResult] = useState<string | null>(null);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -591,6 +593,23 @@ export const PoCComponent: React.FC = () => {
         setLastTxJson(JSON.stringify(tx, null, 2));
       } catch (e) {
         setLastTxJson(String(tx));
+      }
+
+      // Pre-simulate via RPC proxy if available
+      if (rpcUrl && rpcUrl.startsWith('/')) {
+        try {
+          // call proxy with a run_executor style simulation if backend supports it
+          const simBody = { jsonrpc: '2.0', id: 1, method: 'run_executor', params: [tx.messages[0].address, tx.messages[0].payload ? { body: tx.messages[0].payload } : {}, []] };
+          const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rpcBody: simBody }) });
+          const j = await resp.json();
+          setSimResult(JSON.stringify(j));
+          // if result indicates an obvious error, show confirm modal to user
+          if (j?.error) {
+            setShowConfirmModal(true);
+          }
+        } catch (e) {
+          console.warn('simulation failed', e);
+        }
       }
 
       // Simple retry logic for transient bridge/network issues (e.g. rate limit on public bridge)
@@ -1264,6 +1283,19 @@ export const PoCComponent: React.FC = () => {
               </button>
         
             {/* direct payload button moved to variant buttons for clearer layout */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmModal && (
+        <div style={{ position: 'fixed', left: 0, right: 0, top: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 720, background: '#fff', padding: 16, borderRadius: 8 }}>
+            <h3>시뮬레이션 경고</h3>
+            <div style={{ maxHeight: 300, overflow: 'auto', fontSize: 12, whiteSpace: 'pre-wrap' }}>{simResult ?? '시뮬레이션 정보 없음'}</div>
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowConfirmModal(false); setSimResult(null); }}>취소</button>
+              <button onClick={() => { setShowConfirmModal(false); setSimResult(null); /* proceed without blocking */ }}>계속 진행</button>
             </div>
           </div>
         </div>

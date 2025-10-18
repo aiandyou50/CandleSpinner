@@ -12,3 +12,7 @@ command = ""
 [vars]
 ***REMOVED***RPC_URL is the backend RPC endpoint the worker will forward to. Set to a reliable RPC provider.
 RPC_URL = "https://main.ton.dev/"
+ 
+***REMOVED***Optional security vars
+WORKER_API_KEY = "<YOUR_API_KEY>"
+ALLOWED_ORIGIN = "https://your-site.example"
