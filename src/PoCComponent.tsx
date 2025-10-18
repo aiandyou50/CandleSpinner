@@ -467,19 +467,32 @@ export const PoCComponent: React.FC = () => {
     const requiredAmount = ensureMessageAmount(forwardAmount, useDiagnosticLowFee);
     const TON_FEE = requiredAmount.toString();
 
-    // Determine tx: for CSPIN we MUST send payload to user's jetton-wallet so the wallet executes the transfer
+    // Determine tx: for CSPIN we normally send payload to the user's jetton-wallet so the wallet executes the transfer.
+    // However many wallets display a token-transfer UI only when the message is sent to the token master contract.
+    // Provide option to prefer token-master presentation (sendToTokenMaster or forceTokenPresentation).
     let tx: any;
     if (sendType === 'CSPIN') {
+      const recipientAddress = (forceTokenPresentation || sendToTokenMaster) ? CSPIN_TOKEN_ADDRESS : userJettonWalletAddrStr;
       tx = {
         validUntil,
         messages: [
           {
-            address: userJettonWalletAddrStr,
+            address: recipientAddress,
             amount: TON_FEE,
             payload: payloadBase64,
           },
         ],
       };
+
+      // reflect chosen recipient in preview
+      setTxPreview({
+        to: recipientAddress,
+        amount: TON_FEE,
+        validUntil,
+        payloadDisplay: payloadBase64.slice(0, 120) + (payloadBase64.length > 120 ? '...' : ''),
+        payloadFull: payloadBase64,
+        responseTo: responseAddress ? connectedWallet.account.address : null,
+      });
     } else {
       // TON native transfer to the game's receive address (not a token transfer)
       tx = {
@@ -491,6 +504,14 @@ export const PoCComponent: React.FC = () => {
           },
         ],
       };
+      setTxPreview({
+        to: payloadDestination.toString(),
+        amount: ensureMessageAmount(BigInt(0), useDiagnosticLowFee).toString(),
+        validUntil,
+        payloadDisplay: '',
+        payloadFull: '',
+        responseTo: responseAddress ? connectedWallet.account.address : null,
+      });
     }
 
       // Detailed logging to help debug TonConnect delivery issues
