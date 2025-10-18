@@ -18,8 +18,19 @@ export async function onRequestPost(context: any) {
       pendingWinnings: 0
     };
 
-    // 크레딧을 0으로 설정 (인출 요청)
     const withdrawalAmount = state.credit;
+    
+    // 인출할 금액이 없으면 오류 반환
+    if (withdrawalAmount <= 0) {
+      return new Response(JSON.stringify({
+        error: '인출할 크레딧이 없습니다.'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 크레딧을 0으로 설정 (인출 요청)
     state.credit = 0;
     state.canDoubleUp = false;
     state.pendingWinnings = 0;
