@@ -4,6 +4,35 @@ import { useTonWallet, useTonConnectUI } from "@tonconnect/ui-react";
 import { Address, toNano, beginCell } from "ton-core";
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from "./constants.js";
 
+// Read build-time injected API key (Vite requires VITE_ prefix for client exposure).
+// In Cloudflare Pages set an environment variable named VITE_FUNCTION_API_KEY with the same value as your FUNCTION_API_KEY.
+const FRONT_FUNCTION_API_KEY = (import.meta as any).env?.VITE_FUNCTION_API_KEY ?? (import.meta as any).env?.FUNCTION_API_KEY ?? null;
+
+// rpcFetch: centralized helper that injects X-API-KEY for same-origin proxy calls and ensures Content-Type.
+async function rpcFetch(url: string, opts: RequestInit = {}) {
+  const headers: Record<string, string> = {};
+  // copy provided headers (string keys normalized)
+  const given = opts.headers as Record<string,string> | undefined;
+  if (given) {
+    for (const k of Object.keys(given)) {
+      const v = (given as any)[k];
+      if (typeof v === 'string') headers[k] = v;
+    }
+  }
+  if (!headers['Content-Type'] && !headers['content-type']) headers['Content-Type'] = 'application/json';
+
+  // If calling same-origin proxy path (starts with '/') and we have an API key available at build time,
+  // include it as X-API-KEY. This allows Pages Functions to validate incoming requests.
+  try {
+    if (typeof url === 'string' && url.startsWith('/') && FRONT_FUNCTION_API_KEY) {
+      headers['X-API-KEY'] = FRONT_FUNCTION_API_KEY as string;
+    }
+  } catch (_) {}
+
+  const merged: RequestInit = { ...opts, headers };
+  return fetch(url, merged);
+}
+
 // A canonical zero address (workchain 0) used as a safe placeholder when no response_to is provided.
 // This avoids producing an invalid '0' address encoding which breaks parsers.
 const ZERO_ADDRESS_BOC = 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c';
@@ -124,7 +153,7 @@ export const PoCComponent: React.FC = () => {
           for (const method of getterCandidates) {
             try {
               const body = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [CSPIN_TOKEN_ADDRESS, method, [{ type: 'address', value: connectedWallet.account.address }]] };
-              const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              const resp = await rpcFetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
               if (!resp.ok) continue;
               const j = await resp.json();
               const txt = JSON.stringify(j.result || j);
@@ -218,7 +247,7 @@ export const PoCComponent: React.FC = () => {
             for (const method of getterCandidates) {
               try {
                 const body = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [masterAddr, method, [{ type: 'address', value: ownerAddrRPC }]] };
-                const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const resp = await rpcFetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 if (!resp.ok) continue;
                 const j = await resp.json();
                 const txt = JSON.stringify(j.result || j);
@@ -238,7 +267,7 @@ export const PoCComponent: React.FC = () => {
             for (const bg of balanceGetters) {
               try {
                 const bbody = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [derivedAddr, bg, []] };
-                const rresp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bbody) });
+                const rresp = await rpcFetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(bbody) });
                 if (!rresp.ok) continue;
                 const jj = await rresp.json();
                 // try to parse known shapes
@@ -404,7 +433,7 @@ export const PoCComponent: React.FC = () => {
             const body = {
               jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [masterAddr, 'get_wallet_address', [ { type: 'address', value: ownerAddr } ]]
             };
-            const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const resp = await rpcFetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
             if (!resp.ok) throw new Error('RPC 응답이 정상이 아닙니다: ' + resp.status);
             const j = await resp.json();
             // try to extract address-like string from result
@@ -481,7 +510,7 @@ export const PoCComponent: React.FC = () => {
           for (const method of getterCandidates) {
             try {
               const body = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [CSPIN_TOKEN_ADDRESS, method, [{ type: 'address', value: ownerAddrStr }]] };
-              const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              const resp = await rpcFetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
               if (!resp.ok) continue;
               const j = await resp.json();
               const txt = JSON.stringify(j.result || j);
@@ -600,7 +629,7 @@ export const PoCComponent: React.FC = () => {
         try {
           // call proxy with a run_executor style simulation if backend supports it
           const simBody = { jsonrpc: '2.0', id: 1, method: 'run_executor', params: [tx.messages[0].address, tx.messages[0].payload ? { body: tx.messages[0].payload } : {}, []] };
-          const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rpcBody: simBody }) });
+          const resp = await rpcFetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rpcBody: simBody }) });
           const j = await resp.json();
           setSimResult(JSON.stringify(j));
           // if result indicates an obvious error, show confirm modal to user
