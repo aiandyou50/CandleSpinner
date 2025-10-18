@@ -28,6 +28,7 @@
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.0.4",
     "buffer": "^6.0.3",
+    "hono": "^4.10.1",
     "i18next": "^25.6.0",
     "pixi.js": "^8.14.0",
     "react": "^19.2.0",

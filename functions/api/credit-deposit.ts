@@ -1,46 +1,23 @@
-interface UserState {
-  credit: number;
-  canDoubleUp: boolean;
-  pendingWinnings: number;
-}
+// functions/api/credit-deposit.ts
+import { Hono } from 'hono';
+import { handle } from 'hono/cloudflare-pages';
+import { HTTPException } from 'hono/http-exception';
+import { Bindings, getKVState, setKVState } from './utils';
 
-export async function onRequestPost(context: any) {
-  try {
-    const { request, env } = context;
-    const { walletAddress, amount }: {
-      walletAddress: string;
-      amount: number;
-    } = await request.json();
+const app = new Hono<{ Bindings: Bindings }>();
 
-    // KV에서 사용자 상태 가져오기
-    const stateKey = `user_${walletAddress}`;
-    const stateData = await env.CREDIT_KV.get(stateKey);
-    const state: UserState = stateData ? JSON.parse(stateData) : {
-      credit: 0,
-      canDoubleUp: false,
-      pendingWinnings: 0
-    };
+app.post('/api/credit-deposit', async (c) => {
+    const { walletAddress, amount } = await c.req.json<{walletAddress: string, amount: number}>();
+    if (!walletAddress || amount === undefined) {
+        throw new HTTPException(400, { message: 'walletAddress and amount are required' });
+    }
 
-    // 크레딧 추가
+    const state = await getKVState(c.env.CREDIT_KV, walletAddress);
     state.credit += amount;
 
-    // KV에 상태 저장
-    await env.CREDIT_KV.put(stateKey, JSON.stringify(state));
+    await setKVState(c.env.CREDIT_KV, walletAddress, state);
 
-    return new Response(JSON.stringify({
-      success: true,
-      newCredit: state.credit
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return c.json({ success: true, newCredit: state.credit });
+});
 
-  } catch (error) {
-    console.error('Credit deposit error:', error);
-    return new Response(JSON.stringify({
-      error: '크레딧 충전 중 오류가 발생했습니다.'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-}
+export const onRequest: PagesFunction<Bindings> = handle(app);
