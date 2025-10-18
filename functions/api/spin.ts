@@ -1,5 +1,3 @@
-import { getAssetFromKV } from '@cloudflare/kv-asset-handler';
-
 // 심볼 정의 (산출물 1 기반)
 const SYMBOLS = {
   "⭐": { multiplier: 0.5, probability: 35 },
