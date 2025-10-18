@@ -113,6 +113,8 @@ export const PoCComponent: React.FC = () => {
   const [forceTokenPresentation, setForceTokenPresentation] = useState<boolean>(true);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [simResult, setSimResult] = useState<string | null>(null);
+  const [pingResult, setPingResult] = useState<any | null>(null);
+  const [pingTimestamp, setPingTimestamp] = useState<number | null>(null);
 
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
@@ -754,13 +756,21 @@ export const PoCComponent: React.FC = () => {
     if (txPreview && txPreview.payloadFull) parts['payload.b64.txt'] = txPreview.payloadFull;
     // include last SDK error if present
     if (lastError) parts['lastError.txt'] = lastError;
+    // include recent RPC ping result if present
+    if (pingResult) {
+      const ts = pingTimestamp ? new Date(pingTimestamp).toISOString() : new Date().toISOString();
+      parts[`rpc-ping-${ts}.json`] = JSON.stringify(pingResult, null, 2);
+    }
     if (Object.keys(parts).length === 0) { alert('다운로드할 디버그 데이터가 없습니다.'); return; }
     const zipContent = Object.entries(parts).map(([name, body]) => `--- ${name} ---\n${body}`).join('\n\n');
     const blob = new Blob([zipContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'cspin-debug-pack.txt';
+    // include timestamp in filename
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[:.]/g,'-');
+    a.download = `cspin-debug-pack-${stamp}.txt`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -833,6 +843,12 @@ export const PoCComponent: React.FC = () => {
         <div style={{ marginTop: 8, color: '#444' }}>
           <div>Jetton 잔액: {jettonBalance ?? '알 수 없음'} {jettonBalanceRaw ? `(${jettonBalanceRaw} raw)` : ''}</div>
           <div>TON 잔액: {tonBalance ?? '알 수 없음'}</div>
+            {pingResult && (
+              <div style={{ marginTop: 8, padding: 8, border: '1px dashed #ddd', background: '#fafafa' }}>
+                <div style={{ fontSize: 13 }}><strong>RPC Ping 결과</strong> <small style={{ color: '#666', marginLeft: 8 }}>{pingTimestamp ? new Date(pingTimestamp).toLocaleString() : ''}</small></div>
+                <pre style={{ whiteSpace: 'pre-wrap', fontSize: 12, maxHeight: 180, overflow: 'auto' }}>{JSON.stringify(pingResult, null, 2)}</pre>
+              </div>
+            )}
           <div style={{ color: '#666' }}>{balanceCheckStatus ?? ''}</div>
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 12, color: '#666' }}>인덱서 없이 RPC로 직접 조회하려면 RPC URL을 입력하고 Auto-derive 또는 RPC 조회를 사용하세요.</div>
@@ -840,6 +856,23 @@ export const PoCComponent: React.FC = () => {
               <input value={rpcUrl} onChange={(e) => setRpcUrl(e.target.value)} placeholder="RPC URL (예: https://main.ton.dev)" style={{ width: '100%', maxWidth: 420 }} />
               <button onClick={() => setRpcUrl('https://main.ton.dev')} style={{ padding: '6px 8px' }}>추천: main.ton.dev</button>
               <button onClick={() => setRpcUrl('https://rpc.tonapi.io/jsonRPC')} style={{ padding: '6px 8px' }}>추천: tonapi</button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 8 }}>
+                <button onClick={async () => {
+                  try {
+                    setBusy(true);
+                    const body = { rpcBody: { jsonrpc: '2.0', id: 1, method: 'net.ping', params: [] } };
+                    const resp = await rpcFetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    const j = await resp.json();
+                    setPingResult(j);
+                    setPingTimestamp(Date.now());
+                    alert('RPC ping 완료 — 결과가 화면에 표시됩니다.');
+                  } catch (e) {
+                    console.error('ping failed', e);
+                    alert('RPC ping 실패: ' + String(e));
+                  } finally { setBusy(false); }
+                }} style={{ padding: '6px 8px' }}>RPC Ping (/api/rpc)</button>
+                <button onClick={() => { if (pingResult) { navigator.clipboard.writeText(JSON.stringify(pingResult, null, 2)); alert('Ping 결과가 클립보드에 복사되었습니다.'); } else { alert('Ping 결과가 없습니다. 먼저 RPC Ping을 실행하세요.'); } }} style={{ padding: '6px 8px' }}>Ping 복사</button>
+              </div>
             </div>
           </div>
         </div>
