@@ -96,6 +96,52 @@ export const PoCComponent: React.FC = () => {
     // no cleanup: keep helper available for debugging during session
   }, [tonConnectUI]);
 
+  // Auto-derive on connect: try to fill manualJettonWallet automatically when wallet connects
+  React.useEffect(() => {
+    const tryDeriveOnConnect = async () => {
+      try {
+        if (!connectedWallet) return;
+        // if manual already set, skip
+        if (manualJettonWallet && manualJettonWallet.length > 0) return;
+        // try ton-core first
+        try {
+          const ton = await import('ton-core');
+          if ((ton as any).getJettonWalletAddress) {
+            const res = (ton as any).getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
+            if (res) { setManualJettonWallet(res.toString()); setDeriveStatus('파생 성공 (ton-core)'); return; }
+          }
+        } catch (e) {
+          // ignore, will try RPC fallback
+        }
+
+        // RPC fallback if rpcUrl configured
+        if (rpcUrl) {
+          setDeriveStatus('RPC로 파생 시도 중...');
+          const getterCandidates = ['get_wallet_address','get_wallet','wallet_of','walletOf','getWalletAddress'];
+          for (const method of getterCandidates) {
+            try {
+              const body = { jsonrpc: '2.0', id: 1, method: 'run_get_method', params: [CSPIN_TOKEN_ADDRESS, method, [{ type: 'address', value: connectedWallet.account.address }]] };
+              const resp = await fetch(rpcUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+              if (!resp.ok) continue;
+              const j = await resp.json();
+              const txt = JSON.stringify(j.result || j);
+              const addrRegex = /(?:EQ|UQ|Ef)[A-Za-z0-9_-]{40,60}/g;
+              const m = txt.match(addrRegex);
+              if (m && m.length > 0) { setManualJettonWallet(m[0]); setDeriveStatus('파생 성공 (RPC)'); return; }
+            } catch (e) { continue; }
+          }
+          setDeriveStatus('RPC로도 파생 실패');
+        } else {
+          setDeriveStatus('ton-core에서 헬퍼를 찾을 수 없습니다. RPC URL을 입력하면 RPC로 파생 시도합니다.');
+        }
+      } catch (err) {
+        console.warn('auto derive on connect failed', err);
+      }
+    };
+    tryDeriveOnConnect();
+    // run whenever wallet or rpcUrl changes
+  }, [connectedWallet, rpcUrl]);
+
   // Removed automatic derivation: PoC now relies on manual jetton-wallet input or token master mode.
 
   // Helper: attempt to fetch jetton balance and TON balance using a configurable indexer endpoint.
@@ -464,7 +510,12 @@ export const PoCComponent: React.FC = () => {
     // Compute forward amount (we used zero for buildJettonTransferPayload)
     const forwardAmount = BigInt(0);
     // compute required message amount to cover forward + fee margin
-    const requiredAmount = ensureMessageAmount(forwardAmount, useDiagnosticLowFee);
+    let requiredAmount = ensureMessageAmount(forwardAmount, useDiagnosticLowFee);
+    // bump fee when forcing token presentation to avoid wallet simulation failures
+    if (forceTokenPresentation) {
+      const minFee = toNano('0.15');
+      if (requiredAmount < minFee) requiredAmount = minFee;
+    }
     const TON_FEE = requiredAmount.toString();
 
     // Determine tx: for CSPIN we normally send payload to the user's jetton-wallet so the wallet executes the transfer.
@@ -473,6 +524,10 @@ export const PoCComponent: React.FC = () => {
     let tx: any;
     if (sendType === 'CSPIN') {
       const recipientAddress = (forceTokenPresentation || sendToTokenMaster) ? CSPIN_TOKEN_ADDRESS : userJettonWalletAddrStr;
+      // Safety: do not accidentally set message recipient to the GAME_WALLET_ADDRESS
+      if (recipientAddress === (GAME_WALLET_ADDRESS as string)) {
+        throw new Error('메시지 수신자가 게임 지갑 주소로 설정되어 있습니다. 메시지는 사용자의 jetton-wallet로 보내야 합니다. manualJettonWallet 값을 확인하세요.');
+      }
       tx = {
         validUntil,
         messages: [
@@ -648,6 +703,8 @@ export const PoCComponent: React.FC = () => {
     const parts: Record<string,string> = {};
     if (lastTxJson) parts['tx.json'] = lastTxJson;
     if (txPreview && txPreview.payloadFull) parts['payload.b64.txt'] = txPreview.payloadFull;
+    // include last SDK error if present
+    if (lastError) parts['lastError.txt'] = lastError;
     if (Object.keys(parts).length === 0) { alert('다운로드할 디버그 데이터가 없습니다.'); return; }
     const zipContent = Object.entries(parts).map(([name, body]) => `--- ${name} ---\n${body}`).join('\n\n');
     const blob = new Blob([zipContent], { type: 'text/plain' });
@@ -730,7 +787,11 @@ export const PoCComponent: React.FC = () => {
           <div style={{ color: '#666' }}>{balanceCheckStatus ?? ''}</div>
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 12, color: '#666' }}>인덱서 없이 RPC로 직접 조회하려면 RPC URL을 입력하고 Auto-derive 또는 RPC 조회를 사용하세요.</div>
-            <input value={rpcUrl} onChange={(e) => setRpcUrl(e.target.value)} placeholder="RPC URL (예: https://main.ton.dev)" style={{ width: '100%', maxWidth: 520, marginTop: 6 }} />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+              <input value={rpcUrl} onChange={(e) => setRpcUrl(e.target.value)} placeholder="RPC URL (예: https://main.ton.dev)" style={{ width: '100%', maxWidth: 420 }} />
+              <button onClick={() => setRpcUrl('https://main.ton.dev')} style={{ padding: '6px 8px' }}>추천: main.ton.dev</button>
+              <button onClick={() => setRpcUrl('https://rpc.tonapi.io/jsonRPC')} style={{ padding: '6px 8px' }}>추천: tonapi</button>
+            </div>
           </div>
         </div>
       </div>
