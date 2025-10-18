@@ -2,9 +2,6 @@
 import React, { useState } from 'react';
 import { TonConnectButton, useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { Address, toNano, beginCell } from 'ton-core';
-import { Buffer } from 'buffer';
-
-window.Buffer = window.Buffer || Buffer;
 
 const GAME_WALLET_ADDRESS = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
 
