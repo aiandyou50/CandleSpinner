@@ -22,6 +22,7 @@ export const Game: React.FC = () => {
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
   const [reels, setReels] = useState<string[]>(['⭐','🪐','🌠']);
+  const [showReel, setShowReel] = useState<boolean>(false);
 
   const handleSpinClick = async () => {
   setMessage('스핀을 실행 중...');
@@ -103,7 +104,7 @@ export const Game: React.FC = () => {
           <div className="flex justify-center space-x-4 mb-6">
             {/** Simple reel boxes with CSS animation when spinning */}
             <div className="w-60 h-20 flex items-center justify-center">
-              <ReelPixi spinning={spinning} reels={reels} />
+              {showReel ? <ReelPixi spinning={spinning} reels={reels} /> : <div className="text-sm text-gray-300">Reel disabled for debugging. Toggle below to enable.</div>}
             </div>
           </div>
 
@@ -136,6 +137,7 @@ export const Game: React.FC = () => {
                   alert('Spin API 호출 실패: ' + String(e));
                 }
               }} className="bg-indigo-600 px-3 py-1 rounded text-sm">Spin API 테스트</button>
+              <button onClick={() => setShowReel(s => !s)} className="bg-gray-600 px-3 py-1 rounded text-sm">{showReel ? '릴 숨기기' : '릴 보이기'}</button>
             </div>
           </div>
 

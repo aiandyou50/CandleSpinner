@@ -14,15 +14,21 @@ export const ReelPixi: React.FC<ReelPixiProps> = ({ spinning, reels = ['â­','ðŸ
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const app = new PIXI.Application({ width: 240, height: 80, backgroundAlpha: 0 });
+    // create canvas manually and initialize Pixi Application using the v8 recommended API
+    const canvas = document.createElement('canvas');
+    canvas.width = 240;
+    canvas.height = 80;
+    containerRef.current.appendChild(canvas);
+  // Use the canvas as the view when creating the Application to ensure ticker/renderer are initialized
+  const app = new PIXI.Application({ view: canvas, width: 240, height: 80, backgroundAlpha: 0 });
     appRef.current = app;
-    containerRef.current.appendChild(app.view as HTMLCanvasElement);
 
     const style = new PIXI.TextStyle({ fontSize: 36 });
 
     const texts: PIXI.Text[] = [];
     for (let i = 0; i < 3; i++) {
-      const t = new PIXI.Text(reels[i] || ' ', style);
+      // v8 Text API: prefer object form to avoid deprecation issues
+      const t = new (PIXI as any).Text({ text: reels[i] || ' ', style });
       t.x = i * 80 + 20;
       t.y = 10;
       app.stage.addChild(t);
@@ -30,7 +36,11 @@ export const ReelPixi: React.FC<ReelPixiProps> = ({ spinning, reels = ['â­','ðŸ
     }
 
     return () => {
-      app.destroy(true, { children: true });
+      try {
+        app.destroy(true, { children: true });
+      } catch (e) {
+        // ignore
+      }
       appRef.current = null;
       if (containerRef.current) containerRef.current.innerHTML = '';
     };
