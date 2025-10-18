@@ -36,7 +36,7 @@ function ensureMessageAmount(forwardTon: bigint, diagnostic: boolean): bigint {
 export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (payload: any) => void; senderAddress: string }> = ({ jettonWallet, onPayloadBuilt, senderAddress }) => {
   const [depositAmount, setDepositAmount] = useState<string>("100");
   const [sendType, setSendType] = useState<'CSPIN'|'TON'>('CSPIN');
-  const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(false);
+  const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
   const [txPreview, setTxPreview] = useState<any | null>(null);
   const [decodedPayloadHex, setDecodedPayloadHex] = useState<string | null>(null);
@@ -70,7 +70,12 @@ export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (p
       <label><input type="checkbox" checked={includeResponseTo} onChange={e => setIncludeResponseTo(e.target.checked)} /> response_to 포함</label>
       <label><input type="checkbox" checked={useDiagnosticLowFee} onChange={e => setUseDiagnosticLowFee(e.target.checked)} /> 진단용 낮은 수수료</label>
       <button onClick={buildPayload}>페이로드 빌드</button>
-      {txPreview && decodedPayloadHex && decodedCellInfo && <div><pre>{JSON.stringify(txPreview, null, 2)}\n페이로드 헥스: {decodedPayloadHex}\n셀 정보: {decodedCellInfo}</pre><button onClick={() => navigator.clipboard.writeText(`${JSON.stringify(txPreview, null, 2)}\n페이로드 헥스: ${decodedPayloadHex}\n셀 정보: ${decodedCellInfo}`)}>복사</button></div>}
+      {txPreview && decodedPayloadHex && decodedCellInfo && <div>
+        <pre>{JSON.stringify(txPreview, null, 2)}</pre>
+        <pre>페이로드 헥스: {decodedPayloadHex}</pre>
+        <pre>셀 정보: {decodedCellInfo}</pre>
+        <button onClick={() => navigator.clipboard.writeText(`${JSON.stringify(txPreview, null, 2)}\n페이로드 헥스: ${decodedPayloadHex}\n셀 정보: ${decodedCellInfo}`)}>복사</button>
+      </div>}
     </div>
   );
 };
