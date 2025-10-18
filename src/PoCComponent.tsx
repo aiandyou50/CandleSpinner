@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { PayloadBuilder } from './components/PayloadBuilder.js';
 import { useTonConnect } from './hooks/useTonConnect.js';
 import { useRpc } from './hooks/useRpc.js';
-import type { EvidenceItem } from './types.js';
 
 export const PoCComponent: React.FC = () => {
   const { connectedWallet, tonConnectUI, manualJettonWallet, setManualJettonWallet, deriveStatus } = useTonConnect();
@@ -12,8 +11,6 @@ export const PoCComponent: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const [lastTxJson, setLastTxJson] = useState<string | null>(null);
-  const [manualEvidenceText, setManualEvidenceText] = useState<string>('');
-  const [evidenceList, setEvidenceList] = useState<EvidenceItem[]>([]);
   const [lastPayload, setLastPayload] = useState<any | null>(null);
 
   const handleDeposit = async () => {
@@ -93,12 +90,7 @@ export const PoCComponent: React.FC = () => {
         <button onClick={handleDeposit} disabled={busy}>입금</button>
         <button onClick={downloadDebugPack}>디버그 팩 다운로드</button>
         {lastError && <p>오류: {lastError}</p>}
-      </div>
-      <div>
-        <h2>증거</h2>
-        <textarea value={manualEvidenceText} onChange={e => setManualEvidenceText(e.target.value)} />
-        <button onClick={() => setEvidenceList([...evidenceList, { id: Date.now().toString(), name: '수동', content: manualEvidenceText, type: 'text', created: Date.now() }])}>증거 추가</button>
-        {evidenceList.map(e => <p key={e.id}>{e.content}</p>)}
+        {lastTxJson && <div><h3>트랜잭션 결과</h3><pre>{lastTxJson}</pre><button onClick={() => navigator.clipboard.writeText(lastTxJson)}>복사</button></div>}
       </div>
     </div>
   );

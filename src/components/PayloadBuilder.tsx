@@ -29,7 +29,7 @@ function buildJettonTransferPayload(amount: bigint, destination: Address, respon
 }
 
 function ensureMessageAmount(forwardTon: bigint, diagnostic: boolean): bigint {
-  const feeMargin = diagnostic ? toNano('0.05') : toNano('1.1');
+  const feeMargin = diagnostic ? toNano('0.1') : toNano('1.1');
   return forwardTon + feeMargin;
 }
 
@@ -38,7 +38,6 @@ export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (p
   const [sendType, setSendType] = useState<'CSPIN'|'TON'>('CSPIN');
   const [includeResponseTo, setIncludeResponseTo] = useState<boolean>(true);
   const [useDiagnosticLowFee, setUseDiagnosticLowFee] = useState<boolean>(false);
-  const [sendToTokenMaster, setSendToTokenMaster] = useState<boolean>(true);
   const [txPreview, setTxPreview] = useState<any | null>(null);
   const [decodedPayloadHex, setDecodedPayloadHex] = useState<string | null>(null);
   const [decodedCellInfo, setDecodedCellInfo] = useState<string | null>(null);
@@ -70,11 +69,10 @@ export const PayloadBuilder: React.FC<{ jettonWallet: string; onPayloadBuilt: (p
       </select>
       <label><input type="checkbox" checked={includeResponseTo} onChange={e => setIncludeResponseTo(e.target.checked)} /> response_to 포함</label>
       <label><input type="checkbox" checked={useDiagnosticLowFee} onChange={e => setUseDiagnosticLowFee(e.target.checked)} /> 진단용 낮은 수수료</label>
-      <label><input type="checkbox" checked={sendToTokenMaster} onChange={e => setSendToTokenMaster(e.target.checked)} /> 토큰 마스터로 전송</label>
       <button onClick={buildPayload}>페이로드 빌드</button>
-      {txPreview && <pre>{JSON.stringify(txPreview, null, 2)}</pre>}
-      {decodedPayloadHex && <pre>페이로드 헥스: {decodedPayloadHex}</pre>}
-      {decodedCellInfo && <pre>셀 정보: {decodedCellInfo}</pre>}
+      {txPreview && <div><pre>{JSON.stringify(txPreview, null, 2)}</pre><button onClick={() => navigator.clipboard.writeText(JSON.stringify(txPreview, null, 2))}>복사</button></div>}
+      {decodedPayloadHex && <div><pre>페이로드 헥스: {decodedPayloadHex}</pre><button onClick={() => navigator.clipboard.writeText(decodedPayloadHex)}>복사</button></div>}
+      {decodedCellInfo && <div><pre>셀 정보: {decodedCellInfo}</pre><button onClick={() => navigator.clipboard.writeText(decodedCellInfo)}>복사</button></div>}
     </div>
   );
 };
