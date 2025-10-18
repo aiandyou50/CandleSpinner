@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, toNano, beginCell } from 'ton-core';
 import ReelPixi from './ReelPixi';
+import JackpotVideo from './JackpotVideo';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
 import { useJettonWallet } from '../hooks/useJettonWallet';
 
@@ -56,6 +57,7 @@ export const Game: React.FC = () => {
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
   const [showReel, setShowReel] = useState<boolean>(true);
+  const [showJackpotVideo, setShowJackpotVideo] = useState(false);
   
   // Derive user's jetton wallet address for CSPIN transfers
   const { jettonWalletAddress, isLoading: isDerivingWallet, error: walletError } = useJettonWallet(
@@ -98,8 +100,8 @@ export const Game: React.FC = () => {
         
         // 잭팟 처리
         if (j.isJackpot) {
-          // TODO: 잭팟 비디오 재생
-          alert('잭팟!');
+          // 잭팟 비디오 재생 (음소거하고 전체화면)
+          setShowJackpotVideo(true);
         }
         
         setIsSpinning(false);
@@ -329,7 +331,14 @@ export const Game: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-indigo-900 text-white p-4">
+    <>
+      {/* Jackpot Video Modal */}
+      <JackpotVideo 
+        isVisible={showJackpotVideo} 
+        onClose={() => setShowJackpotVideo(false)} 
+      />
+      
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-indigo-900 text-white p-4">
       {/* Inline keyframes for simple slow spin and delay helpers */}
       <style>{`
         @keyframes slow-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -495,6 +504,7 @@ export const Game: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
