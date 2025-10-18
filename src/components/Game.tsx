@@ -1,75 +1,262 @@
 import React, { useState } from 'react';
 import { create } from 'zustand';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
+import { Address, toNano, beginCell } from 'ton-core';
 import ReelPixi from './ReelPixi';
+import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
 
-// 간단한 Zustand 스토어 테스트
-interface SimpleState {
-  count: number;
-  increment: () => void;
+// Zustand 스토어
+interface GameStore {
+  userCredit: number;
+  betAmount: number;
+  reelSymbols: string[];
+  lastWinnings: number;
+  isSpinning: boolean;
+  showDoubleUp: boolean;
+  setUserCredit: (credit: number) => void;
+  setBetAmount: (amount: number) => void;
+  setReelSymbols: (symbols: string[]) => void;
+  setLastWinnings: (winnings: number) => void;
+  setIsSpinning: (spinning: boolean) => void;
+  setShowDoubleUp: (show: boolean) => void;
 }
 
-const useSimpleStore = create<SimpleState>((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
+const useGameStore = create<GameStore>((set) => ({
+  userCredit: 1000,
+  betAmount: 100,
+  reelSymbols: ['⭐','🪐','🌠'],
+  lastWinnings: 0,
+  isSpinning: false,
+  showDoubleUp: false,
+  setUserCredit: (credit) => set({ userCredit: credit }),
+  setBetAmount: (amount) => set({ betAmount: amount }),
+  setReelSymbols: (symbols) => set({ reelSymbols: symbols }),
+  setLastWinnings: (winnings) => set({ lastWinnings: winnings }),
+  setIsSpinning: (spinning) => set({ isSpinning: spinning }),
+  setShowDoubleUp: (show) => set({ showDoubleUp: show }),
 }));
 
 export const Game: React.FC = () => {
-  const [credit, setCredit] = useState(1000);
+  const {
+    userCredit,
+    betAmount,
+    reelSymbols,
+    lastWinnings,
+    isSpinning,
+    showDoubleUp,
+    setUserCredit,
+    setBetAmount,
+    setReelSymbols,
+    setLastWinnings,
+    setIsSpinning,
+    setShowDoubleUp,
+  } = useGameStore();
   const [message, setMessage] = useState('게임이 로드되었습니다!');
-  const [spinning, setSpinning] = useState(false);
-  const { count, increment } = useSimpleStore();
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
-  const [reels, setReels] = useState<string[]>(['⭐','🪐','🌠']);
-  const [showReel, setShowReel] = useState<boolean>(false);
+  const [showReel, setShowReel] = useState<boolean>(true);
 
   const handleSpinClick = async () => {
-  setMessage('스핀을 실행 중...');
-  setSpinning(true);
+    setMessage('스핀을 실행 중...');
+    setIsSpinning(true);
+    setShowDoubleUp(false);
     try {
-      // Try to call backend /api/spin - include wallet address and a client seed for provably fair
+      // Provably Fair를 위한 클라이언트 시드 생성
       const clientSeed = Math.random().toString(36).slice(2);
-      const payload = { walletAddress: connectedWallet?.account.address || 'anonymous', betAmount: 10, clientSeed };
-      const resp = await fetch('/api/spin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      
+      const payload = { 
+        walletAddress: connectedWallet?.account.address || 'anonymous', 
+        betAmount, 
+        clientSeed 
+      };
+      const resp = await fetch('/api/spin', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify(payload) 
+      });
+      
       if (resp.ok) {
         const j = await resp.json();
-        // expect { win: number, symbols: string[] }
         const win = typeof j.winnings === 'number' ? j.winnings : 0;
-        setCredit((c) => j.newCredit ?? (c - 10 + win));
+        setUserCredit(j.newCredit ?? (userCredit - betAmount + win));
         setMessage(`스핀 완료. 획득: ${win}`);
-        // update reels for visual
-        if (j.reels) setReels(j.reels);
+        
+        // 릴 업데이트
+        if (j.reels) setReelSymbols(j.reels);
+        
+        // 미니게임 활성화
+        if (win > 0) {
+          setLastWinnings(win);
+          setShowDoubleUp(true);
+        }
+        
+        // 잭팟 처리
+        if (j.isJackpot) {
+          // TODO: 잭팟 비디오 재생
+          alert('잭팟!');
+        }
+        
+        setIsSpinning(false);
         return;
       }
-      // fallback to mock if backend not available
+      // 백엔드 실패 시 로컬 모킹
       console.warn('/api/spin 호출 실패, 로컬 모킹 사용');
     } catch (e) {
       console.warn('스핀 호출 중 예외', e);
     }
 
-    // Local mock: random small win
+    // 로컬 모킹
     const rnd = Math.random();
     const win = rnd > 0.95 ? 100 : rnd > 0.8 ? 20 : 0;
-    setCredit((c) => c - 10 + win);
-    // set mock reels
+    setUserCredit(userCredit - betAmount + win);
+    
     const mockReels = [rnd > 0.8 ? '💎' : '⭐', rnd > 0.5 ? '🪐' : '⭐', rnd > 0.95 ? '👑' : '🌠'];
-    setReels(mockReels);
-    // stop spinning after short delay to simulate reel animation
+    setReelSymbols(mockReels);
+    
     setTimeout(() => {
-      setSpinning(false);
+      setIsSpinning(false);
       setMessage(`(로컬) 스핀 완료. 획득: ${win}`);
     }, 900);
   };
 
-  const handleDepositSuccess = async (txBoc: string, senderAddress: string) => {
-    // Called after successful on-chain deposit in PoC flow.
-    // Notify backend to credit off-chain balance.
+  // 입금 성공 후 백엔드 등록
+  const handleDepositSuccess = async (txBoc: string, senderAddress: string, amount: number) => {
     try {
-      await fetch('/api/credit-deposit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ txBoc, senderAddress }) });
-      setMessage('입금이 등록되었습니다. 서버에서 크레딧을 반영합니다.');
+      const resp = await fetch('/api/credit-deposit', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ walletAddress: senderAddress, amount }) 
+      });
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        setUserCredit(data.newCredit);
+        setMessage('크레딧 충전 완료!');
+      } else {
+        setMessage('크레딧 충전 실패');
+      }
     } catch (e) {
       console.warn('credit-deposit 호출 실패', e);
+      setMessage('크레딧 등록 중 오류 발생');
+    }
+  };
+
+  const [depositAmount, setDepositAmount] = useState<string>("100");
+
+  // CSPIN 전송 페이로드 빌드 (PoC 로직 기반)
+  const buildCSPINTransferPayload = (amount: bigint, destination: Address, responseTo: Address) => {
+    const cell = beginCell()
+      .storeUint(0xF8A7EA5, 32)     // op: transfer
+      .storeUint(0, 64)             // query_id
+      .storeCoins(amount)            // amount
+      .storeAddress(destination)     // destination
+      .storeAddress(responseTo)      // response_destination
+      .storeBit(0)                   // custom_payload: none
+      .storeCoins(BigInt(0))         // forward_ton_amount
+      .storeBit(0)                   // forward_payload: none
+      .endCell();
+    return cell;
+  };
+
+  // CSPIN 입금 처리
+  const handleDeposit = async () => {
+    if (!connectedWallet) {
+      alert('지갑을 연결하세요');
+      return;
+    }
+
+    try {
+      const amount = BigInt(depositAmount) * BigInt(10 ** 9); // CSPIN 9 decimals
+      const destination = Address.parse(GAME_WALLET_ADDRESS);
+      const responseTo = Address.parse(connectedWallet.account.address);
+      
+      const payloadCell = buildCSPINTransferPayload(amount, destination, responseTo);
+      const boc = payloadCell.toBoc();
+      const hex = boc.toString('hex');
+      const base64 = Buffer.from(hex, 'hex').toString('base64');
+
+      // 제톤 지갑 주소 파생 (간단히 수동으로 설정, 실제로는 RPC 필요)
+      const jettonWalletAddress = "EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs"; // 게임 지갑의 CSPIN 지갑
+
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: jettonWalletAddress,
+          amount: '100000000', // 0.1 TON for gas
+          payload: base64
+        }]
+      };
+
+      const result: any = await tonConnectUI.sendTransaction(tx);
+      
+      if (result && result.boc) {
+        // 온체인 성공, 백엔드에 크레딧 등록
+        await handleDepositSuccess(result.boc, connectedWallet.account.address, parseInt(depositAmount));
+      } else {
+        setMessage('트랜잭션이 전송되었으나 결과 boc를 찾을 수 없습니다.');
+      }
+    } catch (e) {
+      console.warn('deposit failed', e);
+      alert('입금 트랜잭션 실패: ' + String(e));
+    }
+  };
+
+  // 미니게임: 더블업
+  const handleGamble = async (choice: 'red' | 'blue') => {
+    const clientSeed = Math.random().toString(36).slice(2);
+    
+    try {
+      const resp = await fetch('/api/double-up', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          walletAddress: connectedWallet?.account.address || 'anonymous', 
+          choice, 
+          clientSeed 
+        }) 
+      });
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        setShowDoubleUp(false);
+        if (data.won) {
+          setUserCredit(userCredit + data.newWinnings);
+          setMessage(`더블업 성공! ${data.newWinnings} 크레딧 획득`);
+        } else {
+          setMessage('더블업 실패...');
+          setLastWinnings(0);
+        }
+      } else {
+        setMessage('미니게임 오류');
+      }
+    } catch (e) {
+      console.warn('double-up error', e);
+      setMessage('미니게임 호출 실패');
+    }
+  };
+
+  // 상금 수령
+  const handleCollect = async () => {
+    try {
+      const resp = await fetch('/api/collect-winnings', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          walletAddress: connectedWallet?.account.address || 'anonymous' 
+        }) 
+      });
+      
+      if (resp.ok) {
+        const data = await resp.json();
+        setUserCredit(data.newCredit);
+        setShowDoubleUp(false);
+        setMessage('상금 수령 완료!');
+      } else {
+        setMessage('상금 수령 실패');
+      }
+    } catch (e) {
+      console.warn('collect error', e);
+      setMessage('상금 수령 호출 실패');
     }
   };
 
@@ -88,9 +275,8 @@ export const Game: React.FC = () => {
         </h1>
 
         <div className="bg-black/30 rounded-lg p-4 mb-6">
-          <p className="text-lg">현재 크레딧: <span className="text-yellow-400 font-bold">{credit}</span></p>
+          <p className="text-lg">현재 크레딧: <span className="text-yellow-400 font-bold">{userCredit}</span></p>
           <p className="text-green-400">{message}</p>
-          <p className="text-blue-400">Zustand 카운트: {count}</p>
         </div>
 
         <div className="bg-black/50 rounded-lg p-8 mb-6">
@@ -104,7 +290,7 @@ export const Game: React.FC = () => {
           <div className="flex justify-center space-x-4 mb-6">
             {/** Simple reel boxes with CSS animation when spinning */}
             <div className="w-60 h-20 flex items-center justify-center">
-              {showReel ? <ReelPixi spinning={spinning} reels={reels} /> : <div className="text-sm text-gray-300">Reel disabled for debugging. Toggle below to enable.</div>}
+              {showReel ? <ReelPixi spinning={isSpinning} reels={reelSymbols} /> : <div className="text-sm text-gray-300">Reel disabled for debugging. Toggle below to enable.</div>}
             </div>
           </div>
 
@@ -142,43 +328,50 @@ export const Game: React.FC = () => {
           </div>
 
           <div className="text-center space-x-4">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <label className="text-sm">입금 금액 (CSPIN):</label>
+              <input 
+                type="number" 
+                value={depositAmount} 
+                onChange={e => setDepositAmount(e.target.value)} 
+                className="bg-gray-700 text-white px-2 py-1 rounded text-sm w-20" 
+                placeholder="100" 
+              />
+              <button
+                onClick={handleDeposit}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
+              >
+                CSPIN 입금
+              </button>
+            </div>
             <button
               onClick={handleSpinClick}
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg text-xl"
             >
               🎰 SPIN!
             </button>
-            <button
-              onClick={async () => {
-                if (!tonConnectUI || !connectedWallet) {
-                  alert('지갑을 연결하세요');
-                  return;
-                }
-                // sample deposit tx using tonConnectUI - this is a simplified demo
-                try {
-                  const tx = { validUntil: Math.floor(Date.now() / 1000) + 600, messages: [{ address: 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV', amount: '1000000' }] };
-                  const result: any = await tonConnectUI.sendTransaction(tx);
-                  // call backend to register deposit if boc available
-                  if (result && result.boc) {
-                    await handleDepositSuccess(result.boc, connectedWallet.account.address);
-                  } else {
-                    setMessage('트랜잭션이 전송되었으나 결과 boc를 찾을 수 없습니다.');
-                  }
-                } catch (e) {
-                  console.warn('deposit failed', e);
-                  alert('입금 트랜잭션 실패: ' + String(e));
-                }
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-sm"
-            >
-              PoC 입금 테스트
-            </button>
-            <button
-              onClick={increment}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-xl"
-            >
-              카운트 증가
-            </button>
+            {showDoubleUp && (
+              <div className="flex space-x-2 mt-4">
+                <button
+                  onClick={() => handleGamble('red')}
+                  className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                  빨강 Gamble
+                </button>
+                <button
+                  onClick={() => handleGamble('blue')}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                  파랑 Gamble
+                </button>
+                <button
+                  onClick={handleCollect}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                  상금 수령
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
