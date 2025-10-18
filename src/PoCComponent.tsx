@@ -116,6 +116,60 @@ export const PoCComponent: React.FC = () => {
   const [pingResult, setPingResult] = useState<any | null>(null);
   const [pingTimestamp, setPingTimestamp] = useState<number | null>(null);
 
+  // performPing: try rpc ping with retries, then fallback to /api/rpc/health or OPTIONS if ping fails
+  const performPing = async (maxRetries = 2) => {
+    setBusy(true);
+    const attempts: any[] = [];
+    try {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const body = { rpcBody: { jsonrpc: '2.0', id: 1, method: 'net.ping', params: [] } };
+          const resp = await rpcFetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+          const j = await resp.json().catch(() => null);
+          attempts.push({ attempt, ok: resp.ok, status: resp.status, body: j });
+          if (resp.ok) {
+            setPingResult({ kind: 'rpc.ping', attempts });
+            setPingTimestamp(Date.now());
+            return { attempts };
+          }
+        } catch (e) {
+          attempts.push({ attempt, error: String(e) });
+          // small backoff
+          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+          continue;
+        }
+      }
+
+      // ping attempts exhausted — try health endpoints
+      try {
+        // try GET /api/rpc/health
+        const hResp = await rpcFetch('/api/rpc/health', { method: 'GET' });
+        const hText = await hResp.text().catch(() => null);
+        attempts.push({ kind: 'health.get', ok: hResp.ok, status: hResp.status, body: hText });
+        setPingResult({ kind: 'health.get', attempts });
+        setPingTimestamp(Date.now());
+        return { attempts };
+      } catch (e) {
+        // try OPTIONS on /api/rpc
+        try {
+          const oResp = await rpcFetch('/api/rpc', { method: 'OPTIONS' });
+          const oText = await oResp.text().catch(() => null);
+          attempts.push({ kind: 'options', ok: oResp.ok, status: oResp.status, body: oText });
+          setPingResult({ kind: 'options', attempts });
+          setPingTimestamp(Date.now());
+          return { attempts };
+        } catch (e2) {
+          attempts.push({ kind: 'health-failed', error: String(e2) });
+          setPingResult({ kind: 'failed', attempts });
+          setPingTimestamp(Date.now());
+          return { attempts };
+        }
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // expose a console helper so you can paste a TX JSON in devtools and resend it
   React.useEffect(() => {
     try {
@@ -750,7 +804,12 @@ export const PoCComponent: React.FC = () => {
   };
 
   // Helper: download a debug pack with last TX JSON and payload BOC
-  const downloadDebugPack = () => {
+  const downloadDebugPack = async () => {
+    // Ensure we have a recent ping result; if not, attempt to perform one
+    if (!pingResult) {
+      try { await performPing(2); } catch (_) { /* ignore */ }
+    }
+
     const parts: Record<string,string> = {};
     if (lastTxJson) parts['tx.json'] = lastTxJson;
     if (txPreview && txPreview.payloadFull) parts['payload.b64.txt'] = txPreview.payloadFull;
@@ -857,20 +916,7 @@ export const PoCComponent: React.FC = () => {
               <button onClick={() => setRpcUrl('https://main.ton.dev')} style={{ padding: '6px 8px' }}>추천: main.ton.dev</button>
               <button onClick={() => setRpcUrl('https://rpc.tonapi.io/jsonRPC')} style={{ padding: '6px 8px' }}>추천: tonapi</button>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 8 }}>
-                <button onClick={async () => {
-                  try {
-                    setBusy(true);
-                    const body = { rpcBody: { jsonrpc: '2.0', id: 1, method: 'net.ping', params: [] } };
-                    const resp = await rpcFetch('/api/rpc', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-                    const j = await resp.json();
-                    setPingResult(j);
-                    setPingTimestamp(Date.now());
-                    alert('RPC ping 완료 — 결과가 화면에 표시됩니다.');
-                  } catch (e) {
-                    console.error('ping failed', e);
-                    alert('RPC ping 실패: ' + String(e));
-                  } finally { setBusy(false); }
-                }} style={{ padding: '6px 8px' }}>RPC Ping (/api/rpc)</button>
+                <button onClick={async () => { await performPing(2); }} style={{ padding: '6px 8px' }}>RPC Ping (/api/rpc)</button>
                 <button onClick={() => { if (pingResult) { navigator.clipboard.writeText(JSON.stringify(pingResult, null, 2)); alert('Ping 결과가 클립보드에 복사되었습니다.'); } else { alert('Ping 결과가 없습니다. 먼저 RPC Ping을 실행하세요.'); } }} style={{ padding: '6px 8px' }}>Ping 복사</button>
               </div>
             </div>
