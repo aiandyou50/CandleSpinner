@@ -29,16 +29,22 @@ export const ReelPixi: React.FC<ReelPixiProps> = ({ spinning, reels = ['‚≠ê','ü
         // Create the application using the provided canvas as view
         // @ts-ignore - dynamic PIXI types
         const app = new (PIXI as any).Application();
-        await app.init({ view: canvas, width: 240, height: 80, background: { alpha: 0 } });
+        await app.init({
+          canvas,
+          width: 240,
+          height: 80,
+          backgroundColor: 0x000000,
+          backgroundAlpha: 0
+        });
         appRef.current = app;
 
         // @ts-ignore
-        const style = { fontSize: 36, fill: 0xffffff };
+        const style = new (PIXI as any).TextStyle({ fontSize: 36, fill: 0xffffff });
 
         const texts: any[] = [];
         for (let i = 0; i < 3; i++) {
           // @ts-ignore
-          const t = new (PIXI as any).Text({ text: reels[i] || ' ', style });
+          const t = new (PIXI as any).Text(reels[i] || ' ', style);
           t.x = i * 80 + 20;
           t.y = 10;
           // @ts-ignore

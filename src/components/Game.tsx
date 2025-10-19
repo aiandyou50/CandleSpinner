@@ -242,6 +242,11 @@ export const Game: React.FC = () => {
       return;
     }
 
+    if (userCredit === 0) {
+      alert('인출할 크레딧이 없습니다.');
+      return;
+    }
+
     try {
       const resp = await fetch('/api/initiate-withdrawal', {
         method: 'POST',
@@ -254,7 +259,7 @@ export const Game: React.FC = () => {
       if (resp.ok) {
         const data = await resp.json();
         setUserCredit(0); // 인출 후 크레딧 0으로 설정
-        setMessage('인출 요청 완료! CSPIN이 지갑으로 전송됩니다.');
+        setMessage(`인출 요청 완료! ${data.withdrawalAmount} CSPIN이 지갑으로 전송됩니다.`);
       } else {
         const error = await resp.json();
         setMessage('인출 요청 실패: ' + (error.error || '알 수 없는 오류'));
