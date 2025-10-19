@@ -1,25 +1,21 @@
-import { mnemonicNew, mnemonicToPrivateKey } from '@ton/crypto';
-import { WalletContractV4 } from '@ton/ton';
+const TonWeb = require('tonweb');
 
 export async function onRequestGet() {
   try {
     // 새로운 니모닉 생성 (24단어)
-    const mnemonic = await mnemonicNew(24);
+    const mnemonic = TonWeb.mnemonic.generate(24);
 
-    // 니모닉에서 프라이빗 키 생성
-    const keyPair = await mnemonicToPrivateKey(mnemonic);
+    // 니모닉에서 키페어 생성
+    const keyPair = TonWeb.mnemonic.mnemonicToKeyPair(mnemonic);
 
-    // V4 월렛 컨트랙트 생성
-    const wallet = WalletContractV4.create({
-      publicKey: keyPair.publicKey,
-      workchain: 0
-    });
+    // 월렛 생성
+    const wallet = new TonWeb.wallet.create({ publicKey: keyPair.publicKey });
 
     return new Response(JSON.stringify({
       mnemonic: mnemonic.join(' '),
-      privateKey: keyPair.secretKey.toString('hex'),
-      publicKey: keyPair.publicKey.toString('hex'),
-      address: wallet.address.toString()
+      privateKey: TonWeb.utils.bytesToHex(keyPair.secretKey),
+      publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
+      address: wallet.address.toString(true, true, true)
     }), {
       headers: { 'Content-Type': 'application/json' }
     });

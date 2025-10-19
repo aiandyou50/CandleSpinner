@@ -1,12 +1,4 @@
-import { Buffer } from 'buffer';
-import { Address, toNano, beginCell } from '@ton/core';
-import { TonClient, WalletContractV4, internal } from '@ton/ton';
-import { keyPairFromSecretKey } from '@ton/crypto';
-
-// Buffer 폴리필 설정
-if (!globalThis.Buffer) {
-  globalThis.Buffer = Buffer;
-}
+const TonWeb = require('tonweb');
 
 interface UserState {
   credit: number;
@@ -49,67 +41,45 @@ export async function onRequestPost(context: any) {
         throw new Error('게임 월렛 프라이빗 키가 설정되지 않았습니다.');
       }
 
-      // TON 클라이언트 초기화 (메인넷)
-      const client = new TonClient({
-        endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+      // TonWeb 초기화
+      const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/jsonRPC', {
         apiKey: env.TONCENTER_API_KEY || undefined
-      });
+      }));
 
       // 게임 월렛 키페어 생성
-      const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-      const wallet = WalletContractV4.create({
-        publicKey: keyPair.publicKey,
-        workchain: 0
-      });
-
-      const walletContract = client.open(wallet);
-      const walletAddressObj = wallet.address;
+      const keyPair = TonWeb.utils.nacl.sign.keyPair.fromSecretKey(TonWeb.utils.hexToBytes(gameWalletPrivateKey));
+      const wallet = tonweb.wallet.create({ publicKey: keyPair.publicKey });
 
       // 수신자 주소
-      const recipientAddress = Address.parse(walletAddress);
+      const recipientAddress = new TonWeb.utils.Address(walletAddress);
 
       // CSPIN 마스터 컨트랙트 주소
-      const cspinMasterAddress = Address.parse(cspinMasterContract);
+      const cspinMasterAddress = new TonWeb.utils.Address(cspinMasterContract);
 
-      // 게임 월렛의 CSPIN Jetton 월렛 주소 계산
-      const jettonWalletAddress = await client.runMethod(
-        cspinMasterAddress,
-        'get_wallet_address',
-        [{
-          type: 'slice',
-          cell: beginCell().storeAddress(walletAddressObj).endCell()
-        }]
-      );
-
-      const gameJettonWalletAddress = jettonWalletAddress.stack.readAddress();
-
-      // Jetton 전송 메시지 생성
-      const transferMessage = beginCell()
-        .storeUint(0xf8a7ea5, 32) // op: transfer
-        .storeUint(0, 64) // query_id
-        .storeCoins(toNano(withdrawalAmount.toString())) // amount
-        .storeAddress(recipientAddress) // destination
-        .storeAddress(walletAddressObj) // response_destination
-        .storeBit(false) // custom_payload
-        .storeCoins(toNano('0.01')) // forward_ton_amount
-        .storeBit(false) // forward_payload
-        .endCell();
-
-      // 트랜잭션 전송
-      const seqno = await walletContract.getSeqno();
-      const transfer = walletContract.createTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        messages: [
-          internal({
-            to: gameJettonWalletAddress,
-            value: toNano('0.05'), // TON 수수료
-            body: transferMessage
-          })
-        ]
+      // CSPIN Jetton Minter 생성
+      const jettonMinter = new TonWeb.token.jetton.JettonMinter(tonweb.provider, {
+        address: cspinMasterAddress
       });
 
-      await walletContract.send(transfer);
+      // 게임 월렛의 CSPIN Jetton 월렛 주소 계산
+      const gameJettonWalletAddress = await jettonMinter.getJettonWalletAddress(wallet.address);
+
+      // Jetton 월렛 인스턴스 생성
+      const jettonWallet = new TonWeb.token.jetton.JettonWallet(tonweb.provider, {
+        address: gameJettonWalletAddress
+      });
+
+      // Jetton 전송
+      const transfer = jettonWallet.transfer(
+        keyPair.secretKey,
+        recipientAddress,
+        TonWeb.utils.toNano(withdrawalAmount.toString()),
+        null, // query_id
+        TonWeb.utils.toNano('0.01'), // forward_ton_amount
+        wallet.address // response_destination
+      );
+
+      await transfer.send();
 
       // KV에서 크레딧 차감
       state.credit = 0;
