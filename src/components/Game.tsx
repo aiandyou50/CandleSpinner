@@ -13,12 +13,14 @@ interface GameStore {
   lastWinnings: number;
   isSpinning: boolean;
   showDoubleUp: boolean;
+  isDeveloperMode: boolean;
   setUserCredit: (credit: number) => void;
   setBetAmount: (amount: number) => void;
   setReelSymbols: (symbols: string[]) => void;
   setLastWinnings: (winnings: number) => void;
   setIsSpinning: (spinning: boolean) => void;
   setShowDoubleUp: (show: boolean) => void;
+  setIsDeveloperMode: (mode: boolean) => void;
 }
 
 const useGameStore = create<GameStore>((set) => ({
@@ -28,12 +30,14 @@ const useGameStore = create<GameStore>((set) => ({
   lastWinnings: 0,
   isSpinning: false,
   showDoubleUp: false,
+  isDeveloperMode: false,
   setUserCredit: (credit) => set({ userCredit: credit }),
   setBetAmount: (amount) => set({ betAmount: amount }),
   setReelSymbols: (symbols) => set({ reelSymbols: symbols }),
   setLastWinnings: (winnings) => set({ lastWinnings: winnings }),
   setIsSpinning: (spinning) => set({ isSpinning: spinning }),
   setShowDoubleUp: (show) => set({ showDoubleUp: show }),
+  setIsDeveloperMode: (mode) => set({ isDeveloperMode: mode }),
 }));
 
 export const Game: React.FC = () => {
@@ -44,17 +48,82 @@ export const Game: React.FC = () => {
     lastWinnings,
     isSpinning,
     showDoubleUp,
+    isDeveloperMode,
     setUserCredit,
     setBetAmount,
     setReelSymbols,
     setLastWinnings,
     setIsSpinning,
     setShowDoubleUp,
+    setIsDeveloperMode,
   } = useGameStore();
   const [message, setMessage] = useState('게임이 로드되었습니다!');
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
   const [showReel, setShowReel] = useState<boolean>(true);
+
+  // 개발자 모드 토글
+  const toggleDeveloperMode = async (password: string) => {
+    if (!password) return;
+
+    try {
+      // Pages 환경 변수와 비교 (실제로는 API로 확인)
+      const response = await fetch('/api/check-developer-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.valid) {
+          setIsDeveloperMode(!isDeveloperMode);
+          setMessage(`개발자 모드 ${!isDeveloperMode ? 'ON' : 'OFF'} 되었습니다.`);
+        } else {
+          alert('잘못된 비밀번호입니다.');
+        }
+      } else {
+        // API가 없으면 로컬 모킹
+        if (password === 'dev123') {
+          setIsDeveloperMode(!isDeveloperMode);
+          setMessage(`개발자 모드 ${!isDeveloperMode ? 'ON' : 'OFF'} 되었습니다.`);
+        } else {
+          alert('잘못된 비밀번호입니다.');
+        }
+      }
+    } catch (e) {
+      // API 실패 시 로컬 모킹
+      if (password === 'dev123') {
+        setIsDeveloperMode(!isDeveloperMode);
+        setMessage(`개발자 모드 ${!isDeveloperMode ? 'ON' : 'OFF'} 되었습니다.`);
+      } else {
+        alert('잘못된 비밀번호입니다.');
+      }
+    }
+  };
+
+  // 잭팟 비디오 재생
+  const playJackpotVideo = () => {
+    const video = document.createElement('video');
+    video.src = '/video.mp4';
+    video.style.position = 'fixed';
+    video.style.top = '0';
+    video.style.left = '0';
+    video.style.width = '100vw';
+    video.style.height = '100vh';
+    video.style.zIndex = '9999';
+    video.style.backgroundColor = 'black';
+    video.autoplay = true;
+    video.muted = true; // 브라우저 정책으로 인해 음소거
+    video.onended = () => {
+      document.body.removeChild(video);
+    };
+    video.onerror = () => {
+      document.body.removeChild(video);
+      alert('잭팟 비디오를 찾을 수 없습니다.');
+    };
+    document.body.appendChild(video);
+  };
 
   const handleSpinClick = async () => {
     setMessage('스핀을 실행 중...');
@@ -92,8 +161,7 @@ export const Game: React.FC = () => {
 
         // 잭팟 처리
         if (j.isJackpot) {
-          // TODO: 잭팟 비디오 재생
-          alert('잭팟!');
+          playJackpotVideo();
         }
 
         setIsSpinning(false);
@@ -109,16 +177,37 @@ export const Game: React.FC = () => {
 
     // 로컬 모킹
     const mockReels = ['⭐', '🪐', '🌠'];
-    const mockWin = Math.random() > 0.7 ? Math.floor(Math.random() * betAmount * 3) : 0;
+    let mockWin = Math.random() > 0.7 ? Math.floor(Math.random() * betAmount * 3) : 0;
+    let isJackpot = false;
 
-    // 심볼 랜덤 생성
-    for (let i = 0; i < 3; i++) {
-      const rand = Math.random();
-      if (rand > 0.9) mockReels[i] = '👑';
-      else if (rand > 0.8) mockReels[i] = '💎';
-      else if (rand > 0.6) mockReels[i] = '🚀';
-      else if (rand > 0.4) mockReels[i] = '☄️';
-      else mockReels[i] = '⭐';
+    // 개발자 모드: 무조건 잭팟
+    if (isDeveloperMode) {
+      mockReels.fill('👑');
+      // 잭팟 계산: 각 심볼 당첨금 합 * 100
+      // 👑의 배당률은 20, 3개 심볼 = 60 * betAmount * 100
+      mockWin = (20 * 3) * betAmount * 100;
+      isJackpot = true;
+    } else {
+      // 심볼 랜덤 생성
+      for (let i = 0; i < 3; i++) {
+        const rand = Math.random();
+        if (rand > 0.9) mockReels[i] = '👑';
+        else if (rand > 0.8) mockReels[i] = '💎';
+        else if (rand > 0.6) mockReels[i] = '🚀';
+        else if (rand > 0.4) mockReels[i] = '☄️';
+        else mockReels[i] = '⭐';
+      }
+
+      // 잭팟 체크 (모든 심볼이 같을 때)
+      isJackpot = mockReels[0] === mockReels[1] && mockReels[1] === mockReels[2];
+      if (isJackpot) {
+        // 심볼 배당률 계산
+        const symbolMultipliers: { [key: string]: number } = {
+          '👑': 20, '💎': 10, '🚀': 3, '☄️': 2, '⭐': 0.5
+        };
+        const baseWin = mockReels.reduce((sum, symbol) => sum + (symbolMultipliers[symbol] || 0), 0) * betAmount;
+        mockWin = baseWin * 100;
+      }
     }
 
     setReelSymbols(mockReels);
@@ -127,6 +216,11 @@ export const Game: React.FC = () => {
 
     if (mockWin > 0) {
       setShowDoubleUp(true);
+    }
+
+    // 잭팟 비디오 재생
+    if (isJackpot) {
+      playJackpotVideo();
     }
 
     setTimeout(() => {
@@ -389,6 +483,51 @@ export const Game: React.FC = () => {
                 }
               }} className="bg-indigo-600 px-3 py-1 rounded text-sm">Spin API 테스트</button>
               <button onClick={() => setShowReel(s => !s)} className="bg-gray-600 px-3 py-1 rounded text-sm">{showReel ? '릴 숨기기' : '릴 보이기'}</button>
+              <button onClick={async () => {
+                const password = prompt('개발자 모드 비밀번호를 입력하세요:');
+                if (password) {
+                  await toggleDeveloperMode(password);
+                  alert(isDeveloperMode ? '개발자 모드가 활성화되었습니다.' : '개발자 모드가 비활성화되었습니다.');
+                }
+              }} className={`px-3 py-1 rounded text-sm ${isDeveloperMode ? 'bg-red-600' : 'bg-green-600'}`}>{isDeveloperMode ? '개발자 모드 OFF' : '개발자 모드 ON'}</button>
+              {isDeveloperMode && (
+                <button onClick={async () => {
+                  // 잭팟 강제 실행
+                  setIsSpinning(true);
+                  setMessage('잭팟 강제 실행 중...');
+                  try {
+                    const testWallet = connectedWallet?.account.address || 'test-wallet-with-credit';
+                    const resp = await fetch('/api/spin', { 
+                      method: 'POST', 
+                      headers: { 'Content-Type': 'application/json' }, 
+                      body: JSON.stringify({ 
+                        walletAddress: testWallet, 
+                        betAmount: betAmount, 
+                        clientSeed: 'jackpot-force-' + Date.now(),
+                        forceJackpot: true // 개발자 모드에서만 사용
+                      }) 
+                    });
+                    const result = await resp.json();
+                    if (result.success) {
+                      setReelSymbols(result.reelSymbols);
+                      setLastWinnings(result.winnings);
+                      setUserCredit(result.newCredit);
+                      if (result.isJackpot) {
+                        setMessage('🎉 JACKPOT! 🎉');
+                        playJackpotVideo();
+                      } else {
+                        setMessage(`당첨: ${result.winnings} CSPIN`);
+                      }
+                    } else {
+                      setMessage('스핀 실패: ' + result.error);
+                    }
+                  } catch (e) {
+                    setMessage('스핀 오류: ' + String(e));
+                  } finally {
+                    setIsSpinning(false);
+                  }
+                }} className="bg-yellow-600 px-3 py-1 rounded text-sm">잭팟 강제</button>
+              )}
             </div>
           </div>
 
