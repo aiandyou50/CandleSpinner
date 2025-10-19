@@ -208,10 +208,10 @@ export async function onRequestPost(context: any) {
       } catch (directError) {
         console.log('Direct API failed, falling back to @ton library:', (directError as any)?.message || directError);
 
-        // Fallback to @ton library
+        // Fallback to @ton library with official TON API
         const client = new TonClient({
-          endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-          apiKey: apiKey || undefined
+          endpoint: 'https://ton-mainnet.tonhubapi.com/jsonRPC',
+          apiKey: undefined // Use official TON API (free)
         });
 
         console.log('TON client initialized');

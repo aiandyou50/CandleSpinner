@@ -472,16 +472,29 @@ export const Game: React.FC = () => {
                 else alert('지갑 미연결 - 우상단 TonConnect 버튼을 눌러 연결하세요');
               }} className="bg-indigo-600 px-3 py-1 rounded text-sm">지갑 연결 테스트</button>
               <button onClick={async () => {
-                // Spin API test
-                try {
-                  const testWallet = connectedWallet?.account.address || 'test-wallet-with-credit';
-                  const resp = await fetch('/api/spin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ walletAddress: testWallet, betAmount: 10, clientSeed: 'test-seed-' + Date.now() }) });
-                  const j = await resp.json().catch(() => null);
-                  alert('Spin API 응답: ' + JSON.stringify(j));
-                } catch (e) {
-                  alert('Spin API 호출 실패: ' + String(e));
+                // CSPIN 인출 테스트
+                if (!connectedWallet) {
+                  alert('지갑을 먼저 연결하세요.');
+                  return;
                 }
-              }} className="bg-indigo-600 px-3 py-1 rounded text-sm">Spin API 테스트</button>
+                try {
+                  setMessage('CSPIN 인출 테스트 중...');
+                  const resp = await fetch('/api/initiate-withdrawal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ walletAddress: connectedWallet.account.address })
+                  });
+                  const j = await resp.json();
+                  if (resp.ok && j.success) {
+                    setMessage(`✅ CSPIN 인출 성공: ${j.withdrawalAmount} CSPIN 전송됨`);
+                    setUserCredit(j.newCredit);
+                  } else {
+                    setMessage(`❌ CSPIN 인출 실패: ${j.error || '알 수 없는 오류'}`);
+                  }
+                } catch (e) {
+                  setMessage(`❌ CSPIN 인출 호출 실패: ${String(e)}`);
+                }
+              }} className="bg-purple-600 px-3 py-1 rounded text-sm">CSPIN 인출 테스트</button>
               <button onClick={() => setShowReel(s => !s)} className="bg-gray-600 px-3 py-1 rounded text-sm">{showReel ? '릴 숨기기' : '릴 보이기'}</button>
               <button onClick={async () => {
                 const password = prompt('개발자 모드 비밀번호를 입력하세요:');
