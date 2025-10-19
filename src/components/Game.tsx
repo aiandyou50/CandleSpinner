@@ -235,6 +235,36 @@ export const Game: React.FC = () => {
     }
   };
 
+  // 인출 요청
+  const handleWithdraw = async () => {
+    if (!connectedWallet) {
+      alert('지갑을 연결하세요');
+      return;
+    }
+
+    try {
+      const resp = await fetch('/api/initiate-withdrawal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: connectedWallet.account.address
+        })
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        setUserCredit(0); // 인출 후 크레딧 0으로 설정
+        setMessage('인출 요청 완료! CSPIN이 지갑으로 전송됩니다.');
+      } else {
+        const error = await resp.json();
+        setMessage('인출 요청 실패: ' + (error.error || '알 수 없는 오류'));
+      }
+    } catch (e) {
+      console.warn('withdraw error', e);
+      setMessage('인출 요청 호출 실패');
+    }
+  };
+
   // 상금 수령
   const handleCollect = async () => {
     try {
@@ -329,7 +359,8 @@ export const Game: React.FC = () => {
               <button onClick={async () => {
                 // Spin API test
                 try {
-                  const resp = await fetch('/api/spin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ walletAddress: connectedWallet?.account.address || 'test', betAmount: 1, clientSeed: 'test-seed' }) });
+                  const testWallet = connectedWallet?.account.address || 'test-wallet-with-credit';
+                  const resp = await fetch('/api/spin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ walletAddress: testWallet, betAmount: 10, clientSeed: 'test-seed-' + Date.now() }) });
                   const j = await resp.json().catch(() => null);
                   alert('Spin API 응답: ' + JSON.stringify(j));
                 } catch (e) {
@@ -355,6 +386,14 @@ export const Game: React.FC = () => {
                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
               >
                 CSPIN 입금
+              </button>
+            </div>
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <button
+                onClick={handleWithdraw}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
+              >
+                CSPIN 인출
               </button>
             </div>
             <button
