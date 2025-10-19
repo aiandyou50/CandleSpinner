@@ -1,5 +1,5 @@
 import { Address, toNano, beginCell } from '@ton/core';
-import { TonClient, WalletContractV3R2, internal } from '@ton/ton';
+import { TonClient, WalletContractV5R1, internal } from '@ton/ton';
 import { keyPairFromSecretKey } from '@ton/crypto';
 
 interface UserState {
@@ -49,9 +49,9 @@ export async function onRequestPost(context: any) {
         apiKey: env.TONCENTER_API_KEY || undefined
       });
 
-      // 게임 월렛 키페어 생성 (V3 호환)
+      // 게임 월렛 키페어 생성 (V5 호환)
       const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-      const wallet = WalletContractV3R2.create({ // V3R2로 변경
+      const wallet = WalletContractV5R1.create({ // V5R1로 변경
         publicKey: keyPair.publicKey,
         workchain: 0
       });
@@ -94,6 +94,7 @@ export async function onRequestPost(context: any) {
       const transfer = walletContract.createTransfer({
         seqno,
         secretKey: keyPair.secretKey,
+        sendMode: 3, // V5 필수 파라미터
         messages: [
           internal({
             to: gameJettonWalletAddress,
