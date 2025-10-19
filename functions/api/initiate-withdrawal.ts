@@ -43,6 +43,67 @@ async function retry<T>(fn: () => Promise<T>, attempts = 3, baseDelay = 500): Pr
   throw lastError;
 }
 
+// Direct TON Center API call for sending BOC (fallback if @ton library fails)
+async function sendBocDirect(bocBase64: string, apiKey?: string): Promise<any> {
+  const url = 'https://toncenter.com/api/v2/sendBoc';
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-API-Key'] = apiKey;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ boc: bocBase64 })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`TON Center sendBoc failed: ${response.status} ${text}`);
+  }
+
+  return await response.json();
+}
+
+// Direct RPC call to get jetton wallet address
+async function getJettonWalletAddress(masterAddress: string, ownerAddress: string, apiKey?: string): Promise<string> {
+  const url = 'https://toncenter.com/api/v2/jsonRPC';
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-API-Key'] = apiKey;
+
+  const body = {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'runGetMethod',
+    params: {
+      address: masterAddress,
+      method: 'get_wallet_address',
+      stack: [['tvm.Slice', ownerAddress]]
+    }
+  };
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`TON Center runGetMethod failed: ${response.status} ${text}`);
+  }
+
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(`RPC error: ${data.error.message}`);
+  }
+
+  // Parse the result (jetton wallet address)
+  const stack = data.result.stack;
+  if (stack && stack[0] && stack[0][1]) {
+    return stack[0][1];
+  }
+  throw new Error('Invalid response from get_wallet_address');
+}
+
 export async function onRequestPost(context: any) {
   try {
     const { request, env } = context;
@@ -70,77 +131,157 @@ export async function onRequestPost(context: any) {
 
     // 실제 CSPIN 토큰 전송 로직
     try {
+      console.log('Starting blockchain transfer for wallet:', walletAddress);
+
       // 환경 변수에서 게임 월렛 정보 가져오기
       const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
       const cspinMasterContract = env.CSPIN_MASTER_CONTRACT || 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV';
+      const apiKey = env.TONCENTER_API_KEY;
 
       if (!gameWalletPrivateKey) {
         throw new Error('게임 월렛 프라이빗 키가 설정되지 않았습니다.');
       }
 
-      // TON 클라이언트 초기화 (메인넷)
-      const client = new TonClient({
-        endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-        apiKey: env.TONCENTER_API_KEY || undefined
-      });
+      console.log('Environment variables loaded');
 
-      // 게임 월렛 키페어 생성
-  // TypeScript: keyPairFromSecretKey expects a Buffer type in typings.
-  // At runtime Uint8Array is acceptable for the crypto function, so assert to any/Buffer to satisfy TS.
-  const keyPair = keyPairFromSecretKey(hexToBytes(gameWalletPrivateKey) as unknown as Buffer);
-      const wallet = WalletContractV4.create({
-        publicKey: keyPair.publicKey,
-        workchain: 0
-      });
+      // Try direct API approach first (fallback)
+      try {
+        console.log('Attempting direct API transfer');
 
-      const walletContract = client.open(wallet);
-      const walletAddressObj = wallet.address;
+        // 게임 월렛 키페어 생성
+        const keyPair = keyPairFromSecretKey(hexToBytes(gameWalletPrivateKey) as unknown as Buffer);
+        const wallet = WalletContractV4.create({
+          publicKey: keyPair.publicKey,
+          workchain: 0
+        });
+        const walletAddressObj = wallet.address;
+        console.log('Wallet created:', walletAddressObj.toString());
 
-      // 수신자 주소
-      const recipientAddress = Address.parse(walletAddress);
+        // 수신자 주소
+        const recipientAddress = Address.parse(walletAddress);
+        console.log('Recipient address parsed');
 
-      // CSPIN 마스터 컨트랙트 주소
-      const cspinMasterAddress = Address.parse(cspinMasterContract);
+        // CSPIN 마스터 컨트랙트 주소
+        const cspinMasterAddress = Address.parse(cspinMasterContract);
+        console.log('Master contract parsed');
 
-      // 게임 월렛의 CSPIN Jetton 월렛 주소 계산
-      const jettonWalletAddress = await retry(() => client.runMethod(
-        cspinMasterAddress,
-        'get_wallet_address',
-        [{
-          type: 'slice',
-          cell: beginCell().storeAddress(walletAddressObj).endCell()
-        }]
-      ), 4, 500);
+        // 게임 월렛의 CSPIN Jetton 월렛 주소 계산 (direct API)
+        const ownerSlice = beginCell().storeAddress(walletAddressObj).endCell().toBoc().toString('base64');
+        const jettonWalletAddr = await retry(() => getJettonWalletAddress(cspinMasterContract, ownerSlice, apiKey), 4, 500);
+        console.log('Jetton wallet address obtained:', jettonWalletAddr);
 
-      const gameJettonWalletAddress = jettonWalletAddress.stack.readAddress();
+        // For simplicity, use @ton to create BOC, then send via direct API
+        const gameJettonWalletAddress = Address.parse(jettonWalletAddr);
 
-      // Jetton 전송 메시지 생성
-      const transferMessage = beginCell()
-        .storeUint(0xf8a7ea5, 32) // op: transfer
-        .storeUint(0, 64) // query_id
-        .storeCoins(toNano(withdrawalAmount.toString())) // amount
-        .storeAddress(recipientAddress) // destination
-        .storeAddress(walletAddressObj) // response_destination
-        .storeBit(false) // custom_payload
-        .storeCoins(toNano('0.01')) // forward_ton_amount
-        .storeBit(false) // forward_payload
-        .endCell();
+        // Jetton 전송 메시지 생성
+        const transferMessage = beginCell()
+          .storeUint(0xf8a7ea5, 32) // op: transfer
+          .storeUint(0, 64) // query_id
+          .storeCoins(toNano(withdrawalAmount.toString())) // amount
+          .storeAddress(recipientAddress) // destination
+          .storeAddress(walletAddressObj) // response_destination
+          .storeBit(false) // custom_payload
+          .storeCoins(toNano('0.01')) // forward_ton_amount
+          .storeBit(false) // forward_payload
+          .endCell();
 
-      // 트랜잭션 전송
-  const seqno = await retry(() => walletContract.getSeqno(), 4, 300);
-      const transfer = walletContract.createTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        messages: [
-          internal({
-            to: gameJettonWalletAddress,
-            value: toNano('0.05'), // TON 수수료
-            body: transferMessage
-          })
-        ]
-      });
+        console.log('Transfer message created');
 
-  await retry(() => walletContract.send(transfer), 4, 500);
+        // Create external message (wallet transfer)
+        const seqno = 0; // For simplicity, assume seqno 0 or get from API
+        const externalMessage = beginCell()
+          .storeUint(0x7369676e, 32) // wallet_id
+          .storeUint(Date.now(), 32) // valid_until
+          .storeUint(seqno, 32) // seqno
+          .storeUint(0, 8) // op
+          .storeRef(transferMessage) // body
+          .endCell();
+
+        console.log('External message created');
+
+        // Sign the message
+        const signature = keyPair.secretKey; // Need proper signing
+        // Actually, wallet signing is complex, so fallback to @ton library for now
+
+        throw new Error('Direct API not fully implemented, falling back to @ton library');
+
+      } catch (directError) {
+        console.log('Direct API failed, falling back to @ton library:', (directError as any)?.message || directError);
+
+        // Fallback to @ton library
+        const client = new TonClient({
+          endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+          apiKey: apiKey || undefined
+        });
+
+        console.log('TON client initialized');
+
+        // 게임 월렛 키페어 생성
+        const keyPair = keyPairFromSecretKey(hexToBytes(gameWalletPrivateKey) as unknown as Buffer);
+        const wallet = WalletContractV4.create({
+          publicKey: keyPair.publicKey,
+          workchain: 0
+        });
+
+        const walletContract = client.open(wallet);
+        const walletAddressObj = wallet.address;
+        console.log('Wallet contract opened');
+
+        // 수신자 주소
+        const recipientAddress = Address.parse(walletAddress);
+        console.log('Recipient parsed');
+
+        // CSPIN 마스터 컨트랙트 주소
+        const cspinMasterAddress = Address.parse(cspinMasterContract);
+        console.log('Master contract parsed');
+
+        // 게임 월렛의 CSPIN Jetton 월렛 주소 계산
+        const jettonWalletAddress = await retry(() => client.runMethod(
+          cspinMasterAddress,
+          'get_wallet_address',
+          [{
+            type: 'slice',
+            cell: beginCell().storeAddress(walletAddressObj).endCell()
+          }]
+        ), 4, 500);
+
+        const gameJettonWalletAddress = jettonWalletAddress.stack.readAddress();
+        console.log('Jetton wallet address:', gameJettonWalletAddress.toString());
+
+        // Jetton 전송 메시지 생성
+        const transferMessage = beginCell()
+          .storeUint(0xf8a7ea5, 32) // op: transfer
+          .storeUint(0, 64) // query_id
+          .storeCoins(toNano(withdrawalAmount.toString())) // amount
+          .storeAddress(recipientAddress) // destination
+          .storeAddress(walletAddressObj) // response_destination
+          .storeBit(false) // custom_payload
+          .storeCoins(toNano('0.01')) // forward_ton_amount
+          .storeBit(false) // forward_payload
+          .endCell();
+
+        console.log('Transfer message created');
+
+        // 트랜잭션 전송
+        const seqno = await retry(() => walletContract.getSeqno(), 4, 300);
+        console.log('Seqno obtained:', seqno);
+
+        const transfer = walletContract.createTransfer({
+          seqno,
+          secretKey: keyPair.secretKey,
+          messages: [
+            internal({
+              to: gameJettonWalletAddress,
+              value: toNano('0.05'), // TON 수수료
+              body: transferMessage
+            })
+          ]
+        });
+
+        console.log('Transfer created, sending...');
+        await retry(() => walletContract.send(transfer), 4, 500);
+        console.log('Transfer sent successfully');
+      }
 
       // KV에서 크레딧 차감
       state.credit = 0;
@@ -161,6 +302,7 @@ export async function onRequestPost(context: any) {
 
     } catch (blockchainError: any) {
       console.error('Blockchain transfer error:', blockchainError);
+      console.error('Stack:', blockchainError.stack);
 
       const msg = blockchainError && blockchainError.message ? String(blockchainError.message) : '';
       // Detect rate-limit / 429
@@ -184,9 +326,7 @@ export async function onRequestPost(context: any) {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
-    }
-
-  } catch (error: any) {
+    }  } catch (error: any) {
     console.error('Initiate withdrawal error:', error);
     return new Response(JSON.stringify({
       error: '인출 요청 처리 중 오류가 발생했습니다.'
