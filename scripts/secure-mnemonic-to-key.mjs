@@ -22,8 +22,13 @@ async function secureMnemonicToKey() {
     const mnemonicText = fs.readFileSync(tempFile, 'utf8').trim();
     const mnemonic = mnemonicText.split(/\s+/);
 
+    console.log(`📝 입력된 니모닉 단어 수: ${mnemonic.length}`);
+    console.log(`📝 첫 3단어: ${mnemonic.slice(0, 3).join(' ')}...`);
+    console.log(`📝 마지막 3단어: ${mnemonic.slice(-3).join(' ')}`);
+    console.log('');
+
     if (mnemonic.length !== 24) {
-      throw new Error('니모닉은 24개의 단어여야 합니다.');
+      throw new Error(`니모닉은 24개의 단어여야 합니다. 현재 ${mnemonic.length}개 입력됨.`);
     }
 
     // 변환 수행
