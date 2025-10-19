@@ -90,7 +90,12 @@ async function sendBocViaTonAPI(bocBase64: string): Promise<any> {
 export async function onRequestPost(context: any) {
   try {
     const { request, env } = context;
-    const { walletAddress, withdrawalAmount }: { walletAddress: string, withdrawalAmount: number } = await request.json();
+    const { walletAddress, withdrawalAmount, action, txBoc }: {
+      walletAddress: string,
+      withdrawalAmount: number,
+      action?: string,
+      txBoc?: string
+    } = await request.json();
 
     // KV에서 사용자 상태 가져오기
     const stateKey = `user_${walletAddress}`;
@@ -101,6 +106,56 @@ export async function onRequestPost(context: any) {
       pendingWinnings: 0
     };
 
+    // 크레딧 검증만 하는 경우 (프론트엔드에서 트랜잭션 발생 전)
+    if (action === 'verify_only') {
+      if (state.credit < withdrawalAmount) {
+        return new Response(JSON.stringify({
+          canWithdraw: false,
+          error: '인출할 수 있는 크레딧이 부족합니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        canWithdraw: true,
+        availableCredit: state.credit
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 최종 처리 (트랜잭션 성공 후 크레딧 차감)
+    if (action === 'finalize') {
+      if (state.credit < withdrawalAmount) {
+        return new Response(JSON.stringify({
+          error: '크레딧이 부족합니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 크레딧 차감
+      state.credit -= withdrawalAmount;
+      state.canDoubleUp = false;
+      state.pendingWinnings = 0;
+
+      // KV에 상태 저장
+      await env.CREDIT_KV.put(stateKey, JSON.stringify(state));
+
+      return new Response(JSON.stringify({
+        success: true,
+        withdrawalAmount,
+        newCredit: state.credit,
+        message: `크레딧 차감 완료: ${withdrawalAmount} CSPIN`
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // 기존 로직 (시뮬레이션 모드)
     if (withdrawalAmount <= 0 || state.credit < withdrawalAmount) {
       return new Response(JSON.stringify({
         error: '인출할 수 있는 크레딧이 부족합니다.'
@@ -115,7 +170,7 @@ export async function onRequestPost(context: any) {
       console.log(`Processing withdrawal: ${withdrawalAmount} CSPIN to ${walletAddress}`);
 
       // TODO: 실제 게임 월렛 프라이빗 키로 서명된 트랜잭션 생성 및 전송
-      // 현재는 외부 API나 별도 서비스를 통한 전송이 필요함
+      // 현재는 시뮬레이션 대신 프론트엔드 직접 전송 권장
 
       // 시뮬레이션: 실제 전송 대신 성공 응답
       console.log('Withdrawal processed (simulation mode)');
