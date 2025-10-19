@@ -1,5 +1,5 @@
 import { mnemonicNew, mnemonicToPrivateKey } from '@ton/crypto';
-import { WalletContractV4 } from '@ton/ton';
+import { WalletContractV3R2 } from '@ton/ton';
 
 async function generateWallet() {
   try {
@@ -14,8 +14,8 @@ async function generateWallet() {
     // 니모닉에서 프라이빗 키 생성
     const keyPair = await mnemonicToPrivateKey(mnemonic);
 
-    // V4 월렛 컨트랙트 생성
-    const wallet = WalletContractV4.create({
+    // V3R2 월렛 컨트랙트 생성 (텔레그램 Wallet 호환)
+    const wallet = WalletContractV3R2.create({
       publicKey: keyPair.publicKey,
       workchain: 0
     });

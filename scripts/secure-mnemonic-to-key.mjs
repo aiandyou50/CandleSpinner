@@ -1,5 +1,5 @@
 import { mnemonicToPrivateKey } from '@ton/crypto';
-import { WalletContractV4 } from '@ton/ton';
+import { WalletContractV3R2 } from '@ton/ton';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -33,7 +33,7 @@ async function secureMnemonicToKey() {
 
     // 변환 수행
     const keyPair = await mnemonicToPrivateKey(mnemonic);
-    const wallet = WalletContractV4.create({
+    const wallet = WalletContractV3R2.create({
       publicKey: keyPair.publicKey,
       workchain: 0
     });
