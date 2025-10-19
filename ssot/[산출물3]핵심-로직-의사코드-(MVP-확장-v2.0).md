@@ -9,10 +9,10 @@
 
 -----
 
-### **A. 백엔드 로직 (Cloudflare Worker - `src/worker.ts`)**
+### **A. 백엔드 로직 (Cloudflare Pages Functions - `functions/api/*.ts`)**
 
-  * **설명:** 모든 오프체인 게임 로직, 확률 계산, 사용자 크레딧 관리를 담당합니다.
-  * **데이터베이스:** Cloudflare KV를 사용하여 `walletAddress`를 Key로, 사용자 크레딧 정보를 Value로 저장합니다. (예: `KV[user_wallet] = { credit: 1000, canDoubleUp: false, pendingWinnings: 0 }`)
+  * **설명:** 모든 오프체인 게임 로직, 확률 계산, 사용자 크레딧 관리를 담당합니다. Cloudflare Pages Functions를 사용하여 functions/api/ 디렉토리에 각 API 엔드포인트를 별도 파일로 구현합니다.
+  * **데이터베이스:** Cloudflare KV를 사용하여 `user_${walletAddress}`를 Key로, 사용자 크레딧 정보를 Value로 저장합니다. (예: `KV["user_UQBF..."] = { credit: 1000, canDoubleUp: false, pendingWinnings: 0 }`)
 
 #### **A.1. 상수 및 헬퍼 함수 정의**
 
@@ -27,20 +27,47 @@ DEFINE constant SYMBOLS = {
     "💎": { multiplier: 10, probability: 5 },
     "👑": { multiplier: 20, probability: 3 }
 }
+
 // 0-99 사이의 숫자를 받아 심볼을 반환하는 확률 헬퍼 함수
 FUNCTION getSymbolFromProbability(value):
     IF value < 35 THEN RETURN "⭐"
     ELSE IF value < 60 THEN RETURN "🪐"
-    // ... (SYMBOLS 정의에 따라 모든 심볼 매핑) ...
+    ELSE IF value < 75 THEN RETURN "☄️"
+    ELSE IF value < 85 THEN RETURN "🚀"
+    ELSE IF value < 92 THEN RETURN "👽"
+    ELSE IF value < 97 THEN RETURN "💎"
     ELSE RETURN "👑"
 END FUNCTION
 
-// KV 데이터베이스 헬퍼 함수
-FUNCTION getKVState(wallet):
-    RETURN KV.get(wallet) OR { credit: 0, canDoubleUp: false, pendingWinnings: 0 }
+// 간단한 해시 함수 (Provably Fair용)
+FUNCTION simpleHash(str):
+    hash = 0
+    FOR each char in str:
+        hash = ((hash << 5) - hash) + charCode(char)
+        hash = hash & hash  // 32bit 정수로 변환
+    RETURN abs(hash)
+END FUNCTION
 
-FUNCTION setKVState(wallet, state):
-    KV.put(wallet, state)
+// 시드로부터 숫자 생성
+FUNCTION generateNumberFromSeed(seed, index):
+    RETURN simpleHash(seed + toString(index)) % 100
+END FUNCTION
+
+// KV 데이터베이스 헬퍼 함수
+FUNCTION getKVState(wallet, env):
+    stateKey = "user_" + wallet
+    stateData = await env.CREDIT_KV.get(stateKey)
+    IF stateData EXISTS THEN
+        RETURN JSON.parse(stateData)
+    ELSE
+        RETURN { credit: 0, canDoubleUp: false, pendingWinnings: 0 }
+    END IF
+END FUNCTION
+
+FUNCTION setKVState(wallet, state, env):
+    stateKey = "user_" + wallet
+    await env.CREDIT_KV.put(stateKey, JSON.stringify(state))
+END FUNCTION
 ```
 
 #### **A.2. API 엔드포인트: `/api/credit-deposit`**
@@ -51,13 +78,13 @@ FUNCTION setKVState(wallet, state):
 <!-- end list -->
 
 ```
-FUNCTION handleApiCreditDeposit(request):
+FUNCTION handleApiCreditDeposit(request, env):
     GET { walletAddress, amount } FROM request.body
     
-    state = await getKVState(walletAddress)
+    state = await getKVState(walletAddress, env)
     state.credit = state.credit + amount
     
-    await setKVState(walletAddress, state)
+    await setKVState(walletAddress, state, env)
     
     RETURN { success: true, newCredit: state.credit }
 ```
@@ -70,10 +97,10 @@ FUNCTION handleApiCreditDeposit(request):
 <!-- end list -->
 
 ```
-FUNCTION handleApiSpin(request):
+FUNCTION handleApiSpin(request, env):
     GET { walletAddress, betAmount, clientSeed } FROM request.body
     
-    state = await getKVState(walletAddress)
+    state = await getKVState(walletAddress, env)
 
     // 1. 유효성 검사 (베팅액 확인, 미니게임 대기 중인지 확인)
     IF betAmount > state.credit THEN
@@ -85,14 +112,14 @@ FUNCTION handleApiSpin(request):
     state.credit = state.credit - betAmount
     
     // 3. Provably Fair 기반 릴 결과 생성
-    serverSeed = generateRandomSeed()
-    hashedServerSeed = hash(serverSeed)
-    combinedSeed = hash(serverSeed + clientSeed)
+    serverSeed = Math.random().toString(36)
+    hashedServerSeed = simpleHash(serverSeed).toString()
+    combinedSeed = simpleHash(serverSeed + clientSeed).toString()
     
-    // 3개의 릴 결과를 0-99 사이의 숫자로 각각 생성 (예시)
-    reel1_value = generateNumberFromSeed(combinedSeed, 1) % 100
-    reel2_value = generateNumberFromSeed(combinedSeed, 2) % 100
-    reel3_value = generateNumberFromSeed(combinedSeed, 3) % 100
+    // 3개의 릴 결과를 0-99 사이의 숫자로 각각 생성
+    reel1_value = generateNumberFromSeed(combinedSeed, 1)
+    reel2_value = generateNumberFromSeed(combinedSeed, 2)
+    reel3_value = generateNumberFromSeed(combinedSeed, 3)
     
     reels = [
         getSymbolFromProbability(reel1_value),
@@ -102,12 +129,19 @@ FUNCTION handleApiSpin(request):
     
     // 4. 당첨금 계산 (산출물 1의 독창적 규칙 적용)
     winnings = 0
-    symbolCounts = countOccurrences(reels) // e.g., {'🚀': 2, '⭐': 1}
+    symbolCounts = {} // 각 심볼별 개수
     
+    // 심볼 개수 세기
+    FOR each symbol in reels:
+        symbolCounts[symbol] = (symbolCounts[symbol] OR 0) + 1
+    END FOR
+    
+    // 각 심볼별 당첨금 계산
     FOR (symbol, count) in symbolCounts:
         multiplier = SYMBOLS[symbol].multiplier
         individualPayout = betAmount * multiplier
         winnings = winnings + (individualPayout * count) // "1번째릴 + 2번째릴"
+    END FOR
     
     // 5. 잭팟 처리
     isJackpot = (reels[0] == reels[1] AND reels[1] == reels[2])
@@ -120,7 +154,7 @@ FUNCTION handleApiSpin(request):
         state.pendingWinnings = winnings // 상금을 '대기' 상태로 저장
     END IF
     
-    await setKVState(walletAddress, state)
+    await setKVState(walletAddress, state, env)
     
     // 7. 결과 반환
     RETURN {
@@ -141,9 +175,9 @@ FUNCTION handleApiSpin(request):
 <!-- end list -->
 
 ```
-FUNCTION handleApiDoubleUp(request):
+FUNCTION handleApiDoubleUp(request, env):
     GET { walletAddress, choice, clientSeed } FROM request.body
-    state = await getKVState(walletAddress)
+    state = await getKVState(walletAddress, env)
 
     // 1. 유효성 검사 (미니게임 기회가 있는지)
     IF state.canDoubleUp IS NOT TRUE THEN
@@ -154,8 +188,8 @@ FUNCTION handleApiDoubleUp(request):
     state.pendingWinnings = 0
     
     // 2. Provably Fair 기반 50% 확률 계산
-    serverSeed = generateRandomSeed()
-    resultValue = generateNumberFromSeed(hash(serverSeed + clientSeed)) % 2
+    serverSeed = Math.random().toString(36)
+    resultValue = simpleHash(serverSeed + clientSeed) % 2
     winningChoice = (resultValue == 0) ? 'red' : 'blue'
     
     // 3. 결과 처리
@@ -164,11 +198,11 @@ FUNCTION handleApiDoubleUp(request):
         // 성공: 대기 중인 상금의 2배를 크레딧에 더함
         newWinnings = winningsAtStake * 2
         state.credit = state.credit + newWinnings
-        await setKVState(walletAddress, state)
+        await setKVState(walletAddress, state, env)
         RETURN { won: true, newWinnings: newWinnings }
     ELSE
         // 실패: 대기 중인 상금 소멸, 크레딧 변동 없음
-        await setKVState(walletAddress, state)
+        await setKVState(walletAddress, state, env)
         RETURN { won: false, newWinnings: 0 }
     END IF
 ```
@@ -181,21 +215,22 @@ FUNCTION handleApiDoubleUp(request):
 <!-- end list -->
 
 ```
-FUNCTION handleApiCollect(request):
+FUNCTION handleApiCollect(request, env):
     GET { walletAddress } FROM request.body
-    state = await getKVState(walletAddress)
+    state = await getKVState(walletAddress, env)
 
     IF state.canDoubleUp IS NOT TRUE THEN
         RETURN ERROR "수령할 상금이 없습니다."
 
     // 대기 중인 상금을 크레딧에 합산
+    collectedAmount = state.pendingWinnings
     state.credit = state.credit + state.pendingWinnings
     state.canDoubleUp = false
     state.pendingWinnings = 0
     
-    await setKVState(walletAddress, state)
+    await setKVState(walletAddress, state, env)
     
-    RETURN { success: true, newCredit: state.credit }
+    RETURN { success: true, newCredit: state.credit, collectedAmount: collectedAmount }
 ```
 
 #### **A.6. API 엔드포인트: `/api/initiate-withdrawal`**
@@ -207,9 +242,9 @@ FUNCTION handleApiCollect(request):
 <!-- end list -->
 
 ```
-FUNCTION handleApiInitiateWithdrawal(request):
+FUNCTION handleApiInitiateWithdrawal(request, env):
     GET { walletAddress } FROM request.body
-    state = await getKVState(walletAddress)
+    state = await getKVState(walletAddress, env)
     
     amountToWithdraw = state.credit
     IF amountToWithdraw <= 0 THEN
@@ -217,7 +252,7 @@ FUNCTION handleApiInitiateWithdrawal(request):
 
     // 1. 크레딧 즉시 차감 (중복 인출 방지)
     state.credit = 0
-    await setKVState(walletAddress, state)
+    await setKVState(walletAddress, state, env)
     
     // 2. 인출 큐(Queue)에 작업 등록
     // (Cloudflare Queues 또는 KV를 큐로 활용)
@@ -230,25 +265,25 @@ FUNCTION handleApiInitiateWithdrawal(request):
 
 ### **B. 프론트엔드 로직 (React - `src/components/Game.tsx`)**
 
-  * **설명:** 사용자 입력을 받아 백엔드 API를 호출하고, 그 결과를 화면(애니메이션, UI)에  GGF합니다.
-  * **상태 (State):** `userCredit`, `betAmount`, `reelSymbols`, `lastWinnings`, `isSpinning`, `showDoubleUp` 등.
+  * **설명:** 사용자 입력을 받아 백엔드 API를 호출하고, 그 결과를 화면(애니메이션, UI)에 반영합니다.
+  * **상태 관리:** Zustand 스토어를 사용하여 `userCredit`, `betAmount`, `reelSymbols`, `lastWinnings`, `isSpinning`, `showDoubleUp`, `isDeveloperMode` 등의 상태를 관리합니다.
 
 #### **B.1. 기능: 크레딧 입금 (PoC 확장)**
 
 ```
-// PoC에서 사용한 입금 컴포넌트 (`PoCComponent.tsx`)와 연동
+// PoC에서 사용한 입금 컴포넌트와 연동
 FUNCTION handleDepositSuccess(onChainResult, depositAmount):
     // 1. 온체인 트랜잭션 성공 시
-    ALERT "온체인 입금 확인. 서버에 크레딧을 등록합니다..."
+    setMessage("온체인 입금 확인. 서버에 크레딧을 등록합니다...")
 
     // 2. 백엔드에 크레딧 등록 요청
     CALL API `/api/credit-deposit` with { walletAddress: user.address, amount: depositAmount }
     
     .ON_SUCCESS(data):
         setUserCredit(data.newCredit) // UI 크레딧 업데이트
-        ALERT "크레딧 충전 완료!"
+        setMessage("크레딧 충전 완료!")
     .ON_ERROR(error):
-        ALERT "크레딧 충전 실패: " + error.message
+        setMessage("크레딧 충전 실패: " + error.message)
 ```
 
 #### **B.2. 기능: 스핀 실행**
@@ -262,7 +297,7 @@ FUNCTION handleSpinClick():
     CALL API `/api/spin` with { walletAddress: user.address, betAmount: betAmount, clientSeed: clientSeed }
     
     .ON_SUCCESS(data):
-        // 1. 릴 애니메이션 시작 (결과값을 즉시 알리지 않고 애니메이션 후 표시)
+        // 1. 릴 애니메이션 시작 (ReelPixi 컴포넌트 사용)
         triggerReelAnimation(data.reels) 
         
         // 2. 애니메이션 완료 후 (Callback)
@@ -279,7 +314,7 @@ FUNCTION handleSpinClick():
                 playJackpotVideo() // 잭팟 비디오 재생
             END IF
     .ON_ERROR(error):
-        ALERT "스핀 오류: " + error.message
+        setMessage("스핀 오류: " + error.message)
         setIsSpinning(false)
 ```
 
@@ -295,10 +330,10 @@ FUNCTION handleGambleClick(choice): // choice: 'red' or 'blue'
     .ON_SUCCESS(data):
         setShowDoubleUp(false)
         IF data.won THEN
-            ALERT "더블업 성공! 획득 상금: " + data.newWinnings
+            setMessage("더블업 성공! 획득 상금: " + data.newWinnings)
             setUserCredit(current => current + data.newWinnings) // 크레딧에 즉시 반영
         ELSE
-            ALERT "더블업 실패..."
+            setMessage("더블업 실패...")
             setLastWinnings(0)
         END IF
 
@@ -309,23 +344,22 @@ FUNCTION handleCollectClick():
     .ON_SUCCESS(data):
         setUserCredit(data.newCredit) // 크레딧에 합산
         setShowDoubleUp(false)
-        ALERT "상금 수령 완료!"
+        setMessage("상금 수령 완료! 수령액: " + data.collectedAmount)
 ```
 
 #### **B.4. 기능: 상금 인출**
 
 ```
 FUNCTION handleWithdrawClick():
-    CONFIRM "정말 " + userCredit + " CSPIN을 모두 인출하시겠습니까?"
-    
-    IF user_confirmed:
+    IF confirm("정말 " + userCredit + " CSPIN을 모두 인출하시겠습니까?") THEN
         CALL API `/api/initiate-withdrawal` with { walletAddress: user.address }
         
         .ON_SUCCESS(data):
             setUserCredit(0) // UI 크레딧 즉시 0으로
-            ALERT "인출 요청 완료: " + data.requestedAmount + " CSPIN (처리까지 몇 분 정도 소요될 수 있습니다)"
+            setMessage("인출 요청 완료: " + data.requestedAmount + " CSPIN (처리까지 몇 분 정도 소요될 수 있습니다)")
         .ON_ERROR(error):
-            ALERT "인출 오류: " + error.message
+            setMessage("인출 오류: " + error.message)
+    END IF
 ```
 
 -----
