@@ -67,7 +67,7 @@ async function getJettonWalletAddress(masterAddress: string, ownerAddress: strin
 }
 
 // Direct API call to send BOC using tonapi.io
-async function sendBoc(bocBase64: string): Promise<any> {
+async function sendBocViaTonAPI(bocBase64: string): Promise<any> {
   const url = 'https://tonapi.io/v1/blockchain/message';
 
   const response = await fetch(url, {
@@ -90,7 +90,7 @@ async function sendBoc(bocBase64: string): Promise<any> {
 export async function onRequestPost(context: any) {
   try {
     const { request, env } = context;
-    const { walletAddress }: { walletAddress: string } = await request.json();
+    const { walletAddress, bocData }: { walletAddress: string, bocData?: any } = await request.json();
 
     // KV에서 사용자 상태 가져오기
     const stateKey = `user_${walletAddress}`;
@@ -112,58 +112,20 @@ export async function onRequestPost(context: any) {
       });
     }
 
-    // 실제 CSPIN 토큰 전송 로직
+    // 하이브리드 접근: 프론트엔드에서 생성된 BOC를 받아서 전송
     try {
-      console.log('Starting blockchain transfer for wallet:', walletAddress);
+      console.log('Received bocData:', bocData);
 
-      // 환경 변수에서 게임 월렛 정보 가져오기
-      const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
-      const cspinMasterContract = env.CSPIN_MASTER_CONTRACT || 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV';
-
-      if (!gameWalletPrivateKey) {
-        throw new Error('게임 월렛 프라이빗 키가 설정되지 않았습니다.');
+      if (!bocData) {
+        throw new Error('BOC 데이터가 제공되지 않았습니다.');
       }
 
-      console.log('Environment variables loaded');
+      // 프론트엔드에서 생성된 메시지를 사용해서 실제 전송
+      console.log('Sending BOC to tonapi.io...');
 
-      // Use direct API calls to avoid library compatibility issues
-      console.log('Using direct API approach');
-
-      // 게임 월렛 주소 (환경 변수에서 가져오기)
-      const gameWalletAddress = env.GAME_WALLET_ADDRESS || 'UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJKZ'; // placeholder
-      console.log('Game wallet address:', gameWalletAddress);
-
-      // 수신자 주소
-      const recipientAddress = walletAddress;
-      console.log('Recipient address:', recipientAddress);
-
-      // CSPIN 마스터 컨트랙트 주소
-      const cspinMasterAddress = cspinMasterContract;
-      console.log('Master contract:', cspinMasterAddress);
-
-      // 게임 월렛의 CSPIN Jetton 월렛 주소 계산 (direct API)
-      const jettonWalletAddress = await retry(() => getJettonWalletAddress(cspinMasterAddress, gameWalletAddress), 4, 500);
-      console.log('Jetton wallet address obtained:', jettonWalletAddress);
-
-      // Create jetton transfer message manually
-      // This is a simplified approach - in production you'd use a proper TON library
-      const transferData = {
-        address: jettonWalletAddress,
-        amount: withdrawalAmount.toString(),
-        recipient: recipientAddress,
-        responseAddress: gameWalletAddress
-      };
-
-      console.log('Transfer data prepared:', transferData);
-
-      // For now, simulate successful transfer (since we can't easily create BOC without libraries)
-      // In production, you'd need to:
-      // 1. Create proper jetton transfer message
-      // 2. Sign it with game wallet private key
-      // 3. Send via TON API
-
-      console.log('Simulating successful transfer (library-free approach)');
-      // 실제로는 여기서 블록체인 전송을 해야 하지만, 라이브러리 호환성 문제로 일단 성공으로 처리
+      // tonapi.io를 사용해서 BOC 전송 (라이브러리 없이 직접 API 호출)
+      const sendResult = await retry(() => sendBocViaTonAPI(bocData.messageBoc), 4, 500);
+      console.log('BOC sent successfully:', sendResult);
 
       // KV에서 크레딧 차감
       state.credit = 0;
