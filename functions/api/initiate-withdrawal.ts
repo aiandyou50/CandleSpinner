@@ -22,6 +22,27 @@ interface UserState {
   pendingWinnings: number;
 }
 
+// Simple retry helper with exponential backoff for transient errors (e.g., 429 rate limit)
+async function retry<T>(fn: () => Promise<T>, attempts = 3, baseDelay = 500): Promise<T> {
+  let lastError: any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      const msg = err && err.message ? String(err.message) : '';
+      // If it's 429 or network, retry; otherwise break early
+      if (/\b429\b/.test(msg) || /rate limit/i.test(msg) || /ECONNRESET|ETIMEDOUT/.test(msg)) {
+        const delay = baseDelay * Math.pow(2, i);
+        await new Promise((res) => setTimeout(res, delay));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError;
+}
+
 export async function onRequestPost(context: any) {
   try {
     const { request, env } = context;
@@ -82,14 +103,14 @@ export async function onRequestPost(context: any) {
       const cspinMasterAddress = Address.parse(cspinMasterContract);
 
       // 게임 월렛의 CSPIN Jetton 월렛 주소 계산
-      const jettonWalletAddress = await client.runMethod(
+      const jettonWalletAddress = await retry(() => client.runMethod(
         cspinMasterAddress,
         'get_wallet_address',
         [{
           type: 'slice',
           cell: beginCell().storeAddress(walletAddressObj).endCell()
         }]
-      );
+      ), 4, 500);
 
       const gameJettonWalletAddress = jettonWalletAddress.stack.readAddress();
 
@@ -106,7 +127,7 @@ export async function onRequestPost(context: any) {
         .endCell();
 
       // 트랜잭션 전송
-      const seqno = await walletContract.getSeqno();
+  const seqno = await retry(() => walletContract.getSeqno(), 4, 300);
       const transfer = walletContract.createTransfer({
         seqno,
         secretKey: keyPair.secretKey,
@@ -119,7 +140,7 @@ export async function onRequestPost(context: any) {
         ]
       });
 
-      await walletContract.send(transfer);
+  await retry(() => walletContract.send(transfer), 4, 500);
 
       // KV에서 크레딧 차감
       state.credit = 0;
@@ -141,9 +162,22 @@ export async function onRequestPost(context: any) {
     } catch (blockchainError: any) {
       console.error('Blockchain transfer error:', blockchainError);
 
-      // 블록체인 오류 발생 시 크레딧을 유지하고 오류 반환
+      const msg = blockchainError && blockchainError.message ? String(blockchainError.message) : '';
+      // Detect rate-limit / 429
+      if (/\b429\b/.test(msg) || /rate limit/i.test(msg)) {
+        return new Response(JSON.stringify({
+          error: `블록체인 전송 실패: 서비스가 과도한 요청을 받고 있어 잠시 후 다시 시도해 주세요. (${msg})`,
+          withdrawalAmount: 0,
+          newCredit: state.credit
+        }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 기타 오류는 500으로 반환
       return new Response(JSON.stringify({
-        error: `블록체인 전송 실패: ${blockchainError.message}`,
+        error: `블록체인 전송 실패: ${msg}`,
         withdrawalAmount: 0,
         newCredit: state.credit
       }), {
