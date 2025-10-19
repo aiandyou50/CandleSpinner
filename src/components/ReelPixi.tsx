@@ -63,7 +63,7 @@ export const ReelPixi: React.FC<ReelPixiProps> = ({ spinning, reels = ['â­','ðŸ
       appRef.current = null;
       if (containerRef.current) containerRef.current.innerHTML = '';
     };
-  }, []);
+  }, [reels]);
 
   useEffect(() => {
     const app = appRef.current;
