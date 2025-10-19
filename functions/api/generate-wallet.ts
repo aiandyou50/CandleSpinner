@@ -1,3 +1,4 @@
+import '../_bufferPolyfill';
 import { mnemonicNew, mnemonicToPrivateKey } from '@ton/crypto';
 import { WalletContractV4 } from '@ton/ton';
 
