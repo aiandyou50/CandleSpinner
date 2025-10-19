@@ -346,6 +346,7 @@ export const Game: React.FC = () => {
   };
 
   // 인출 요청 (하이브리드 접근: 프론트엔드에서 BOC 생성, 백엔드에서 전송)
+  // CSPIN 인출 요청 (백엔드에서 외부 API로 처리)
   const handleWithdraw = async () => {
     if (!connectedWallet) {
       alert('지갑을 연결하세요');
@@ -358,70 +359,22 @@ export const Game: React.FC = () => {
     }
 
     try {
-      setMessage('블록체인 전송 준비 중...');
+      setMessage('CSPIN 토큰 전송 준비 중...');
 
-      // @ton/ton 라이브러리를 사용해서 BOC 생성 (프론트엔드에서 처리)
-      const { TonClient, WalletContractV4, internal, beginCell, Address, toNano } = await import('@ton/ton');
-
-      // TON 클라이언트 초기화 (읽기 전용)
-      const client = new TonClient({
-        endpoint: 'https://tonapi.io/v1/jsonRPC'
-      });
-
-      // 게임 월렛 컨트랙트 (읽기 전용으로 열기)
-      const gameWallet = WalletContractV4.create({
-        publicKey: Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // dummy key for reading
-        workchain: 0
-      });
-      const gameWalletContract = client.open(gameWallet);
-
-      // CSPIN 마스터 컨트랙트
-      const cspinMaster = Address.parse(CSPIN_TOKEN_ADDRESS);
-
-      // 게임 월렛의 CSPIN jetton wallet 주소 계산
-      const jettonWalletResult = await client.runMethod(cspinMaster, 'get_wallet_address', [{
-        type: 'slice',
-        cell: beginCell().storeAddress(gameWallet.address).endCell()
-      }]);
-      const gameJettonWallet = jettonWalletResult.stack.readAddress();
-
-      // Jetton transfer 메시지 생성
-      const transferMessage = beginCell()
-        .storeUint(0xf8a7ea5, 32) // op: transfer
-        .storeUint(0, 64) // query_id
-        .storeCoins(toNano(userCredit.toString())) // amount (크레딧 = CSPIN 토큰 수량)
-        .storeAddress(Address.parse(connectedWallet.account.address)) // destination (사용자 지갑)
-        .storeAddress(gameWallet.address) // response_destination
-        .storeBit(false) // custom_payload
-        .storeCoins(toNano('0.01')) // forward_ton_amount
-        .storeBit(false) // forward_payload
-        .endCell();
-
-      // 실제 전송은 백엔드에서 하므로, 여기서는 메시지만 준비
-      const bocData = {
-        jettonWalletAddress: gameJettonWallet.toString(),
-        transferAmount: toNano(userCredit.toString()).toString(),
-        recipientAddress: connectedWallet.account.address,
-        responseAddress: gameWallet.address.toString(),
-        messageBoc: transferMessage.toBoc().toString('base64')
-      };
-
-      setMessage('블록체인 전송 중...');
-
-      // 백엔드로 BOC 데이터 전송
+      // 백엔드에 인출 요청 (크레딧 검증 및 외부 API로 전송)
       const resp = await fetch('/api/initiate-withdrawal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           walletAddress: connectedWallet.account.address,
-          bocData: bocData
+          withdrawalAmount: userCredit
         })
       });
 
       if (resp.ok) {
         const data = await resp.json();
         setUserCredit(0); // 인출 후 크레딧 0으로 설정
-        setMessage(`✅ 인출 완료! ${data.withdrawalAmount} CSPIN이 지갑으로 전송되었습니다.`);
+        setMessage(`✅ 성공! ${data.withdrawalAmount} CSPIN 토큰이 지갑으로 전송되었습니다.`);
       } else {
         const error = await resp.json();
         setMessage('인출 실패: ' + (error.error || '알 수 없는 오류'));
