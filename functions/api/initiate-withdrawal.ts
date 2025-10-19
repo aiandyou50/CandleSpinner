@@ -37,7 +37,7 @@ export async function onRequestPost(context: any) {
     try {
       // 환경 변수에서 게임 월렛 정보 가져오기
       const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
-      const cspinMasterContract = env.CSPIN_MASTER_CONTRACT;
+      const cspinMasterContract = env.CSPIN_MASTER_CONTRACT || 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV'; // 기본값 제공
 
       if (!gameWalletPrivateKey || !cspinMasterContract) {
         throw new Error('게임 월렛 설정이 완료되지 않았습니다.');
