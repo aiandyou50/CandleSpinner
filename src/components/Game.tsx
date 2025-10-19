@@ -298,18 +298,27 @@ export const Game: React.FC = () => {
           <div className="bg-black/20 rounded-md p-4 mb-4">
             <h3 className="text-yellow-300 font-semibold mb-2">MVP 테스트 체크리스트</h3>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-200">
-              <li>✅ 지갑 연결 UI 표시</li>
-              <li>✅ 지갑 연결/연결 해제</li>
-              <li>✅ 크레딧 표시 및 갱신</li>
-              <li>✅ SPIN 클릭 시 서버 호출(또는 모킹)</li>
-              <li>✅ 릴 애니메이션(PixiJS 구현)</li>
-              <li>✅ PoC CSPIN 입금 로직 통합</li>
-              <li>✅ `/api/spin` 서버 로직 구현</li>
-              <li>✅ Provably Fair 완전 구현</li>
-              <li>✅ 미니게임(더블업) 구현</li>
-              <li>✅ 상금 수령 기능 구현</li>
-              <li>✅ Buffer polyfill 적용</li>
-              <li>✅ TypeScript 오류 해결</li>
+              <li>✅ 지갑 연결 UI 표시 (@tonconnect/ui-react)</li>
+              <li>✅ 지갑 연결/연결 해제 (TON Connect 프로토콜)</li>
+              <li>✅ 크레딧 표시 및 갱신 (Zustand 상태 관리)</li>
+              <li>✅ SPIN 클릭 시 서버 호출 + 로컬 모킹 (/api/spin)</li>
+              <li>✅ 릴 애니메이션 (PixiJS v8 렌더링)</li>
+              <li>✅ PoC CSPIN 입금 로직 통합 (ton-core 페이로드)</li>
+              <li>✅ `/api/spin` 서버 로직 구현 (Cloudflare Workers)</li>
+              <li>✅ Provably Fair 완전 구현 (클라이언트/서버 시드)</li>
+              <li>✅ 미니게임(더블업) 구현 (50% 확률)</li>
+              <li>✅ 상금 수령 기능 구현 (/api/collect-winnings)</li>
+              <li>✅ 인출 요청 기능 (/api/initiate-withdrawal)</li>
+              <li>✅ Buffer polyfill 적용 (브라우저 호환성)</li>
+              <li>❌ 다국어 지원 (i18n) - 7개 언어 (ko, en, ja, zh-CN, zh-TW, ru, ar)</li>
+              <li>❌ 사운드 효과 (BGM, 스핀 사운드, 당첨 효과음)</li>
+              <li>❌ 잭팟 시 10초 비디오 재생 (전체 화면)</li>
+              <li>❌ 물리 엔진 기반 애니메이션 (릴 회전)</li>
+              <li>❌ 베팅 조절 버튼 (+/- 10 CSPIN 단위)</li>
+              <li>❌ RTP 95% 검증 및 통계</li>
+              <li>❌ 네온사인 스타일 완전 구현</li>
+              <li>❌ 우주 테마 배경 (은하수, 별자리)</li>
+              <li>❌ 당첨 시각 효과 (라인, 심볼 하이라이트)</li>
             </ul>
             <div className="mt-3 flex space-x-2">
               <button onClick={async () => {
