@@ -1,5 +1,5 @@
 import { Address, toNano, beginCell } from '@ton/core';
-import { TonClient, WalletContractV5R1, internal } from '@ton/ton';
+import { TonClient, WalletContractV4, internal } from '@ton/ton';
 import { keyPairFromSecretKey } from '@ton/crypto';
 
 interface UserState {
@@ -37,10 +37,10 @@ export async function onRequestPost(context: any) {
     try {
       // 환경 변수에서 게임 월렛 정보 가져오기
       const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
-      const cspinMasterContract = env.CSPIN_MASTER_CONTRACT || 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV'; // 기본값 제공
+      const cspinMasterContract = env.CSPIN_MASTER_CONTRACT || 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV';
 
-      if (!gameWalletPrivateKey || !cspinMasterContract) {
-        throw new Error('게임 월렛 설정이 완료되지 않았습니다.');
+      if (!gameWalletPrivateKey) {
+        throw new Error('게임 월렛 프라이빗 키가 설정되지 않았습니다.');
       }
 
       // TON 클라이언트 초기화 (메인넷)
@@ -49,9 +49,9 @@ export async function onRequestPost(context: any) {
         apiKey: env.TONCENTER_API_KEY || undefined
       });
 
-      // 게임 월렛 키페어 생성 (V5 호환)
+      // 게임 월렛 키페어 생성
       const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-      const wallet = WalletContractV5R1.create({ // V5R1로 변경
+      const wallet = WalletContractV4.create({
         publicKey: keyPair.publicKey,
         workchain: 0
       });
@@ -89,12 +89,11 @@ export async function onRequestPost(context: any) {
         .storeBit(false) // forward_payload
         .endCell();
 
-      // 게임 월렛에서 Jetton 월렛으로 전송 메시지 전송
+      // 트랜잭션 전송
       const seqno = await walletContract.getSeqno();
       const transfer = walletContract.createTransfer({
         seqno,
         secretKey: keyPair.secretKey,
-        sendMode: 3, // V5 필수 파라미터
         messages: [
           internal({
             to: gameJettonWalletAddress,
@@ -104,7 +103,6 @@ export async function onRequestPost(context: any) {
         ]
       });
 
-      // 트랜잭션 전송
       await walletContract.send(transfer);
 
       // KV에서 크레딧 차감
@@ -124,7 +122,7 @@ export async function onRequestPost(context: any) {
         headers: { 'Content-Type': 'application/json' }
       });
 
-    } catch (blockchainError) {
+    } catch (blockchainError: any) {
       console.error('Blockchain transfer error:', blockchainError);
 
       // 블록체인 오류 발생 시 크레딧을 유지하고 오류 반환
@@ -138,7 +136,7 @@ export async function onRequestPost(context: any) {
       });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Initiate withdrawal error:', error);
     return new Response(JSON.stringify({
       error: '인출 요청 처리 중 오류가 발생했습니다.'
