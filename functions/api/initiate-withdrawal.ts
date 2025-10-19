@@ -1,12 +1,6 @@
-import { Buffer } from 'buffer';
 import { Address, toNano, beginCell } from '@ton/core';
 import { TonClient, WalletContractV4, internal } from '@ton/ton';
 import { keyPairFromSecretKey } from '@ton/crypto';
-
-// Buffer 폴리필 설정
-if (!globalThis.Buffer) {
-  globalThis.Buffer = Buffer;
-}
 
 interface UserState {
   credit: number;
