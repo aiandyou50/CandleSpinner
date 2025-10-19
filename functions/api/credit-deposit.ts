@@ -4,6 +4,8 @@ interface UserState {
   pendingWinnings: number;
 }
 
+import '../_bufferPolyfill';
+
 export async function onRequestPost(context: any) {
   try {
     const { request, env } = context;

@@ -1,3 +1,5 @@
+import '../_bufferPolyfill';
+
 export async function onRequestPost(context: any) {
   const { request } = context;
   const { password } = await request.json();

@@ -1,3 +1,4 @@
+import '../_bufferPolyfill';
 import { Address, toNano, beginCell } from '@ton/core';
 import { TonClient, WalletContractV4, internal } from '@ton/ton';
 import { keyPairFromSecretKey } from '@ton/crypto';
