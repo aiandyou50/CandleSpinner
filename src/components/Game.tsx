@@ -63,39 +63,39 @@ export const Game: React.FC = () => {
     try {
       // Provably Fair를 위한 클라이언트 시드 생성
       const clientSeed = Math.random().toString(36).slice(2);
-      
-      const payload = { 
-        walletAddress: connectedWallet?.account.address || 'anonymous', 
-        betAmount, 
-        clientSeed 
+
+      const payload = {
+        walletAddress: connectedWallet?.account.address || 'anonymous',
+        betAmount,
+        clientSeed
       };
-      const resp = await fetch('/api/spin', { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(payload) 
+      const resp = await fetch('/api/spin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       });
-      
+
       if (resp.ok) {
         const j = await resp.json();
         const win = typeof j.winnings === 'number' ? j.winnings : 0;
         setUserCredit(j.newCredit ?? (userCredit - betAmount + win));
         setMessage(`스핀 완료. 획득: ${win}`);
-        
+
         // 릴 업데이트
         if (j.reels) setReelSymbols(j.reels);
-        
+
         // 미니게임 활성화
         if (win > 0) {
           setLastWinnings(win);
           setShowDoubleUp(true);
         }
-        
+
         // 잭팟 처리
         if (j.isJackpot) {
           // TODO: 잭팟 비디오 재생
           alert('잭팟!');
         }
-        
+
         setIsSpinning(false);
         return;
       }
@@ -103,20 +103,36 @@ export const Game: React.FC = () => {
       console.warn('/api/spin 호출 실패, 로컬 모킹 사용');
     } catch (e) {
       console.warn('스핀 호출 중 예외', e);
+      // 로컬 모킹 (API 실패 시)
+      console.warn('/api/spin 호출 실패, 로컬 모킹 사용');
     }
 
     // 로컬 모킹
-    const rnd = Math.random();
-    const win = rnd > 0.95 ? 100 : rnd > 0.8 ? 20 : 0;
-    setUserCredit(userCredit - betAmount + win);
-    
-    const mockReels = [rnd > 0.8 ? '💎' : '⭐', rnd > 0.5 ? '🪐' : '⭐', rnd > 0.95 ? '👑' : '🌠'];
+    const mockReels = ['⭐', '🪐', '🌠'];
+    const mockWin = Math.random() > 0.7 ? Math.floor(Math.random() * betAmount * 3) : 0;
+
+    // 심볼 랜덤 생성
+    for (let i = 0; i < 3; i++) {
+      const rand = Math.random();
+      if (rand > 0.9) mockReels[i] = '👑';
+      else if (rand > 0.8) mockReels[i] = '💎';
+      else if (rand > 0.6) mockReels[i] = '🚀';
+      else if (rand > 0.4) mockReels[i] = '☄️';
+      else mockReels[i] = '⭐';
+    }
+
     setReelSymbols(mockReels);
-    
+    setLastWinnings(mockWin);
+    setUserCredit(userCredit - betAmount + mockWin);
+
+    if (mockWin > 0) {
+      setShowDoubleUp(true);
+    }
+
     setTimeout(() => {
       setIsSpinning(false);
-      setMessage(`(로컬) 스핀 완료. 획득: ${win}`);
-    }, 900);
+      setMessage(`(모킹) 스핀 완료. ${mockWin > 0 ? `당첨: ${mockWin} CSPIN!` : '꽝입니다.'}`);
+    }, 1000);
   };
 
   // 입금 성공 후 백엔드 등록
