@@ -346,7 +346,7 @@ export const Game: React.FC = () => {
   };
 
   // 인출 요청 (하이브리드 접근: 프론트엔드에서 BOC 생성, 백엔드에서 전송)
-  // CSPIN 인출 요청 (백엔드에서 외부 API로 처리)
+  // CSPIN 인출: 프론트엔드에서 직접 트랜잭션 발생 (비용 없음)
   const handleWithdraw = async () => {
     if (!connectedWallet) {
       alert('지갑을 연결하세요');
@@ -361,24 +361,79 @@ export const Game: React.FC = () => {
     try {
       setMessage('CSPIN 토큰 전송 준비 중...');
 
-      // 백엔드에 인출 요청 (크레딧 검증 및 외부 API로 전송)
+      // 1. 백엔드에 인출 요청 (크레딧 검증만)
       const resp = await fetch('/api/initiate-withdrawal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           walletAddress: connectedWallet.account.address,
-          withdrawalAmount: userCredit
+          withdrawalAmount: userCredit,
+          action: 'verify_only' // 크레딧 검증만 요청
         })
       });
 
-      if (resp.ok) {
-        const data = await resp.json();
-        setUserCredit(0); // 인출 후 크레딧 0으로 설정
-        setMessage(`✅ 성공! ${data.withdrawalAmount} CSPIN 토큰이 지갑으로 전송되었습니다.`);
-      } else {
+      if (!resp.ok) {
         const error = await resp.json();
-        setMessage('인출 실패: ' + (error.error || '알 수 없는 오류'));
+        setMessage('인출 검증 실패: ' + (error.error || '알 수 없는 오류'));
+        return;
       }
+
+      const verifyData = await resp.json();
+      if (!verifyData.canWithdraw) {
+        setMessage('인출할 수 있는 크레딧이 부족합니다.');
+        return;
+      }
+
+      // 2. 프론트엔드에서 직접 CSPIN 전송 트랜잭션 생성
+      const amount = BigInt(userCredit) * BigInt(10 ** 9); // CSPIN 9 decimals
+      const destination = Address.parse(connectedWallet.account.address); // 자신의 지갑으로
+      const responseTo = Address.parse(connectedWallet.account.address);
+
+      const payloadCell = buildCSPINTransferPayload(amount, destination, responseTo);
+      const boc = payloadCell.toBoc();
+      const hex = boc.toString('hex');
+      const base64 = Buffer.from(hex, 'hex').toString('base64');
+
+      // 게임 월렛의 CSPIN 제톤 지갑 주소 (하드코딩 또는 API로 가져와야 함)
+      const gameJettonWalletAddress = "EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs";
+
+      const tx = {
+        validUntil: Math.floor(Date.now() / 1000) + 600,
+        messages: [{
+          address: gameJettonWalletAddress,
+          amount: '100000000', // 0.1 TON for gas
+          payload: base64
+        }]
+      };
+
+      setMessage('지갑에서 트랜잭션을 승인해주세요...');
+
+      // 3. TON Connect로 트랜잭션 전송 (사용자가 직접 서명)
+      const result: any = await tonConnectUI.sendTransaction(tx);
+
+      if (result && result.boc) {
+        // 4. 성공 시 백엔드에 크레딧 차감 등록
+        const finalizeResp = await fetch('/api/initiate-withdrawal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            walletAddress: connectedWallet.account.address,
+            withdrawalAmount: userCredit,
+            action: 'finalize', // 크레딧 차감
+            txBoc: result.boc
+          })
+        });
+
+        if (finalizeResp.ok) {
+          setUserCredit(0);
+          setMessage(`✅ 인출 완료! ${userCredit} CSPIN 토큰이 지갑으로 전송되었습니다.`);
+        } else {
+          setMessage('크레딧 차감 실패: 트랜잭션은 성공했으나 크레딧이 차감되지 않았습니다.');
+        }
+      } else {
+        setMessage('트랜잭션이 취소되었거나 실패했습니다.');
+      }
+
     } catch (e) {
       console.warn('withdraw error', e);
       setMessage('인출 요청 실패: ' + String(e));
