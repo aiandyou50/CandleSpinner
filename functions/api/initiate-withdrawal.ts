@@ -1,11 +1,18 @@
-import { Buffer } from 'buffer';
 import { Address, toNano, beginCell } from '@ton/core';
 import { TonClient, WalletContractV4, internal } from '@ton/ton';
 import { keyPairFromSecretKey } from '@ton/crypto';
 
-// Buffer 폴리필 설정
-if (!globalThis.Buffer) {
-  globalThis.Buffer = Buffer;
+// Cloudflare Functions 환경에서는 Node's Buffer가 항상 존재하지 않습니다.
+// 작은 헥스 -> Uint8Array 변환 유틸을 사용해 Buffer 의존성을 제거합니다.
+function hexToBytes(hex: string): Uint8Array {
+  if (!hex) return new Uint8Array();
+  const normalized = hex.startsWith('0x') ? hex.slice(2) : hex;
+  const len = normalized.length;
+  const bytes = new Uint8Array(Math.ceil(len / 2));
+  for (let i = 0; i < len; i += 2) {
+    bytes[i / 2] = parseInt(normalized.substr(i, 2), 16);
+  }
+  return bytes;
 }
 
 interface UserState {
@@ -56,7 +63,9 @@ export async function onRequestPost(context: any) {
       });
 
       // 게임 월렛 키페어 생성
-      const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
+  // TypeScript: keyPairFromSecretKey expects a Buffer type in typings.
+  // At runtime Uint8Array is acceptable for the crypto function, so assert to any/Buffer to satisfy TS.
+  const keyPair = keyPairFromSecretKey(hexToBytes(gameWalletPrivateKey) as unknown as Buffer);
       const wallet = WalletContractV4.create({
         publicKey: keyPair.publicKey,
         workchain: 0
