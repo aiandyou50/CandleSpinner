@@ -5,14 +5,17 @@
 
 ---
 
-## [1.0.3] - 2025-10-20
+## [1.1.0] - 2025-10-20
+
+### ✨ 추가됨 (Added)
+- CSPIN 인출 기능 실제 트랜잭션 구현 (게임 월렛에서 사용자 지갑으로 토큰 전송)
+- 인출 테스트 버튼에 withdrawalAmount 파라미터 추가
 
 ### 🐛 수정됨 (Fixed)
-- TON Connect App Manifest Error 해결 (icon 파일 위치 및 URL 수정)
-- manifest 파일을 public/ 폴더로 이동하여 올바른 서빙 경로 설정
+- 인출 API에서 withdrawalAmount undefined 문제 해결
 
 ### 📚 문서 (Docs)
-- 배포 후 월렛 연결 오류 해결 기록
+- [산출물3] 인출 API (/api/initiate-withdrawal) 실제 트랜잭션 로직 추가
 
 ---
 

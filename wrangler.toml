@@ -11,3 +11,6 @@ binding = "CREDIT_KV"
 [[env.production.kv_namespaces]]
 id = "e573c59cb09b4d58b5f38a56ef65dd6f"
 binding = "CREDIT_KV"
+
+[vars]
+GAME_WALLET_PRIVATE_KEY = "여기에_게임_월렛_프라이빗_키_입력"
