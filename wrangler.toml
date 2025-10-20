@@ -13,4 +13,4 @@ id = "e573c59cb09b4d58b5f38a56ef65dd6f"
 binding = "CREDIT_KV"
 
 [vars]
-BACKEND_RPC_URL = "https://tonapi.io/v1/jsonRPC"
+BACKEND_RPC_URL = "https://toncenter.com/api/v2/jsonRPC"
