@@ -5,7 +5,106 @@
 
 ---
 
+## [2.0.0] - 2025-10-21
+
+### 🎯 MVP 완성 버전 - 전체 리팩토링
+
+#### ✨ 추가됨 (Added)
+- **단순화된 입금 시스템**
+  - `Deposit.tsx`: 통합 입금 컴포넌트 (TonConnect 기반, TMA/웹 모두 지원)
+  - `/api/deposit`: 단순화된 백엔드 엔드포인트 (KV 크레딧 저장만)
+  - 완전히 탈중앙화된 구조 (프라이빗 키 백엔드 미사용)
+
+#### 🔧 변경됨 (Changed)
+- **App.tsx 전면 재작성**
+  - 간단한 game/deposit 모드 전환
+  - TMA와 웹 브라우저 모드 통합 관리
+  - 복잡한 A/B 선택 UI 제거
+  
+- **Game.tsx 단순화**
+  - TMADeposit 컴포넌트 제거
+  - onDepositClick 콜백으로 입금 화면 호출
+  - 불필요한 로직 제거
+
+- **아키텍처 단순화**
+  - 기존: 복잡한 Jetton transfer 메시지 → 실패율 높음
+  - 신규: 간단한 TON 전송 + KV 크레딧 → 안정적, 빠름
+  - 백엔드 복잡도 극소화
+
+#### 🗑️ 제거됨 (Removed)
+- ❌ `DepositDirect.tsx` (복잡한 Jetton 전송 로직)
+- ❌ `DepositAuto.tsx` (Ankr RPC 통합)
+- ❌ `WebDeposit.tsx` (구식 컴포넌트)
+- ❌ `TMADeposit.tsx.backup` (백업 파일)
+- ❌ `/api/deposit-auto.ts` (불필요)
+- ❌ `/api/deposit-complete.ts` (불필요)
+- ❌ `/api/get-jetton-wallet.ts` (불필요)
+- ❌ `/api/rpc.ts` (불필요)
+- ❌ 기타 복잡한 엔드포인트
+
+#### 💡 MVP 요구사항 충족
+
+| 요구사항 | v1.5.0 | v2.0.0 | 상태 |
+|---------|--------|--------|------|
+| 브라우저 입금 가능 | ❌ | ✅ | 해결 |
+| TMA 입금 가능 | ❌ | ✅ | 해결 |
+| 단순하고 안정적 | ❌ | ✅ | 개선 |
+| 빌드 성공 | ✅ | ✅ | 유지 |
+
+#### 📊 코드 통계
+- 삭제된 파일: 4개 (DepositDirect, DepositAuto, WebDeposit, TMADeposit.backup)
+- 삭제된 엔드포인트: 4개
+- 생성된 파일: 2개 (Deposit.tsx, deposit.ts 신규)
+- 수정된 파일: 2개 (App.tsx, Game.tsx 단순화)
+
+#### 🚀 핵심 개선사항
+
+**입금 플로우 (v2.0.0):**
+```
+1. 사용자가 "CSPIN 입금" 버튼 클릭
+2. Deposit 컴포넌트 표시
+3. TonConnect로 간단한 트랜잭션 서명
+4. 백엔드 `/api/deposit`에 기록
+5. KV에 크레딧 저장
+6. 게임 진행
+```
+
+**이전 문제점 (v1.5.0):**
+- 복잡한 Jetton transfer 메시지 구성 → 실패율 높음
+- 다양한 RPC 호출 필요 → 불안정
+- TMA와 웹 모드 로직 분산 → 유지보수 어려움
+- A/B 방식 선택 UI → 사용자 혼란
+
+**새로운 장점 (v2.0.0):**
+- ✅ 간단한 구조 → 높은 성공률
+- ✅ 백엔드 의존성 최소화 → 빠른 응답
+- ✅ TMA/웹 통합 → 단일 코드
+- ✅ 사용자 경험 개선 → 직관적인 UI
+
+---
+
 ## [1.5.0] - 2025-10-21
+
+### ✨ 추가됨 (Added)
+- **A/B 이중 입금 방식 구현**
+  - **방식 A (DepositDirect):** TonConnect 클라이언트 직접 서명 기반 입금
+  - **방식 B (DepositAuto):** Ankr RPC 자동 입금
+- `DepositDirect.tsx`, `DepositAuto.tsx` 컴포넌트
+- `/api/deposit-auto`, `/api/deposit-complete` 백엔드 엔드포인트
+
+### 🔧 변경됨 (Changed)
+- App.tsx에 A/B 입금 방식 선택 UI 추가
+
+### 📚 문서 (Docs)
+- [산출물2] v1.5 업데이트
+- [산출물3] D섹션 추가
+
+### ⚠️ 알려진 문제
+- **테스트 실패**: Jetton 복잡 로직, TMA 연동 오류 발생
+- **해결**: v2.0.0에서 전체 단순화
+
+---
+
 
 ### ✨ 추가됨 (Added)
 - **A/B 이중 입금 방식 구현**
