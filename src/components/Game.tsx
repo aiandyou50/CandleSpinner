@@ -284,12 +284,22 @@ export const Game: React.FC = () => {
       const destination = Address.parse(GAME_WALLET_ADDRESS);
       const responseTo = Address.parse(connectedWallet.account.address);
       
-      // 사용자의 CSPIN 지갑 주소 계산 (RPC 사용)
-      const jettonWalletAddressStr = await rpc.getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
-      if (!jettonWalletAddressStr) {
-        throw new Error('Failed to get jetton wallet address');
+      // 사용자의 CSPIN 지갑 주소 계산 (백엔드 API 사용)
+      const walletResp = await fetch('/api/get-jetton-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tokenAddress: CSPIN_TOKEN_ADDRESS,
+          userAddress: connectedWallet.account.address
+        })
+      });
+
+      if (!walletResp.ok) {
+        throw new Error('Failed to get jetton wallet address from API');
       }
-      const userJettonWalletAddress = jettonWalletAddressStr;
+
+      const walletData = await walletResp.json();
+      const userJettonWalletAddress = walletData.jettonWalletAddress;
 
       const payloadCell = buildCSPINTransferPayload(amount, destination, responseTo);
       const boc = payloadCell.toBoc();
