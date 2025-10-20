@@ -28,6 +28,17 @@
 
 ## 🔄 [In Progress] - 진행 중 작업
 
+### 배포 후 월렛 연결 오류 해결
+- **시작일:** 2025년 10월 20일
+- **담당:** GitHub Copilot
+- **진행 상황:**
+  - ✅ PoC 코드 분석 완료 (월렛 연결 방식 확인)
+  - ✅ manifest 파일 public/으로 이동
+  - ✅ icon.png를 public/icon-192.png로 복사
+  - ✅ manifest iconUrl 수정 (assets/ → /icon-192.png)
+  - 🔄 커밋&푸시 대기 중
+- **다음 단계:** 배포 후 aiandyou.me에서 월렛 연결 테스트
+
 ### Cloudflare Pages 배포 오류 해결 및 설정 확인
 - **시작일:** 2025년 10월 20일
 - **완료일:** 2025년 10월 20일
@@ -41,8 +52,8 @@
   - ✅ Functions에서 @ton/ton 사용하므로 package.json에 재추가하여 빌드 오류 해결
   - ✅ .nvmrc, .npmrc 파일로 빌드 환경 최적화
   - ✅ GitHub push 완료 (커밋: 24b8cc1)
-  - 🔄 Cloudflare Pages 배포 결과 대기 중
-- **다음 단계:** 배포 성공 확인 및 도메인 연결 검증
+  - ✅ **Cloudflare Pages 배포 성공!**
+- **다음 단계:** 도메인 연결(https://aiandyou.me/) 및 기능 테스트
 
 ---
 
