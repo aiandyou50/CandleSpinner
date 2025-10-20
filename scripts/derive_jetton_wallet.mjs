@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync } from 'fs';
-import { Address, beginCell, Cell } from 'ton-core';
+import { Address, beginCell, Cell } from '@ton/core';
+import { TonClient } from '@ton/ton';
+import { sha256 } from '@ton/crypto';
 
 // Usage: node scripts/derive_jetton_wallet.mjs <masterAddress> <ownerAddress>
 // prints base64 or friendly address for the derived jetton wallet
@@ -13,24 +15,20 @@ async function main(){
   }
 
   try{
-    // Many token standards compute wallet address by hashing code+data.
-    // ton-core provides JettonWallet.getAddress helper in some builds; try dynamic import
-    const ton = await import('ton-core');
-    if(ton.getJettonWalletAddress){
-      const addr = ton.getJettonWalletAddress(master, owner);
-      console.log(addr.toString());
-      process.exit(0);
-    }
+    // Get wallet_code from master contract
+    const client = new TonClient({ endpoint: 'https://toncenter.com/api/v2/jsonRPC' });
+    const masterAddress = Address.parse(master);
+    const result = await client.callGetMethod(masterAddress, 'get_jetton_data');
+    const walletCode = result.stack[2];
+    console.log('Wallet Code:', walletCode.toBoc().toString('hex'));
 
-    if(ton.JettonWallet && typeof ton.JettonWallet.getAddress === 'function'){
-      const addr = ton.JettonWallet.getAddress(master, owner);
-      console.log(addr.toString());
-      process.exit(0);
-    }
-
-    // fallback: try to mimic standard by constructing state init if possible - this is best-effort
-    console.error('Could not find helper in ton-core build; please use a ton-core build with jetton helpers.');
-    process.exit(2);
+    // Now compute the address
+    const ownerAddress = Address.parse(owner);
+    const data = beginCell().storeAddress(masterAddress).storeAddress(ownerAddress).endCell();
+    const combined = Buffer.concat([walletCode.hash(), data.hash()]);
+    const hash = await sha256(combined);
+    const jettonWalletAddress = new Address(0, hash.slice(0, 32));
+    console.log('Jetton Wallet Address:', jettonWalletAddress.toString());
   }catch(e){
     console.error('Error deriving jetton wallet:', e);
     process.exit(3);

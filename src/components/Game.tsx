@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { create } from 'zustand';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, toNano, beginCell, jettonWalletCode } from '@ton/core';
+import { Address, toNano, beginCell } from '@ton/core';
+import { jettonWalletCodeFromLibrary, getJettonWalletAddress } from '@ton/ton';
 import { sha256 } from '@ton/crypto';
 import { useRpc } from '../hooks/useRpc';
 import ReelPixi from './ReelPixi';
@@ -266,7 +267,8 @@ export const Game: React.FC = () => {
       .storeAddress(responseTo)      // response_destination
       .storeBit(0)                   // custom_payload: none
       .storeCoins(BigInt(0))         // forward_ton_amount
-      .storeBit(0)                   // forward_payload: none
+      .storeBit(1)                   // forward_payload: right (for ^Cell)
+      .storeBit(0)                   // forward_payload: nothing (none)
       .endCell();
     return cell;
   };
@@ -353,8 +355,7 @@ export const Game: React.FC = () => {
     }
   };
 
-  // 인출 요청 (하이브리드 접근: 프론트엔드에서 BOC 생성, 백엔드에서 전송)
-  // CSPIN 인출: 프론트엔드에서 직접 트랜잭션 발생 (비용 없음)
+  // CSPIN 인출: 백엔드에서 게임 월렛으로 전송
   const handleWithdraw = async () => {
     if (!connectedWallet) {
       alert('지갑을 연결하세요');
@@ -367,89 +368,26 @@ export const Game: React.FC = () => {
     }
 
     try {
-      setMessage('CSPIN 토큰 전송 준비 중...');
+      setMessage('CSPIN 토큰 인출 중...');
 
-      // 1. 백엔드에 인출 요청 (크레딧 검증만)
       const resp = await fetch('/api/initiate-withdrawal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           walletAddress: connectedWallet.account.address,
-          withdrawalAmount: userCredit,
-          action: 'verify_only' // 크레딧 검증만 요청
+          withdrawalAmount: userCredit
         })
       });
 
-      if (!resp.ok) {
-        const error = await resp.json();
-        setMessage('인출 검증 실패: ' + (error.error || '알 수 없는 오류'));
-        return;
-      }
-
-      const verifyData = await resp.json();
-      if (!verifyData.canWithdraw) {
-        setMessage('인출할 수 있는 크레딧이 부족합니다.');
-        return;
-      }
-
-      // 2. 프론트엔드에서 직접 CSPIN 전송 트랜잭션 생성
-      const amount = BigInt(userCredit) * BigInt(10 ** 9); // CSPIN 9 decimals
-      const destination = Address.parse(connectedWallet.account.address); // 자신의 지갑으로
-      const responseTo = Address.parse(connectedWallet.account.address);
-
-      const payloadCell = buildCSPINTransferPayload(amount, destination, responseTo);
-      const boc = payloadCell.toBoc();
-      const hex = boc.toString('hex');
-      const base64 = Buffer.from(hex, 'hex').toString('base64');
-
-      // 게임 월렛의 CSPIN 제톤 지갑 주소 (실제 주소로 업데이트 필요)
-      const gameJettonWalletAddress = "EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs";
-
-      const tx = {
-        validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [{
-          address: gameJettonWalletAddress,
-          amount: '100000000', // 0.1 TON for gas
-          payload: base64
-        }]
-      };
-
-      setMessage('지갑에서 트랜잭션을 승인해주세요...');
-
-      // 3. TON Connect로 트랜잭션 전송 (사용자가 직접 서명)
-      const result: any = await tonConnectUI.sendTransaction(tx);
-
-      if (result && result.boc) {
-        // 4. 성공 시 백엔드에 크레딧 차감 등록
-        const finalizeResp = await fetch('/api/initiate-withdrawal', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            walletAddress: connectedWallet.account.address,
-            withdrawalAmount: userCredit,
-            action: 'finalize', // 크레딧 차감
-            txBoc: result.boc
-          })
-        });
-
-        if (finalizeResp.ok) {
-          const finalizeData = await finalizeResp.json();
-          setUserCredit(finalizeData.newCredit || 0);
-          setMessage(`✅ 인출 완료! ${userCredit} CSPIN 토큰이 지갑으로 전송되었습니다.`);
-          console.log('Withdrawal successful:', finalizeData);
-        } else {
-          const finalizeError = await finalizeResp.json();
-          setMessage('크레딧 차감 실패: 트랜잭션은 성공했으나 크레딧이 차감되지 않았습니다.');
-          console.error('Finalize error:', finalizeError);
-        }
+      const j = await resp.json();
+      if (resp.ok && j.success) {
+        setUserCredit(j.newCredit);
+        setMessage(`✅ 인출 완료! ${j.withdrawalAmount} CSPIN 토큰이 지갑으로 전송되었습니다.`);
       } else {
-        setMessage('트랜잭션이 취소되었거나 실패했습니다.');
-        console.warn('Transaction result missing boc:', result);
+        setMessage(`❌ 인출 실패: ${j.error || '알 수 없는 오류'}`);
       }
-
     } catch (e) {
-      console.error('withdraw error:', e);
-      setMessage('인출 요청 실패: ' + String(e));
+      setMessage(`❌ 인출 호출 실패: ${String(e)}`);
     }
   };
 
@@ -544,30 +482,6 @@ export const Game: React.FC = () => {
                 if (connectedWallet) alert('지갑이 연결되어 있습니다: ' + connectedWallet.account.address);
                 else alert('지갑 미연결 - 우상단 TonConnect 버튼을 눌러 연결하세요');
               }} className="bg-indigo-600 px-3 py-1 rounded text-sm">지갑 연결 테스트</button>
-              <button onClick={async () => {
-                // CSPIN 인출 테스트
-                if (!connectedWallet) {
-                  alert('지갑을 먼저 연결하세요.');
-                  return;
-                }
-                try {
-                  setMessage('CSPIN 인출 테스트 중...');
-                  const resp = await fetch('/api/initiate-withdrawal', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ walletAddress: connectedWallet.account.address, withdrawalAmount: userCredit })
-                  });
-                  const j = await resp.json();
-                  if (resp.ok && j.success) {
-                    setMessage(`✅ CSPIN 인출 성공: ${j.withdrawalAmount} CSPIN 전송됨`);
-                    setUserCredit(j.newCredit);
-                  } else {
-                    setMessage(`❌ CSPIN 인출 실패: ${j.error || '알 수 없는 오류'}`);
-                  }
-                } catch (e) {
-                  setMessage(`❌ CSPIN 인출 호출 실패: ${String(e)}`);
-                }
-              }} className="bg-purple-600 px-3 py-1 rounded text-sm">CSPIN 인출 테스트</button>
               <button onClick={() => setShowReel(s => !s)} className="bg-gray-600 px-3 py-1 rounded text-sm">{showReel ? '릴 숨기기' : '릴 보이기'}</button>
               <button onClick={async () => {
                 const password = prompt('개발자 모드 비밀번호를 입력하세요:');

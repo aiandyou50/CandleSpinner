@@ -14,3 +14,15 @@ yarn-error.log*
 
 # misc
 .DS_Store
+
+# TON docs (downloaded for analysis, not to be committed)
+ton-docs/
+
+# Jetton token contract (downloaded for analysis, not to be committed)
+token-contract/
+
+# Latest Jetton contract (downloaded for analysis, not to be committed)
+jetton-contract/
+
+# TON Connect SDK (downloaded for analysis, not to be committed)
+sdk/

@@ -470,4 +470,76 @@ FUNCTION processWithdrawalQueue():
     .ON_ERROR(error):
         LOG "인출 실패: " + error.message
         MARK job as failed (재시도 또는 관리자 알림)
+
+---
+
+### **C. CSPIN 토큰 입금/인출 로직**
+
+#### **C.1. CSPIN 입금 (프론트엔드)**
+
+* **목적:** 사용자가 CSPIN 토큰을 게임 지갑으로 전송하여 크레딧 충전.
+* **플로우:**
+  1. 사용자가 입금 버튼 클릭.
+  2. CSPIN 제톤 월렛 주소 계산 (RPC).
+  3. 제톤 전송 페이로드 빌드 (transfer 메시지, TL-B 준수).
+  4. TON Connect로 트랜잭션 전송 (사용자 서명).
+  5. 성공 시 백엔드에 크레딧 등록.
+
+```typescript
+// 프론트엔드: CSPIN 전송 페이로드 빌드
+const buildCSPINTransferPayload = (amount: bigint, destination: Address, responseTo: Address) => {
+  return beginCell()
+    .storeUint(0xF8A7EA5, 32) // op: transfer
+    .storeUint(0, 64) // query_id
+    .storeCoins(amount) // amount
+    .storeAddress(destination) // destination
+    .storeAddress(responseTo) // response_destination
+    .storeBit(0) // custom_payload: none
+    .storeCoins(BigInt(0)) // forward_ton_amount
+    .storeBit(1) // forward_payload: right
+    .storeBit(0) // forward_payload: nothing
+    .endCell();
+};
+
+// 입금 처리
+const handleDeposit = async () => {
+  const userJettonWallet = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, userWallet);
+  const payload = buildCSPINTransferPayload(amount, GAME_WALLET_ADDRESS, userWallet);
+  const tx = { messages: [{ address: userJettonWallet, amount: '30000000', payload: payload.toBoc().toString('base64') }] };
+  await tonConnectUI.sendTransaction(tx);
+  // 성공 시 handleDepositSuccess 호출
+};
+```
+
+#### **C.2. CSPIN 인출 (백엔드)**
+
+* **목적:** 사용자의 크레딧을 CSPIN 토큰으로 게임 지갑에서 사용자 지갑으로 전송.
+* **플로우:**
+  1. 프론트엔드에서 /api/initiate-withdrawal 호출.
+  2. 백엔드에서 크레딧 검증 및 차감.
+  3. 게임 월렛 프라이빗 키로 제톤 전송 트랜잭션 생성 및 전송.
+  4. 성공 시 사용자에게 토큰 전송.
+
+```typescript
+// 백엔드: /api/initiate-withdrawal
+FUNCTION handleInitiateWithdrawal(request, env):
+    GET { walletAddress, withdrawalAmount } FROM request.body
+    
+    state = await getKVState(walletAddress, env)
+    IF state.credit < withdrawalAmount THEN RETURN { success: false, error: 'Insufficient credit' }
+    
+    state.credit -= withdrawalAmount
+    await setKVState(walletAddress, state, env)
+    
+    // 게임 월렛으로 CSPIN 전송
+    gameWallet = Wallet.fromPrivateKey(env.GAME_WALLET_PRIVATE_KEY)
+    jettonWallet = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, GAME_WALLET_ADDRESS)
+    
+    payload = buildCSPINTransferPayload(withdrawalAmount * 10**9, walletAddress, GAME_WALLET_ADDRESS)
+    tx = { messages: [{ address: jettonWallet, amount: '100000000', payload: payload.toBoc().toString('base64') }] }
+    
+    result = await gameWallet.sendTransaction(tx)
+    
+    RETURN { success: true, newCredit: state.credit, withdrawalAmount }
+```
 ```
