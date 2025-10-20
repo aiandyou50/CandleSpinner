@@ -5,15 +5,14 @@
 
 ---
 
-#***REMOVED***[1.0.2] - 2025-10-20
+#***REMOVED***[1.0.3] - 2025-10-20
 
 ##***REMOVED***🐛 수정됨 (Fixed)
-- CSPIN 인출 기능 에러 처리 및 로깅 개선
-- 트랜잭션 상태 모니터링 강화
-- 백엔드 finalize 응답에 newCredit 필드 추가
+- TON Connect App Manifest Error 해결 (icon 파일 위치 및 URL 수정)
+- manifest 파일을 public/ 폴더로 이동하여 올바른 서빙 경로 설정
 
 ##***REMOVED***📚 문서 (Docs)
-- [산출물4] CSPIN 토큰 인출 기능 구현 보고서 업데이트
+- 배포 후 월렛 연결 오류 해결 기록
 
 ---
 
