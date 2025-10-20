@@ -35,8 +35,9 @@
 - **최종 결과:**
   - ✅ npm install 타임아웃 문제 심층 분석 및 다층적 최적화
   - ✅ PostCSS 설정에서 @tailwindcss/postcss를 tailwindcss로 변경하여 빌드 오류 해결
+  - ✅ Tailwind CSS v4 PostCSS 플러그인 @tailwindcss/postcss 추가 및 설정 복원
   - ✅ .nvmrc, .npmrc 파일로 빌드 환경 최적화
-  - ✅ GitHub push 완료 (커밋: 5c43776)
+  - ✅ GitHub push 완료 (커밋: cb25922)
   - 🔄 Cloudflare Pages 배포 결과 대기 중
 - **다음 단계:** 배포 성공 확인 및 도메인 연결 검증
 
