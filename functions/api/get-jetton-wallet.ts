@@ -47,7 +47,15 @@ export async function onRequestPost(context: any) {
       throw new Error('Invalid RPC response: no stack');
     }
 
-    const jettonWalletAddress = stack[0][1]; // slice 타입의 값
+    // slice 타입의 값을 Address로 변환
+    const sliceValue = stack[0];
+    if (sliceValue.type !== 'slice') {
+      throw new Error('Invalid response type: expected slice');
+    }
+
+    // base64 디코딩 후 Address 파싱
+    const sliceBytes = Buffer.from(sliceValue.value, 'base64');
+    const jettonWalletAddress = new Address(0, sliceBytes).toString();
 
     if (!jettonWalletAddress) {
       throw new Error('Failed to derive jetton wallet address');
