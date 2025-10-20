@@ -5,6 +5,17 @@
 
 ---
 
+#***REMOVED***[2.0.1] - 2025-10-21 (긴급 배포)
+
+##***REMOVED***🐛 수정됨 (Fixed)
+- **UI 버그 재배포** (Cloudflare 캐시 무효화)
+  - TonConnect 버튼 가시성 개선
+  - Telegram Mini App 링크 버튼 추가
+  - MVP 체크리스트 제거
+  - 입금 에러 핸들링 강화
+
+---
+
 #***REMOVED***[2.0.0] - 2025-10-21
 
 ##***REMOVED***🎯 MVP 완성 버전 - 전체 리팩토링
