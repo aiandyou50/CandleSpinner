@@ -5,6 +5,21 @@
 
 ---
 
+## [1.3.0] - 2025-10-20
+
+### ✨ 추가됨 (Added)
+- TMA 하이브리드 아키텍처 구현 (App.tsx)
+- Telegram Mini Apps 환경 자동 감지 및 조건부 렌더링
+- TMADeposit 컴포넌트 TMA 환경 통합
+
+### 🗑️ 제거됨 (Removed)
+- temp_telegram_tt Git submodule 완전 제거
+
+### 🐛 수정됨 (Fixed)
+- Git submodule 관련 배포 문제 해결
+
+---
+
 ## [1.2.0] - 2025-10-20
 
 ### 📚 문서 (Docs)
