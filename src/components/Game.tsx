@@ -547,7 +547,7 @@ export const Game: React.FC = () => {
                   const resp = await fetch('/api/initiate-withdrawal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ walletAddress: connectedWallet.account.address })
+                    body: JSON.stringify({ walletAddress: connectedWallet.account.address, withdrawalAmount: userCredit })
                   });
                   const j = await resp.json();
                   if (resp.ok && j.success) {

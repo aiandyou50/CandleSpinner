@@ -235,19 +235,66 @@ FUNCTION handleApiCollect(request, env):
 
 ###***REMOVED*****A.6. API 엔드포인트: `/api/initiate-withdrawal`**
 
-  * **목적:** 오프체인 크레딧을 온체인 `CSPIN`으로 인출 요청.
-  * **보안:** 실제 토큰 전송은 워커가 아닌 별도의 \*\*안전한 인출 처리기(Processor)\*\*가 수행. 이 API는 '인출 요청'을 큐(Queue)에 등록.
-  * **요청 (Body):** `{ walletAddress: string }`
+  * **목적:** 오프체인 크레딧을 온체인 `CSPIN`으로 인출.
+  * **요청 (Body):** `{ walletAddress: string, withdrawalAmount: number }`
 
 <!-- end list -->
 
 ```
 FUNCTION handleApiInitiateWithdrawal(request, env):
-    GET { walletAddress } FROM request.body
+    GET { walletAddress, withdrawalAmount } FROM request.body
     state = await getKVState(walletAddress, env)
     
-    amountToWithdraw = state.credit
-    IF amountToWithdraw <= 0 THEN
+    IF withdrawalAmount <= 0 OR state.credit < withdrawalAmount THEN
+        RETURN ERROR "인출할 수 있는 크레딧이 부족합니다."
+    
+    // 1. CSPIN 제톤 전송 트랜잭션 생성
+    gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY
+    keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
+    gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 })
+    
+    // CSPIN transfer 메시지 생성
+    jettonTransferBody = beginCell()
+        .storeUint(0x0f8a7ea5, 32) // op: transfer
+        .storeUint(0, 64) // query_id
+        .storeCoins(toNano(withdrawalAmount.toString())) // amount
+        .storeAddress(Address.parse(walletAddress)) // destination
+        .storeAddress(Address.parse(gameWallet.address.toString())) // response_destination
+        .storeBit(0) // custom_payload
+        .storeCoins(toNano('0.01')) // forward_ton_amount
+        .storeBit(0) // forward_payload
+        .endCell()
+    
+    // 게임 월렛의 CSPIN 지갑 주소 계산
+    gameJettonWalletAddress = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, gameWallet.address.toString())
+    
+    // 내부 메시지 생성
+    transferMessage = internal({
+        to: gameJettonWalletAddress,
+        value: toNano('0.05'), // 수수료 포함
+        body: jettonTransferBody
+    })
+    
+    // 트랜잭션 생성 및 전송
+    seqno = 0 // 실제로는 KV에 저장해서 관리
+    transfer = gameWallet.createTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [transferMessage]
+    })
+    
+    boc = transfer.toBoc()
+    bocBase64 = boc.toString('base64')
+    await sendBocViaTonAPI(bocBase64)
+    
+    // 2. KV에서 크레딧 차감
+    state.credit -= withdrawalAmount
+    state.canDoubleUp = false
+    state.pendingWinnings = 0
+    await setKVState(walletAddress, state, env)
+    
+    RETURN { success: true, withdrawalAmount, newCredit: state.credit }
+```
         RETURN ERROR "인출할 크레딧이 없습니다."
 
     // 1. 크레딧 즉시 차감 (중복 인출 방지)
