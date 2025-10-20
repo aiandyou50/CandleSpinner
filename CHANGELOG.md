@@ -5,6 +5,13 @@
 
 ---
 
+#***REMOVED***[1.1.5] - 2025-10-20
+
+##***REMOVED***📚 문서 (Docs)
+- [산출물2] GAME_WALLET_PRIVATE_KEY 환경변수 설명 추가
+
+---
+
 #***REMOVED***[1.1.1] - 2025-10-20
 
 ##***REMOVED***🐛 수정됨 (Fixed)
