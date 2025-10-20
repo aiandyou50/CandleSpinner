@@ -394,7 +394,7 @@ export const Game: React.FC = () => {
       const hex = boc.toString('hex');
       const base64 = Buffer.from(hex, 'hex').toString('base64');
 
-      // 게임 월렛의 CSPIN 제톤 지갑 주소 (하드코딩 또는 API로 가져와야 함)
+      // 게임 월렛의 CSPIN 제톤 지갑 주소 (실제 주소로 업데이트 필요)
       const gameJettonWalletAddress = "EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs";
 
       const tx = {
@@ -425,17 +425,22 @@ export const Game: React.FC = () => {
         });
 
         if (finalizeResp.ok) {
-          setUserCredit(0);
+          const finalizeData = await finalizeResp.json();
+          setUserCredit(finalizeData.newCredit || 0);
           setMessage(`✅ 인출 완료! ${userCredit} CSPIN 토큰이 지갑으로 전송되었습니다.`);
+          console.log('Withdrawal successful:', finalizeData);
         } else {
+          const finalizeError = await finalizeResp.json();
           setMessage('크레딧 차감 실패: 트랜잭션은 성공했으나 크레딧이 차감되지 않았습니다.');
+          console.error('Finalize error:', finalizeError);
         }
       } else {
         setMessage('트랜잭션이 취소되었거나 실패했습니다.');
+        console.warn('Transaction result missing boc:', result);
       }
 
     } catch (e) {
-      console.warn('withdraw error', e);
+      console.error('withdraw error:', e);
       setMessage('인출 요청 실패: ' + String(e));
     }
   };
