@@ -4,6 +4,15 @@ pages_build_output_dir = "dist"
 compatibility_date = "2024-01-15"
 compatibility_flags = ["nodejs_compat"]
 
+***REMOVED***Build timeout 설정 (10분)
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "src"
+
+[build.environment_variables]
+NODE_VERSION = "22.16.0"
+
 [[kv_namespaces]]
 id = "e573c59cb09b4d58b5f38a56ef65dd6f"
 binding = "CREDIT_KV"
