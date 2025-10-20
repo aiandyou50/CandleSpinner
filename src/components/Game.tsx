@@ -4,7 +4,6 @@ import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, toNano, beginCell } from '@ton/core';
 import ReelPixi from './ReelPixi';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
-import { useRpc } from '../hooks/useRpc';
 
 // Zustand 스토어
 interface GameStore {
@@ -61,7 +60,7 @@ export const Game: React.FC = () => {
   const [message, setMessage] = useState('게임이 로드되었습니다!');
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
-  const { getJettonWalletAddress } = useRpc();
+  // const { getJettonWalletAddress } = useRpc();
   const [showReel, setShowReel] = useState<boolean>(true);
 
   // 개발자 모드 토글
@@ -282,9 +281,18 @@ export const Game: React.FC = () => {
       const destination = Address.parse(GAME_WALLET_ADDRESS);
       const responseTo = Address.parse(connectedWallet.account.address);
       
-      // 사용자의 CSPIN 지갑 주소 계산
-      const userJettonWalletAddress = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
-      if (!userJettonWalletAddress) {
+      // 사용자의 CSPIN 지갑 주소 계산 (RPC 대신 로컬 계산)
+      let userJettonWalletAddress: string;
+      try {
+        const ton = await import('@ton/core');
+        if ((ton as any).getJettonWalletAddress) {
+          const addr = (ton as any).getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
+          userJettonWalletAddress = addr.toString();
+        } else {
+          throw new Error('getJettonWalletAddress not available');
+        }
+      } catch (e) {
+        console.error('로컬 제톤 지갑 주소 파생 실패:', e);
         alert('CSPIN 지갑 주소 파생 실패');
         return;
       }
