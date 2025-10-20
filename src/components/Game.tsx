@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { create } from 'zustand';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, toNano, beginCell } from '@ton/core';
-import { jettonWalletCodeFromLibrary, getJettonWalletAddress } from '@ton/ton';
 import { sha256 } from '@ton/crypto';
 import { useRpc } from '../hooks/useRpc';
 import ReelPixi from './ReelPixi';

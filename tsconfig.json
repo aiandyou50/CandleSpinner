@@ -47,6 +47,10 @@
     "dist",
     "PoC/**",
     "functions/**",
-    "vite.config.ts"
+    "vite.config.ts",
+    "ton-docs/**",
+    "jetton-contract/**",
+    "token-contract/**",
+    "sdk/**"
   ]
 }

@@ -1,7 +1,7 @@
 // src/hooks/useTonConnect.ts
 import { useState, useEffect } from 'react';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, beginCell, storeStateInit } from 'ton-core';
+import { Address, beginCell, storeStateInit } from '@ton/core';
 import { CSPIN_TOKEN_ADDRESS } from '../constants.js';
 import { rpcFetch } from './useRpc.js';
 
@@ -46,7 +46,7 @@ export function useTonConnect() {
         if (manualJettonWallet && manualJettonWallet.length > 0) return;
         // Try ton-core first
         try {
-          const ton = await import('ton-core');
+          const ton = await import('@ton/core');
           if ((ton as any).getJettonWalletAddress) {
             const res = (ton as any).getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
             if (res) {
