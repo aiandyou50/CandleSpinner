@@ -610,4 +610,208 @@ FUNCTION handleInitiateWithdrawal(request, env):
     
     RETURN { success: true, newCredit: state.credit, withdrawalAmount }
 ```
+
+### **D. A/B 이중 입금 방식 (v1.5 추가)**
+
+#### **D.1. 입금 방식 A: TonConnect 클라이언트 직접 서명 (DepositDirect)**
+
+* **목적:** 사용자가 자신의 지갑에서 CSPIN을 직접 게임 지갑으로 전송. 백엔드는 KV 크레딧만 업데이트.
+* **장점:** 
+  - 완전히 탈중앙화 (사용자가 직접 서명)
+  - 백엔드 가스비 비용 없음
+  - 프라이빗 키 관리 불필요
+* **단점:**
+  - 사용자가 지갑 앱에서 트랜잭션 서명 필요
+  - 추가 단계 필요 (지갑 앱 전환)
+
+**플로우:**
 ```
+1. 사용자가 DepositDirect 컴포넌트에서 입금액 입력
+2. TonConnect로 트랜잭션 생성 및 서명 (사용자 지갑에서)
+3. 트랜잭션 전송 (온체인)
+4. 프론트엔드에서 /api/deposit-complete 호출 (txHash 포함)
+5. 백엔드에서 KV에 크레딧 저장
+6. 게임 진행 가능
+```
+
+**백엔드 엔드포인트: `/api/deposit-complete`**
+```
+FUNCTION handleDepositComplete(request, env):
+    GET { walletAddress, depositAmount, txHash, method } FROM request.body
+    
+    IF method != 'direct' THEN RETURN { success: false, error: 'Invalid method' }
+    
+    // KV에서 기존 크레딧 읽기
+    key = 'deposit:' + walletAddress
+    existing = await env.CREDIT_KV.get(key)
+    currentCredit = existing ? parseFloat(existing) : 0
+    newCredit = currentCredit + depositAmount
+    
+    // 트랜잭션 로그 저장
+    logKey = 'txlog:' + walletAddress + ':' + timestamp()
+    await env.CREDIT_KV.put(logKey, JSON.stringify({
+        method: 'direct',
+        amount: depositAmount,
+        txHash: txHash,
+        timestamp: NOW(),
+        status: 'confirmed'
+    }))
+    
+    // 크레딧 업데이트
+    await env.CREDIT_KV.put(key, newCredit.toString())
+    
+    RETURN { success: true, newCredit: newCredit }
+```
+
+#### **D.2. 입금 방식 B: 백엔드 Ankr RPC 자동 입금 (DepositAuto)**
+
+* **목적:** 백엔드에서 Ankr RPC를 통해 게임 지갑의 CSPIN을 자동으로 사용자에게 전송.
+* **장점:**
+  - 사용자 UX 최고 (입금액 입력만 하면 자동 처리)
+  - 지갑 앱 전환 불필요
+  - 완전히 자동화된 프로세스
+* **단점:**
+  - 백엔드 가스비 비용 발생 (~0.1 TON)
+  - 게임사가 초기 TON 보유 필요
+
+**플로우:**
+```
+1. 사용자가 DepositAuto 컴포넌트에서 입금액 입력
+2. /api/deposit-auto 호출 (백엔드로)
+3. 백엔드에서 Ankr RPC를 통해 자동 입금 트랜잭션 생성 & 전송
+4. KV에 크레딧 저장
+5. 프론트엔드에 성공 응답
+6. 게임 진행 가능
+```
+
+**백엔드 엔드포인트: `/api/deposit-auto`**
+```
+FUNCTION handleDepositAuto(request, env):
+    GET { walletAddress, depositAmount } FROM request.body
+    
+    // 환경변수 검증
+    IF NOT env.ANKR_RPC_URL OR NOT env.GAME_WALLET_KEY THEN
+        RETURN { success: false, error: 'Configuration missing' }
+    
+    // 게임 지갑 설정
+    gameWalletPrivateKey = env.GAME_WALLET_KEY
+    keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
+    gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey })
+    
+    // Ankr RPC로부터 seqno 조회
+    seqno = await getSeqnoFromAnkrRPC(env.ANKR_RPC_URL, gameWallet.address.toString())
+    
+    // Jetton transfer 메시지 생성
+    jettonTransferBody = beginCell()
+        .storeUint(0x0f8a7ea5, 32) // op: transfer
+        .storeUint(0, 64) // query_id
+        .storeCoins(toNano(depositAmount.toString())) // amount
+        .storeAddress(Address.parse(walletAddress)) // destination
+        .storeAddress(gameWallet.address) // response_destination
+        .storeBit(0) // custom_payload
+        .storeCoins(toNano('0.01')) // forward_ton_amount
+        .storeBit(0) // forward_payload
+        .endCell()
+    
+    // 트랜잭션 생성
+    transferMessage = internal({
+        to: CSPIN_JETTON_WALLET,
+        value: toNano('0.05'),
+        body: jettonTransferBody
+    })
+    
+    transfer = gameWallet.createTransfer({
+        seqno: seqno,
+        secretKey: keyPair.secretKey,
+        messages: [transferMessage],
+        sendMode: 3
+    })
+    
+    // BOC로 인코딩
+    bocBase64 = transfer.toBoc().toString('base64')
+    
+    // Ankr RPC로 전송
+    txHash = await sendBocViaAnkrRPC(env.ANKR_RPC_URL, bocBase64)
+    
+    // KV에 크레딧 저장
+    key = 'deposit:' + walletAddress
+    existing = await env.CREDIT_KV.get(key)
+    currentCredit = existing ? parseFloat(existing) : 0
+    newCredit = currentCredit + depositAmount
+    
+    logKey = 'txlog:' + walletAddress + ':' + timestamp()
+    await env.CREDIT_KV.put(logKey, JSON.stringify({
+        method: 'auto',
+        amount: depositAmount,
+        txHash: txHash,
+        timestamp: NOW(),
+        status: 'sent'
+    }))
+    
+    await env.CREDIT_KV.put(key, newCredit.toString())
+    
+    RETURN { success: true, txHash: txHash, newCredit: newCredit }
+```
+
+#### **D.3. 프론트엔드 컴포넌트**
+
+**DepositDirect.tsx:**
+- TonConnect 클라이언트 직접 서명
+- Jetton transfer 메시지 사용자 지갑에서 생성
+- 트랜잭션 해시 백엔드로 전송
+
+**DepositAuto.tsx:**
+- 입금액만 입력
+- 백엔드 API 호출로 자동 처리
+- 결과 즉시 수신
+
+**App.tsx 메인 화면:**
+```
+┌─────────────────────────────────┐
+│   CandleSpinner 메인            │
+│                                 │
+│  ┌──────────┐    ┌──────────┐  │
+│  │ 방식 A  │    │ 방식 B  │  │
+│  │💳 직접  │    │🚀 자동  │  │
+│  └──────────┘    └──────────┘  │
+│                                 │
+│  ┌─────────────────────────────┐ │
+│  │ ▶️ 게임 시작               │ │
+│  └─────────────────────────────┘ │
+└─────────────────────────────────┘
+```
+
+#### **D.4. 환경 변수 설정 (Cloudflare Pages)**
+
+```
+A방식 (DepositDirect):
+- GAME_WALLET_ADDRESS (공개 주소) - 필수
+- CSPIN_TOKEN_ADDRESS (CSPIN 마스터 계약 주소) - 필수
+- CSPIN_JETTON_WALLET (게임 지갑의 CSPIN 지갑 주소) - 필수
+
+B방식 (DepositAuto):
+- ANKR_RPC_URL = https://rpc.ankr.com/ton_api_v2/ - 필수
+- GAME_WALLET_KEY (게임 지갑 프라이빗 키) - 필수 (암호화)
+- GAME_WALLET_ADDRESS - 필수
+- CSPIN_TOKEN_ADDRESS - 필수
+- CSPIN_JETTON_WALLET - 필수
+```
+
+#### **D.5. MVP 테스트 전략**
+
+1. **A방식 우선 테스트 (안정성 검증)**
+   - 사용자 지갑 연결 테스트
+   - TonConnect 직접 서명 테스트
+   - 트랜잭션 해시 검증
+
+2. **B방식 추가 테스트 (자동화 검증)**
+   - Ankr RPC 연결 테스트
+   - 자동 트랜잭션 생성 및 전송 테스트
+   - 동시성 문제 (seqno 동기화) 테스트
+
+3. **통합 테스트 (A+B 동시)**
+   - 사용자가 A 또는 B 선택 가능
+   - 각 입금 방식별 크레딧 누적 검증
+   - 게임 플레이 및 출금 검증
+```
+````
