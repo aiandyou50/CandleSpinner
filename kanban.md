@@ -3,11 +3,20 @@
 이 파일은 프로젝트의 모든 작업 상태를 관리합니다.
 작업은 [To Do], [In Progress], [Done] 상태로 분류됩니다.
 
-**마지막 업데이트:** 2025년 10월 20일
+**마지막 업데이트:** 2025년 10월 21일
 
 ---
 
 #***REMOVED***🚀 [To Do] - 예정 작업
+
+##***REMOVED***MVP 테스트 및 배포
+- [ ] A/B 입금 방식 실제 테스트 (테스트넷)
+  - [ ] 방식 A (TonConnect 클라이언트 서명) 테스트
+  - [ ] 방식 B (Ankr RPC 자동 입금) 테스트
+  - [ ] 동시 입금 테스트 및 안정성 검증
+- [ ] Cloudflare Pages 환경 변수 설정 (ANKR_RPC_URL, GAME_WALLET_KEY 등)
+- [ ] 메인넷 배포 및 라이브 테스트
+- [ ] 결과 문서화 및 피드백 수집
 
 ##***REMOVED***기능 개발
 - [ ] 게임 내 상점 시스템 구현
@@ -27,6 +36,58 @@
 ---
 
 #***REMOVED***✅ [Done] - 완료된 작업
+
+##***REMOVED***v1.5.0 A/B 이중 입금 방식 구현
+- **시작일:** 2025년 10월 21일
+- **완료일:** 2025년 10월 21일
+- **담당:** GitHub Copilot
+- **최종 결과:**
+  - ✅ **방식 A (DepositDirect):** TonConnect 클라이언트 직접 서명 기반
+    - src/components/DepositDirect.tsx 신규 작성
+    - functions/api/deposit-complete.ts 백엔드 엔드포인트 신규 작성
+    - KV 크레딧 업데이트만 담당 (간단, 안정)
+  - ✅ **방식 B (DepositAuto):** Ankr RPC 자동 입금
+    - src/components/DepositAuto.tsx 신규 작성
+    - functions/api/deposit-auto.ts 백엔드 엔드포인트 신규 작성
+    - 무료 Ankr RPC (https://rpc.ankr.com/ton_api_v2/) 통합
+    - 완전 자동화된 입금 프로세스
+  - ✅ App.tsx 리팩토링
+    - A/B 입금 방식 선택 UI 추가
+    - 메인 화면에 2개 버튼 추가
+  - ✅ 문서 동기화
+    - [산출물2] v1.5 업데이트 (Ankr RPC 아키텍처)
+    - [산출물3] D섹션 신규 작성 (A/B 이중 입금 상세 의사코드)
+  - ✅ 버전 및 커밋
+    - package.json: v1.4.0 → v1.5.0
+    - CHANGELOG.md v1.5.0 섹션 추가
+    - 빌드 성공 검증
+    - Git 커밋 완료 (커밋: bcd5af0)
+- **핵심 특징:**
+  - 방식 A: 완전 탈중앙화, 백엔드 가스비 없음, 사용자 지갑 직접 서명
+  - 방식 B: 자동화 최고화, 사용자 UX 최고, Ankr RPC 무료 사용
+  - 유연한 MVP 테스트 환경 제공 (둘 다 동시에 사용 가능)
+- **다음 단계:** A/B 입금 방식 실제 테스트넷 테스트
+
+##***REMOVED***웹/TMA CSPIN 입금 백엔드 구현 (v1.4.0)
+- **시작일:** 2025년 10월 20일
+- **완료일:** 2025년 10월 21일
+- **담당:** GitHub Copilot
+- **최종 결과:**
+  - ✅ `/api/initiate-deposit` 백엔드 엔드포인트 구현
+  - ✅ RPC 호출을 통한 실제 Jetton 트랜잭션 생성/전송
+  - ✅ `WebDeposit.tsx` 웹브라우저 UI 컴포넌트 생성
+  - ✅ `TMADeposit.tsx` 백엔드 API 호출 통합
+  - ✅ 게임 지갑 프라이빗 키 서버 보관 (환경 변수)
+  - ✅ [산출물3] 입금 엔드포인트 의사코드 추가
+  - ✅ 버전 v1.4.0으로 업데이트 및 Git 커밋 (커밋: 553a398)
+- **핵심 기술:**
+  - tonapi.io RPC로 Jetton 지갑 주소 및 시퀀스 번호 조회
+  - @ton/ton으로 CSPIN 전송 메시지 및 트랜잭션 생성
+  - BOC 인코딩 및 블록체인 전송
+  - KV에 사용자 크레딧 즉시 업데이트
+- **알려진 문제:** 
+  - v1.4.0 테스트 실패 (tonapi.io RPC 복잡성, seqno 동시성 문제)
+  - 해결 → v1.5.0 A/B 방식 도입
 
 ##***REMOVED***TMA 문서화 및 버전 관리
 - **시작일:** 2025년 10월 20일
@@ -50,28 +111,6 @@
   - ✅ 버전 v1.3.0으로 업데이트 및 Git 커밋 (커밋: fe0d711)
 - **다음 단계:** Cloudflare Pages 배포 및 TMA 기능 테스트
 
-##***REMOVED***웹/TMA CSPIN 입금 백엔드 구현
-- **시작일:** 2025년 10월 20일
-- **완료일:** 2025년 10월 21일
-- **담당:** GitHub Copilot
-- **최종 결과:**
-  - ✅ `/api/initiate-deposit` 백엔드 엔드포인트 구현
-  - ✅ RPC 호출을 통한 실제 Jetton 트랜잭션 생성/전송
-  - ✅ `WebDeposit.tsx` 웹브라우저 UI 컴포넌트 생성
-  - ✅ `TMADeposit.tsx` 백엔드 API 호출 통합
-  - ✅ 게임 지갑 프라이빗 키 서버 보관 (환경 변수)
-  - ✅ [산출물3] 입금 엔드포인트 의사코드 추가
-  - ✅ 버전 v1.4.0으로 업데이트 및 Git 커밋 (커밋: 553a398)
-- **핵심 기술:**
-  - tonapi.io RPC로 Jetton 지갑 주소 및 시퀀스 번호 조회
-  - @ton/ton으로 CSPIN 전송 메시지 및 트랜잭션 생성
-  - BOC 인코딩 및 블록체인 전송
-  - KV에 사용자 크레딧 즉시 업데이트
-- **다음 단계:** 
-  - seqno 관리 개선 (동시 요청 안정성)
-  - API 키 보안 (하드코딩 제거)
-  - 인출 기능 프론트엔드 통합
-
 ##***REMOVED***Cloudflare Pages 배포 오류 해결 및 설정 확인
 - **시작일:** 2025년 10월 20일
 - **완료일:** 2025년 10월 20일
@@ -87,10 +126,6 @@
   - ✅ GitHub push 완료 (커밋: 24b8cc1)
   - ✅ **Cloudflare Pages 배포 성공!**
 - **다음 단계:** 도메인 연결(https://aiandyou.me/) 및 기능 테스트
-
-##***REMOVED***CSPIN 입금/인출 실제 토큰 전송 문제 해결
-
-#***REMOVED***✅ [Done] - 완료된 작업
 
 ##***REMOVED***CSPIN 입금/인출 로직 수정 및 테스트 버튼 삭제
 - **시작일:** 2025년 10월 20일
