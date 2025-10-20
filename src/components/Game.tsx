@@ -62,7 +62,7 @@ export const Game: React.FC = () => {
   const [message, setMessage] = useState('게임이 로드되었습니다!');
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
-  // const { getJettonWalletAddress } = useRpc();
+  const rpc = useRpc();
   const [showReel, setShowReel] = useState<boolean>(true);
 
   // 개발자 모드 토글
@@ -285,7 +285,6 @@ export const Game: React.FC = () => {
       const responseTo = Address.parse(connectedWallet.account.address);
       
       // 사용자의 CSPIN 지갑 주소 계산 (RPC 사용)
-      const rpc = useRpc();
       const jettonWalletAddressStr = await rpc.getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
       if (!jettonWalletAddressStr) {
         throw new Error('Failed to get jetton wallet address');

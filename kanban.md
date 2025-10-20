@@ -110,7 +110,7 @@
 ### MVP 핵심 기능
 - [x] 기본 슬롯머신 게임 로직 구현
 - [x] TON Connect 지갑 연동
-- [x] CSPIN 토큰 입금 기능
+- [x] CSPIN 토큰 입금 기능 (실제 토큰 전송 구현 완료)
 - [x] Cloudflare KV 크레딧 관리
 - [x] 미니게임 (더블업) 구현
 - [x] 다국어 지원 (i18n)
@@ -141,7 +141,9 @@
   - ✅ tsconfig.json exclude 확장
   - ✅ import 경로 수정 (@ton/ton → @ton/core)
   - ✅ 빌드 스크립트 Windows 호환
-- **다음 단계:** CSPIN 인출 기능 테스트 및 개선
+  - ✅ CSPIN 입금 시 useRpc hook 컴포넌트 외부 호출 문제 수정
+  - ✅ 빌드 성공 확인
+- **다음 단계:** CSPIN 입금/인출 기능 최종 테스트
 
 ---
 
