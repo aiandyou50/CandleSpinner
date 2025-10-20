@@ -27,8 +27,16 @@ function App() {
         </div>
       ) : (
         // 일반 웹 브라우저 환경
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-          <header style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 relative">
+          <header className="fixed top-4 right-4 z-50 flex items-center justify-end gap-3">
+            <a
+              href="https://t.me/CandleSpinner_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition"
+            >
+              📱 Telegram Mini App
+            </a>
             <TonConnectButton />
           </header>
           {appMode === 'deposit' ? (
