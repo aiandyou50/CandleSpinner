@@ -28,13 +28,13 @@ function App() {
       ) : (
         // 일반 웹 브라우저 환경
         <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
+          <header style={{ position: 'absolute', top: 12, right: 12, zIndex: 50 }}>
+            <TonConnectButton />
+          </header>
           {appMode === 'deposit' ? (
             <Deposit onBack={() => setAppMode('game')} />
           ) : (
             <>
-              <header style={{ position: 'absolute', top: 12, right: 12 }}>
-                <TonConnectButton />
-              </header>
               <main>
                 <Game onDepositClick={() => setAppMode('deposit')} />
               </main>
