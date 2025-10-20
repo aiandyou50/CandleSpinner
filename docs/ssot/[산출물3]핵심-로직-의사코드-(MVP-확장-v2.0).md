@@ -291,7 +291,36 @@ FUNCTION handleApiInitiateWithdrawal(request, env):
     state.pendingWinnings = 0
     await setKVState(walletAddress, state, env)
     
-    RETURN { success: true, withdrawalAmount, newCredit: state.credit }
+        RETURN { success: true, withdrawalAmount, newCredit: state.credit }
+```
+
+#### **A.7. API 엔드포인트: `/api/rpc`**
+
+  * **목적:** TON 블록체인 RPC 요청을 프록시하여 CORS 및 API 키 문제를 해결.
+  * **요청 (Body):** `{ rpcBody: { jsonrpc: '2.0', id: 1, method: 'runGetMethod', params: {...} } }`
+
+<!-- end list -->
+
+```
+FUNCTION handleApiRpc(request, env):
+    // 1. 요청 검증 (POST, JSON, API 키)
+    IF request.method !== 'POST' THEN RETURN 405
+    IF NOT validContentType THEN RETURN 400
+    IF NOT validApiKey THEN RETURN 401
+    
+    // 2. RPC 요청을 백엔드(TonCenter)로 프록시
+    backendUrl = env.BACKEND_RPC_URL || 'https://toncenter.com/api/v2/jsonRPC'
+    response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: request.body.rpcBody
+    })
+    
+    // 3. 응답을 클라이언트에 전달 (CORS 헤더 포함)
+    RETURN response with CORS headers
+```
+
+-----
 ```
         RETURN ERROR "인출할 크레딧이 없습니다."
 
