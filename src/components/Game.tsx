@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { create } from 'zustand';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, toNano, beginCell } from 'ton-core';
+import { Address, toNano, beginCell } from '@ton/core';
 import ReelPixi from './ReelPixi';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
 
