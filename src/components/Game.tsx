@@ -5,6 +5,7 @@ import { Address, toNano, beginCell } from '@ton/core';
 import { sha256 } from '@ton/crypto';
 import { useRpc } from '../hooks/useRpc';
 import ReelPixi from './ReelPixi';
+import { TMADeposit } from './TMADeposit';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
 
 // Zustand 스토어
@@ -16,6 +17,7 @@ interface GameStore {
   isSpinning: boolean;
   showDoubleUp: boolean;
   isDeveloperMode: boolean;
+  isTMAMode: boolean;
   setUserCredit: (credit: number) => void;
   setBetAmount: (amount: number) => void;
   setReelSymbols: (symbols: string[]) => void;
@@ -23,6 +25,7 @@ interface GameStore {
   setIsSpinning: (spinning: boolean) => void;
   setShowDoubleUp: (show: boolean) => void;
   setIsDeveloperMode: (mode: boolean) => void;
+  setIsTMAMode: (mode: boolean) => void;
 }
 
 const useGameStore = create<GameStore>((set) => ({
@@ -33,6 +36,7 @@ const useGameStore = create<GameStore>((set) => ({
   isSpinning: false,
   showDoubleUp: false,
   isDeveloperMode: false,
+  isTMAMode: false,
   setUserCredit: (credit) => set({ userCredit: credit }),
   setBetAmount: (amount) => set({ betAmount: amount }),
   setReelSymbols: (symbols) => set({ reelSymbols: symbols }),
@@ -40,6 +44,7 @@ const useGameStore = create<GameStore>((set) => ({
   setIsSpinning: (spinning) => set({ isSpinning: spinning }),
   setShowDoubleUp: (show) => set({ showDoubleUp: show }),
   setIsDeveloperMode: (mode) => set({ isDeveloperMode: mode }),
+  setIsTMAMode: (mode) => set({ isTMAMode: mode }),
 }));
 
 export const Game: React.FC = () => {
@@ -51,6 +56,7 @@ export const Game: React.FC = () => {
     isSpinning,
     showDoubleUp,
     isDeveloperMode,
+    isTMAMode,
     setUserCredit,
     setBetAmount,
     setReelSymbols,
@@ -58,6 +64,7 @@ export const Game: React.FC = () => {
     setIsSpinning,
     setShowDoubleUp,
     setIsDeveloperMode,
+    setIsTMAMode,
   } = useGameStore();
   const [message, setMessage] = useState('게임이 로드되었습니다!');
   const connectedWallet = useTonWallet();
@@ -424,6 +431,19 @@ export const Game: React.FC = () => {
     }
   };
 
+  if (isTMAMode) {
+    return (
+      <TMADeposit
+        onDepositSuccess={(amount) => {
+          setUserCredit(userCredit + amount);
+          setMessage(`TMA를 통해 ${amount} CSPIN 입금 완료!`);
+          setIsTMAMode(false);
+        }}
+        onBack={() => setIsTMAMode(false)}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-indigo-900 text-white p-4">
       {/* Inline keyframes for simple slow spin and delay helpers */}
@@ -498,6 +518,7 @@ export const Game: React.FC = () => {
                   alert(isDeveloperMode ? '개발자 모드가 활성화되었습니다.' : '개발자 모드가 비활성화되었습니다.');
                 }
               }} className={`px-3 py-1 rounded text-sm ${isDeveloperMode ? 'bg-red-600' : 'bg-green-600'}`}>{isDeveloperMode ? '개발자 모드 OFF' : '개발자 모드 ON'}</button>
+              <button onClick={() => setIsTMAMode(!isTMAMode)} className={`px-3 py-1 rounded text-sm ml-2 ${isTMAMode ? 'bg-purple-600' : 'bg-blue-600'}`}>{isTMAMode ? 'TMA 모드 OFF' : 'TMA 모드 ON'}</button>
               {isDeveloperMode && (
                 <button onClick={async () => {
                   // 잭팟 강제 실행
