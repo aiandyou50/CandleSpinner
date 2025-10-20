@@ -17,27 +17,59 @@ export const TMADeposit: React.FC<TMADepositProps> = ({ onDepositSuccess, onBack
   const [tonConnectUI] = useTonConnectUI();
 
   const handleDeposit = useCallback(async () => {
+    if (!wallet?.account?.address) {
+      WebApp.showAlert('지갑이 연결되지 않았습니다.');
+      return;
+    }
+
     if (!WebApp.initDataUnsafe?.user) {
       WebApp.showAlert('텔레그램 사용자 정보를 가져올 수 없습니다.');
       return;
     }
+
     setIsProcessing(true);
     WebApp.MainButton.setText('처리 중...');
     WebApp.MainButton.disable();
+
     try {
       const amount = parseFloat(depositAmount);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      WebApp.showAlert(`${amount} CSPIN 입금이 완료되었습니다!`);
-      onDepositSuccess?.(amount);
+      const walletAddress = wallet.account.address;
+
+      // 백엔드 API 호출
+      const response = await fetch('/api/initiate-deposit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          walletAddress: walletAddress,
+          depositAmount: amount
+        })
+      });
+
+      const data = await response.json() as { 
+        success: boolean; 
+        message?: string; 
+        error?: string;
+        newCredit?: number;
+        txHash?: string;
+      };
+
+      if (data.success) {
+        WebApp.showAlert(`✅ ${amount} CSPIN 입금이 완료되었습니다!\n트랜잭션: ${data.txHash?.slice(0, 16)}...`);
+        onDepositSuccess?.(amount);
+      } else {
+        WebApp.showAlert(`❌ 입금 실패: ${data.error || '알 수 없는 오류'}`);
+      }
     } catch (error) {
       console.error('Deposit error:', error);
-      WebApp.showAlert('입금 처리 중 오류가 발생했습니다.');
+      WebApp.showAlert(`❌ 입금 처리 중 오류가 발생했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
     } finally {
       setIsProcessing(false);
       WebApp.MainButton.setText('입금하기');
       WebApp.MainButton.enable();
     }
-  }, [depositAmount, onDepositSuccess]);
+  }, [depositAmount, wallet, onDepositSuccess]);
 
   const handleBack = useCallback(() => {
     onBack?.();

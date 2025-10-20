@@ -233,6 +233,74 @@ FUNCTION handleApiCollect(request, env):
     RETURN { success: true, newCredit: state.credit, collectedAmount: collectedAmount }
 ```
 
+#### **A.5.5. API 엔드포인트: `/api/initiate-deposit` (v1.3.0 추가)**
+
+  * **목적:** 사용자의 CSPIN 토큰을 게임 지갑으로 입금하고 오프체인 크레딧을 충전.
+  * **요청 (Body):** `{ walletAddress: string, depositAmount: number }`
+  * **환경 변수:** `GAME_WALLET_PRIVATE_KEY` (게임 지갑의 프라이빗 키)
+
+<!-- end list -->
+
+```
+FUNCTION handleApiInitiateDeposit(request, env):
+    GET { walletAddress, depositAmount } FROM request.body
+    
+    IF depositAmount <= 0 THEN
+        RETURN ERROR "올바르지 않은 입금액입니다."
+    
+    // 1. 게임 지갑 준비
+    gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY
+    keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
+    gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 })
+    
+    // 2. 게임 지갑의 CSPIN Jetton 지갑 주소 조회
+    gameJettonWalletAddress = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, gameWallet.address.toString())
+    
+    // 3. Jetton 전송 메시지 생성
+    jettonTransferBody = beginCell()
+        .storeUint(0x0f8a7ea5, 32) // op: transfer
+        .storeUint(0, 64) // query_id
+        .storeCoins(toNano(depositAmount.toString())) // amount
+        .storeAddress(Address.parse(walletAddress)) // destination (사용자 지갑)
+        .storeAddress(Address.parse(gameWallet.address.toString())) // response_destination
+        .storeBit(0) // custom_payload
+        .storeCoins(toNano('0.01')) // forward_ton_amount
+        .storeBit(0) // forward_payload
+        .endCell()
+    
+    // 4. 트랜잭션 생성
+    seqno = await getWalletSeqno(gameWallet.address.toString())
+    transferMessage = internal({
+        to: gameJettonWalletAddress,
+        value: toNano('0.03'), // 수수료
+        body: jettonTransferBody
+    })
+    
+    transfer = gameWallet.createTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [transferMessage]
+    })
+    
+    // 5. BOC 생성 및 네트워크 전송
+    boc = transfer.toBoc()
+    bocBase64 = boc.toString('base64')
+    txHash = await sendBocViaAPI(bocBase64) // tonapi.io 사용
+    
+    // 6. 오프체인 크레딧 업데이트
+    state = await getKVState(walletAddress, env)
+    state.credit = state.credit + depositAmount
+    await setKVState(walletAddress, state, env)
+    
+    RETURN { 
+        success: true, 
+        message: 'CSPIN 입금이 성공했습니다.',
+        txHash: txHash,
+        newCredit: state.credit,
+        depositAmount: depositAmount
+    }
+```
+
 #### **A.6. API 엔드포인트: `/api/initiate-withdrawal`**
 
   * **목적:** 오프체인 크레딧을 온체인 `CSPIN`으로 인출.
