@@ -72,6 +72,10 @@ export const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) =>
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`서버 응답 오류: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         const successMsg = `✅ TonConnect 입금 완료!\n${amount} CSPIN 추가됨`;
@@ -88,6 +92,7 @@ export const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) =>
     } catch (error) {
       const errorMsg = `❌ 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
       setMessage(errorMsg);
+      console.error('TonConnect 입금 오류:', error);
       if (isTMA) WebApp.showAlert(errorMsg);
     } finally {
       setIsProcessing(false);
@@ -124,6 +129,10 @@ export const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) =>
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`서버 응답 오류: ${response.status} ${response.statusText}`);
+      }
+
       const data = await response.json();
       if (data.success) {
         const successMsg = `✅ RPC 입금 완료!\n${amount} CSPIN 추가됨`;
@@ -140,6 +149,7 @@ export const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) =>
     } catch (error) {
       const errorMsg = `❌ 오류: ${error instanceof Error ? error.message : '알 수 없는 오류'}`;
       setMessage(errorMsg);
+      console.error('RPC 입금 오류:', error);
       if (isTMA) WebApp.showAlert(errorMsg);
     } finally {
       setIsProcessing(false);
