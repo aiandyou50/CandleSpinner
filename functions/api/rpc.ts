@@ -67,7 +67,10 @@ export async function onRequest(context: any) {
     let lastError: any = null;
     for (let i = 0; i < attempts; i++) {
       try {
-        const r = await fetch(url, init);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        const r = await fetch(url, { ...init, signal: controller.signal });
+        clearTimeout(timeoutId);
         const text = await r.text().catch(() => null);
         return { ok: r.ok, status: r.status, text };
       } catch (e) {
