@@ -7,47 +7,30 @@
 
 ---
 
-#***REMOVED***🚀 [To Do] - 예정 작업
+#***REMOVED***� [In Progress] - 진행 중인 작업
 
-##***REMOVED***MVP 테스트 및 배포
-- [ ] A/B 입금 방식 실제 테스트 (테스트넷)
-  - [ ] 방식 A (TonConnect 클라이언트 서명) 테스트
-  - [ ] 방식 B (Ankr RPC 자동 입금) 테스트
-  - [ ] 동시 입금 테스트 및 안정성 검증
-- [ ] Cloudflare Pages 환경 변수 설정 (ANKR_RPC_URL, GAME_WALLET_KEY 등)
-- [ ] 메인넷 배포 및 라이브 테스트
-- [ ] 결과 문서화 및 피드백 수집
+##***REMOVED***v2.1.0 A/B 테스트 준비
+- **시작일:** 2025년 10월 21일
+- **상태:** 완료 (배포 대기 중)
+- **담당:** GitHub Copilot
+- **진행 사항:**
+  - ✅ Deposit.tsx 완전 리라이트 (v2.1.0)
+    - TonConnect 입금 (권장)
+    - RPC 직접 입금 (테스트)
+    - 방식 선택 UI (웹 모드)
+  - ✅ functions/api/deposit-rpc.ts 신규 엔드포인트
+  - ✅ wrangler.toml 환경변수 확대
+  - ✅ 문서화 완성 (5개 보고서)
+  - ✅ SSOT 동기화 ([산출물2] v2.1.0)
 
-##***REMOVED***기능 개발
-- [ ] 게임 내 상점 시스템 구현
-- [ ] 사용자 프로필 및 통계 페이지 추가
-- [ ] 소셜 공유 기능 통합
-
-##***REMOVED***기술 개선
-- [ ] 성능 최적화 (빌드 크기 감소)
-- [ ] 에러 처리 및 로깅 시스템 강화
-- [ ] 테스트 코드 추가
-
-##***REMOVED***문서화
-- [ ] 사용자 가이드 작성
-- [ ] API 문서 자동화
-- [ ] 개발 환경 설정 가이드
+##***REMOVED***다음 마일스톤
+1. 🟡 Cloudflare Pages 배포 (git push)
+2. 🟡 웹/TMA 입금 테스트
+3. 🟡 A/B 메트릭 수집
 
 ---
 
 #***REMOVED***✅ [Done] - 완료된 작업
-
-##***REMOVED***v1.5.0 A/B 이중 입금 방식 구현
-- **시작일:** 2025년 10월 21일
-- **완료일:** 2025년 10월 21일
-- **담당:** GitHub Copilot
-- **최종 결과:**
-  - ✅ **방식 A (DepositDirect):** TonConnect 클라이언트 직접 서명 기반
-    - src/components/DepositDirect.tsx 신규 작성
-    - functions/api/deposit-complete.ts 백엔드 엔드포인트 신규 작성
-    - KV 크레딧 업데이트만 담당 (간단, 안정)
-  - ✅ **방식 B (DepositAuto):** Ankr RPC 자동 입금
-    - src/components/DepositAuto.tsx 신규 작성
     - functions/api/deposit-auto.ts 백엔드 엔드포인트 신규 작성
     - 무료 Ankr RPC (https://rpc.ankr.com/ton_api_v2/) 통합
     - 완전 자동화된 입금 프로세스
@@ -258,18 +241,32 @@
 
 ---
 
-#***REMOVED***�📊 작업 통계
+#***REMOVED*** 작업 통계
 
-- **총 작업 수:** 15개
-- **완료율:** 60% (9/15)
-- **진행 중:** 1개
+- **총 작업 수:** 16개
+- **완료율:** 70% (10/16)
+- **진행 중:** 1개 (배포 대기)
 - **예정:** 5개
+
+#***REMOVED***🎯 현재 상태
+
+##***REMOVED***✅ 최근 완료 (v2.1.0)
+- 2025-10-21: A/B 테스트 준비 완료
+  - Deposit.tsx v2.1.0 (입금 방식 선택)
+  - functions/api/deposit-rpc.ts (RPC 엔드포인트)
+  - 환경변수 확대 및 문서화
+  - 커밋: 6fccf9e
+
+##***REMOVED***🔄 즉시 실행
+1. Cloudflare Pages 배포 (git push)
+2. 웹 모드 A/B 테스트
+3. TMA 모드 검증
 
 #***REMOVED***🎯 다음 우선순위
 
-1. **CSPIN 인출 기능 테스트 및 개선** (현재 진행 중)
-2. **게임 내 상점 시스템** (다음 주요 기능)
-3. **성능 최적화** (기술 부채 해결)
+1. **웹/TMA 입금 테스트** (A/B 메트릭 수집)
+2. **출금 기능 검증**
+3. **Jetton transfer 구현** (v3.0.0)
 
 ---
 
