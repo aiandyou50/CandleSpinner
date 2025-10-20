@@ -5,10 +5,8 @@ import { Address, toNano, beginCell } from '@ton/core';
 import { sha256 } from '@ton/crypto';
 import { useRpc } from '../hooks/useRpc';
 import ReelPixi from './ReelPixi';
-import { TMADeposit } from './TMADeposit';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
 
-// Zustand 스토어
 interface GameStore {
   userCredit: number;
   betAmount: number;
@@ -47,7 +45,7 @@ const useGameStore = create<GameStore>((set) => ({
   setIsTMAMode: (mode) => set({ isTMAMode: mode }),
 }));
 
-export const Game: React.FC = () => {
+export const Game: React.FC<{ onDepositClick?: () => void }> = ({ onDepositClick }) => {
   const {
     userCredit,
     betAmount,
@@ -431,19 +429,6 @@ export const Game: React.FC = () => {
     }
   };
 
-  if (isTMAMode) {
-    return (
-      <TMADeposit
-        onDepositSuccess={(amount: number) => {
-          setUserCredit(userCredit + amount);
-          setMessage(`TMA를 통해 ${amount} CSPIN 입금 완료!`);
-          setIsTMAMode(false);
-        }}
-        onBack={() => setIsTMAMode(false)}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 via-blue-900 to-indigo-900 text-white p-4">
       {/* Inline keyframes for simple slow spin and delay helpers */}
@@ -571,7 +556,7 @@ export const Game: React.FC = () => {
                 placeholder="100" 
               />
               <button
-                onClick={handleDeposit}
+                onClick={onDepositClick}
                 className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm"
               >
                 CSPIN 입금
