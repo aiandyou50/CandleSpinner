@@ -204,7 +204,7 @@ export async function onRequestPost(context: any) {
       // 내부 메시지 생성
       const transferMessage = internal({
         to: gameJettonWalletAddress,
-        value: toNano('0.05'), // 수수료 포함
+        value: toNano('0.03'), // 수수료 낮춤
         body: jettonTransferBody
       });
 

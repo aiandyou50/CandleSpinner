@@ -4,6 +4,7 @@ import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, toNano, beginCell } from '@ton/core';
 import ReelPixi from './ReelPixi';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
+import { useRpc } from '../hooks/useRpc';
 
 // Zustand 스토어
 interface GameStore {
@@ -60,6 +61,7 @@ export const Game: React.FC = () => {
   const [message, setMessage] = useState('게임이 로드되었습니다!');
   const connectedWallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
+  const { getJettonWalletAddress } = useRpc();
   const [showReel, setShowReel] = useState<boolean>(true);
 
   // 개발자 모드 토글
@@ -280,19 +282,23 @@ export const Game: React.FC = () => {
       const destination = Address.parse(GAME_WALLET_ADDRESS);
       const responseTo = Address.parse(connectedWallet.account.address);
       
+      // 사용자의 CSPIN 지갑 주소 계산
+      const userJettonWalletAddress = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
+      if (!userJettonWalletAddress) {
+        alert('CSPIN 지갑 주소 파생 실패');
+        return;
+      }
+
       const payloadCell = buildCSPINTransferPayload(amount, destination, responseTo);
       const boc = payloadCell.toBoc();
       const hex = boc.toString('hex');
       const base64 = Buffer.from(hex, 'hex').toString('base64');
 
-      // 제톤 지갑 주소 파생 (간단히 수동으로 설정, 실제로는 RPC 필요)
-      const jettonWalletAddress = "EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs"; // 게임 지갑의 CSPIN 지갑
-
       const tx = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [{
-          address: jettonWalletAddress,
-          amount: '100000000', // 0.1 TON for gas
+          address: userJettonWalletAddress, // 사용자의 CSPIN 지갑 주소
+          amount: '30000000', // 0.03 TON for gas
           payload: base64
         }]
       };
