@@ -18,8 +18,8 @@ TON_RPC_HTTPS_ENDPOINT = "https://mainnet-v4.akka.tonwhales.com"
 NETWORK_FEE_TON = "0.03"
 
 [env.production]
-vars = { 
-  BACKEND_RPC_URL = "https://toncenter.com/api/v2/jsonRPC",
-  TON_RPC_HTTPS_ENDPOINT = "https://mainnet-v4.akka.tonwhales.com",
-  NETWORK_FEE_TON = "0.03"
-}
+
+[env.production.vars]
+BACKEND_RPC_URL = "https://toncenter.com/api/v2/jsonRPC"
+TON_RPC_HTTPS_ENDPOINT = "https://mainnet-v4.akka.tonwhales.com"
+NETWORK_FEE_TON = "0.03"
