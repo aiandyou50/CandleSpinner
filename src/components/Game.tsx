@@ -434,7 +434,7 @@ export const Game: React.FC = () => {
   if (isTMAMode) {
     return (
       <TMADeposit
-        onDepositSuccess={(amount) => {
+        onDepositSuccess={(amount: number) => {
           setUserCredit(userCredit + amount);
           setMessage(`TMA를 통해 ${amount} CSPIN 입금 완료!`);
           setIsTMAMode(false);
