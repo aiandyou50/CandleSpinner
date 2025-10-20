@@ -26,3 +26,6 @@ jetton-contract/
 
 # TON Connect SDK (downloaded for analysis, not to be committed)
 sdk/
+
+# Telegram TT SDK (cloned for analysis, not to be committed)
+temp_telegram_tt/

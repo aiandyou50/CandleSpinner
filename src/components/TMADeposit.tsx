@@ -12,42 +12,57 @@ export const TMADeposit: React.FC<TMADepositProps> = ({ onDepositSuccess, onBack
   const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
-    // TMA 초기화
+    // TMA 환경 확인
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
-      WebApp.ready();
-      WebApp.expand();
+      try {
+        WebApp.ready();
+        WebApp.expand();
 
-      // 테마 설정
-      WebApp.setHeaderColor('#1a1a2e');
-      WebApp.setBackgroundColor('#16213e');
+        // 테마 설정
+        WebApp.setHeaderColor('#1a1a2e');
+        WebApp.setBackgroundColor('#16213e');
 
-      // 버튼 설정
-      WebApp.MainButton.setText('입금하기');
-      WebApp.MainButton.show();
-      WebApp.MainButton.disable();
+        // 버튼 설정
+        WebApp.MainButton.setText('입금하기');
+        WebApp.MainButton.show();
+        WebApp.MainButton.disable();
 
-      // 메인 버튼 클릭 핸들러
-      WebApp.MainButton.onClick(() => handleDeposit());
+        // 메인 버튼 클릭 핸들러
+        WebApp.MainButton.onClick(() => handleDeposit());
 
-      // 뒤로가기 버튼
-      WebApp.BackButton.show();
-      WebApp.BackButton.onClick(() => onBack?.());
+        // 뒤로가기 버튼
+        WebApp.BackButton.show();
+        WebApp.BackButton.onClick(() => onBack?.());
 
-      setIsReady(true);
+        setIsReady(true);
+      } catch (error) {
+        console.error('TMA 초기화 오류:', error);
+        setIsReady(false);
+      }
+    } else {
+      // TMA 환경이 아닌 경우 (개발용)
+      console.warn('TMA 환경이 아닙니다. Telegram Web App에서 실행해 주세요.');
+      setIsReady(true); // 개발용으로 true 설정
     }
 
     return () => {
       // 클린업
-      if (WebApp.MainButton) {
-        WebApp.MainButton.hide();
-        WebApp.MainButton.offClick();
-      }
-      if (WebApp.BackButton) {
-        WebApp.BackButton.hide();
-        WebApp.BackButton.offClick();
+      if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+        try {
+          if (WebApp.MainButton) {
+            WebApp.MainButton.hide();
+            WebApp.MainButton.offClick();
+          }
+          if (WebApp.BackButton) {
+            WebApp.BackButton.hide();
+            WebApp.BackButton.offClick();
+          }
+        } catch (error) {
+          console.error('TMA 클린업 오류:', error);
+        }
       }
     };
-  }, []);
+  }, [onBack]);
 
   // 입금 금액 변경 시 버튼 상태 업데이트
   useEffect(() => {
