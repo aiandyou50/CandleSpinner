@@ -34,17 +34,16 @@
 
 #***REMOVED***✅ [Done] - 완료된 작업
 
-##***REMOVED***CSPIN 토큰 인출 기능 구현
-- **시작일:** 2025년 10월 19일
+##***REMOVED***APP Manifest Error 해결 및 배포 방식 변경
+- **시작일:** 2025년 10월 20일
 - **완료일:** 2025년 10월 20일
 - **담당:** GitHub Copilot
 - **최종 결과:**
-  - ✅ 프론트엔드 직접 트랜잭션 방식 설계 및 구현
-  - ✅ 백엔드 API 수정 (verify_only, finalize 액션)
-  - ✅ Cloudflare Pages 배포 완료
-  - ✅ 에러 처리 및 로깅 강화
-  - ✅ 구현 보고서 작성 및 버전 관리 (v1.0.2)
-- **다음 단계:** 실제 트랜잭션 테스트 및 사용자 피드백 수집
+  - ✅ TON Connect manifest 형식을 PWA에서 올바른 TON Connect 형식으로 변경
+  - ✅ 배포 방식을 수동 Cloudflare에서 GitHub push 자동 배포로 전환
+  - ✅ PoC 코드 분석 및 학습 수행 (코드/문서 훼손하지 않음)
+  - ✅ GitHub 커밋 및 푸시 완료 (079a1f0)
+- **다음 단계:** 실제 지갑 연결 테스트 및 오류 검증
 
 ##***REMOVED***MVP 핵심 기능
 - [x] 기본 슬롯머신 게임 로직 구현
