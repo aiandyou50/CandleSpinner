@@ -268,14 +268,12 @@ FUNCTION handleApiInitiateWithdrawal(request, env):
     // 게임 월렛의 CSPIN 지갑 주소 계산
     gameJettonWalletAddress = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, gameWallet.address.toString())
     
-    // 내부 메시지 생성
-    transferMessage = internal({
+      // 내부 메시지 생성
+      transferMessage = internal({
         to: gameJettonWalletAddress,
-        value: toNano('0.05'), // 수수료 포함
+        value: toNano('0.03'), // 수수료 최적화
         body: jettonTransferBody
-    })
-    
-    // 트랜잭션 생성 및 전송
+      })    // 트랜잭션 생성 및 전송
     seqno = 0 // 실제로는 KV에 저장해서 관리
     transfer = gameWallet.createTransfer({
         seqno,
