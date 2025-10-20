@@ -13,7 +13,7 @@ export async function onRequestPost(context: any) {
       });
     }
 
-    // TON RPC를 통해 제톤 지갑 주소 파생
+    // TON RPC를 통해 제톤 지갑 주소 파생 (올바른 파라미터)
     const rpcUrl = 'https://toncenter.com/api/v2/jsonRPC';
     const response = await fetch(rpcUrl, {
       method: 'POST',
@@ -26,7 +26,7 @@ export async function onRequestPost(context: any) {
           address: tokenAddress,
           method: 'get_wallet_address',
           stack: [
-            ['tvm.Slice', userAddress] // 사용자 주소
+            { "type": "slice", "value": userAddress } // 올바른 형식
           ]
         }
       })
@@ -41,8 +41,13 @@ export async function onRequestPost(context: any) {
       throw new Error(`RPC error: ${data.error.message}`);
     }
 
-    // 결과 파싱 (TON RPC 응답 형식에 따라)
-    const jettonWalletAddress = data.result?.stack?.[0]?.[1]; // 예시, 실제 응답 구조 확인 필요
+    // 결과 파싱
+    const stack = data.result?.stack;
+    if (!stack || stack.length === 0) {
+      throw new Error('Invalid RPC response: no stack');
+    }
+
+    const jettonWalletAddress = stack[0][1]; // slice 타입의 값
 
     if (!jettonWalletAddress) {
       throw new Error('Failed to derive jetton wallet address');
