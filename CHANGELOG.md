@@ -5,7 +5,17 @@
 
 ---
 
-#***REMOVED***[1.1.7] - 2025-10-20
+#***REMOVED***[1.1.8] - 2025-10-20
+
+##***REMOVED***🐛 수정됨 (Fixed)
+- CSPIN 입금 시 제톤 전송 페이로드의 forward_payload TL-B 구조 수정 (right$1 nothing$0)
+- CSPIN 입출 테스트 버튼 삭제
+- CSPIN 인출 로직을 백엔드 호출로 변경 (프론트엔드 직접 전송 제거)
+
+##***REMOVED***📚 문서 (Docs)
+- [산출물3] CSPIN 입금/인출 로직 업데이트
+
+---
 
 ##***REMOVED***🐛 수정됨 (Fixed)
 - CSPIN 입금 시 제톤 지갑 주소 로컬 계산을 직접 구현하여 @ton/core 라이브러리 의존성 제거

@@ -14,3 +14,15 @@ yarn-error.log*
 
 ***REMOVED***misc
 .DS_Store
+
+***REMOVED***TON docs (downloaded for analysis, not to be committed)
+ton-docs/
+
+***REMOVED***Jetton token contract (downloaded for analysis, not to be committed)
+token-contract/
+
+***REMOVED***Latest Jetton contract (downloaded for analysis, not to be committed)
+jetton-contract/
+
+***REMOVED***TON Connect SDK (downloaded for analysis, not to be committed)
+sdk/
