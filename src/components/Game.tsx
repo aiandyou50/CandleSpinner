@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { create } from 'zustand';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, toNano, beginCell } from '@ton/core';
+import { Address, toNano, beginCell, jettonWalletCode } from '@ton/core';
 import { sha256 } from '@ton/crypto';
+import { useRpc } from '../hooks/useRpc';
 import ReelPixi from './ReelPixi';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
 
@@ -282,20 +283,13 @@ export const Game: React.FC = () => {
       const destination = Address.parse(GAME_WALLET_ADDRESS);
       const responseTo = Address.parse(connectedWallet.account.address);
       
-      // 사용자의 CSPIN 지갑 주소 계산 (로컬 계산)
-      let userJettonWalletAddress: string;
-      try {
-        const master = Address.parse(CSPIN_TOKEN_ADDRESS);
-        const owner = Address.parse(connectedWallet.account.address);
-        const data = beginCell().storeAddress(master).storeAddress(owner).endCell();
-        const hash = await sha256(data.hash());
-        const jettonWalletAddress = new Address(0, hash.slice(0, 32));
-        userJettonWalletAddress = jettonWalletAddress.toString();
-      } catch (e) {
-        console.error('로컬 제톤 지갑 주소 파생 실패:', e);
-        alert('CSPIN 지갑 주소 파생 실패');
-        return;
+      // 사용자의 CSPIN 지갑 주소 계산 (RPC 사용)
+      const rpc = useRpc();
+      const jettonWalletAddressStr = await rpc.getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, connectedWallet.account.address);
+      if (!jettonWalletAddressStr) {
+        throw new Error('Failed to get jetton wallet address');
       }
+      const userJettonWalletAddress = jettonWalletAddressStr;
 
       const payloadCell = buildCSPINTransferPayload(amount, destination, responseTo);
       const boc = payloadCell.toBoc();
