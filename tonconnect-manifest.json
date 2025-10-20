@@ -1,8 +1,5 @@
 {
-  "name": "CandleSpinner PoC",
-  "icon": "https://aiandyou.me/assets/icon-192.png",
-  "start_url": "/",
-  "short_name": "CandleSpinner",
-  "description": "PoC for CSPIN Jetton deposits via TonConnect",
-  "theme_color": "#ffffff"
+  "url": "https://aiandyou.me",
+  "name": "CandleSpinner",
+  "iconUrl": "https://aiandyou.me/assets/icon-192.png"
 }
