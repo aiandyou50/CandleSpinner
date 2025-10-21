@@ -1,5 +1,5 @@
 // src/components/Game.tsx - MVP UI 완전 재작성
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useGameState } from '../hooks/useGameState';
 
 interface GameProps {
@@ -11,8 +11,8 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
   const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings } = useGameState();
   const [spinResult, setSpinResult] = useState<string>('');
 
-  // 스핀 시뮬레이션
-  const handleSpin = () => {
+  // 스핀 시뮬레이션 (useCallback으로 최적화)
+  const handleSpin = useCallback(() => {
     if (userCredit < betAmount) {
       alert('크레딧이 부족합니다. 입금해주세요.');
       onDepositClick?.();
@@ -36,7 +36,35 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
       // endSpin을 통해 상태 업데이트 및 크레딧 계산
       endSpin(winnings);
     }, 1500);
-  };
+  }, [userCredit, betAmount, endSpin, onDepositClick]);
+
+  // 베팅액 버튼 useMemo 최적화
+  const betAmountButtons = useMemo(() => {
+    return [50, 100, 500, 1000].map((amount) => (
+      <button
+        key={amount}
+        onClick={() => setBet(amount)}
+        style={{
+          padding: '8px 16px',
+          border: betAmount === amount ? '2px solid #60a5fa' : '1px solid rgba(255,255,255,0.3)',
+          background: betAmount === amount ? 'rgba(96, 165, 250, 0.2)' : 'rgba(255,255,255,0.05)',
+          color: 'white',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '12px',
+          transition: 'all 0.2s'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(96, 165, 250, 0.3)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = betAmount === amount ? 'rgba(96, 165, 250, 0.2)' : 'rgba(255,255,255,0.05)';
+        }}
+      >
+        {amount}
+      </button>
+    ));
+  }, [betAmount, setBet]);
 
   return (
     <div style={{
@@ -76,30 +104,7 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
       <div style={{ marginBottom: '20px' }}>
         <label style={{ fontSize: '14px', opacity: 0.8 }}>베팅액 선택</label>
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '10px' }}>
-          {[50, 100, 500, 1000].map((amount) => (
-            <button
-              key={amount}
-              onClick={() => setBet(amount)}
-              style={{
-                padding: '8px 16px',
-                border: betAmount === amount ? '2px solid #60a5fa' : '1px solid rgba(255,255,255,0.3)',
-                background: betAmount === amount ? 'rgba(96, 165, 250, 0.2)' : 'rgba(255,255,255,0.05)',
-                color: 'white',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(96, 165, 250, 0.3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = betAmount === amount ? 'rgba(96, 165, 250, 0.2)' : 'rgba(255,255,255,0.05)';
-              }}
-            >
-              {amount}
-            </button>
-          ))}
+          {betAmountButtons}
         </div>
         <p style={{ fontSize: '12px', opacity: 0.6, marginTop: '10px' }}>
           선택된 베팅액: <strong>{betAmount.toLocaleString()} CSPIN</strong>
@@ -201,4 +206,5 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
   );
 };
 
-export default Game;
+// React.memo로 불필요한 리렌더링 방지
+export default React.memo(Game);
