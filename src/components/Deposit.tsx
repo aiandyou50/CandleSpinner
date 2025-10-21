@@ -531,9 +531,20 @@ Time: ${new Date().toISOString()}
         console.log('[TonConnect Deposit] ✓ Payload built successfully');
         console.log('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
 
-        // CSPIN Jetton Wallet 주소 파싱 (정식 형식)
-        const jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
-        console.log('[TonConnect Deposit] ✓ Jetton Wallet Address:', jettonWalletAddress);
+        // CSPIN Jetton Wallet 주소 파싱 (정식 형식) - 안전한 파싱
+        let jettonWalletAddress: string;
+        try {
+          jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
+          console.log('[TonConnect Deposit] ✓ Jetton Wallet Address:', jettonWalletAddress);
+        } catch (addressError) {
+          console.error('[TonConnect Deposit] ❌ Invalid Jetton Wallet Address:', {
+            rawAddress: CSPIN_JETTON_WALLET,
+            error: addressError instanceof Error ? addressError.message : String(addressError)
+          });
+          // Fallback: 직접 주소 사용 (검증 우회 - 마지막 수단)
+          jettonWalletAddress = CSPIN_JETTON_WALLET;
+          console.warn('[TonConnect Deposit] ⚠️ Using raw Jetton Wallet Address (no validation)');
+        }
 
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 600,

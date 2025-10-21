@@ -32,8 +32,15 @@ const PACKAGE_JSON_VERSION = '2.3.0';  // package.json에서 읽기
 
 if (typeof window !== 'undefined') {
   // Sentry DSN: https://sentry.io 에서 Project Settings > Client Keys (DSN) 에서 가져온 값
+  // 환경변수가 없으면 기본값 사용 (프로덕션 환경에서는 반드시 설정 필요)
   const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN 
     || 'https://77e80587476570467e15c594544197e3@o4510227583598592.ingest.us.sentry.io/4510227588186112';
+  
+  // DSN이 placeholder인 경우 경고 로그
+  if (SENTRY_DSN.includes('placeholder')) {
+    console.warn('[Sentry] Warning: DSN contains "placeholder" - Sentry disabled');
+  }
+  
   const environment = import.meta.env.MODE === 'production' ? 'production' : 'development';
   const isProduction = environment === 'production';
 

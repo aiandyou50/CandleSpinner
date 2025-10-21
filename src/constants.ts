@@ -44,6 +44,7 @@ export const CSPIN_TOKEN_ADDRESS =
 /**
  * CSPIN Jetton 지갑 주소 (Jetton Wallet)
  * 게임이 CSPIN을 전송할 때 사용하는 Jetton Wallet 주소
+ * URL-safe Base64 형식 (+ → -, / → _)
  *
  * @example
  * ```
