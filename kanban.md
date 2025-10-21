@@ -9,7 +9,19 @@
 
 ## 🔄 [In Progress] - 진행 중인 작업
 
-(현재 진행 중인 작업 없음)
+### 🔧 TON 표준 준수 개선 (v2.5.1)
+- **시작일:** 2025년 10월 21일
+- **예상 종료:** 2025년 10월 21일
+- **담당:** GitHub Copilot
+- **진행 상황:**
+  - ✅ Issue #1: forward_ton_amount = 1 nanoton (TEP-74 표준)
+  - ✅ Issue #2: 에러 분류 enum 추가 (ErrorCategory)
+  - ✅ Issue #3: 재시도 로직 개선 (isRetryableError)
+  - ✅ 테스트: 12/12 통과
+  - ✅ 빌드 성공
+  - ✅ 커밋: b288994
+  - ✅ 배포: git push 완료 (Cloudflare Pages 자동 배포 진행 중)
+- **다음 단계:** 블록체인 확인 로직 추가 (Issue #4, #5)
 
 ---
 
