@@ -384,6 +384,91 @@ export function getGameJettonWallet(): string {
   return cachedGameJettonWallet;
 }
 
+/**
+ * Jetton Transfer 가스비 동적 계산
+ * 
+ * TON 블록체인의 가스비는 메시지 크기와 컴퓨팅 복잡도에 따라 결정됩니다.
+ * Jetton Transfer는 상대적으로 간단한 작업이므로 고정된 기본값 사용
+ * 
+ * 참고:
+ * - 최소 가스비 (min_gas_credit): 10,000 gas
+ * - 1 가스 = 0.4 nanoton
+ * - Jetton transfer 평균: 4,000 gas ≈ 1,600 nanoton ≈ 0.0000016 TON
+ * 
+ * @see https://docs.ton.org/develop/smart-contracts/gas-costs
+ * @see https://ton.org/docs/#/api?id=blockchain-blockchain
+ * 
+ * @param gasMode - 가스비 모드 ('fast' | 'standard' | 'slow')
+ * @returns 추천 가스비 (TON 단위, nanoton으로 변환됨)
+ */
+export function estimateJettonTransferGas(
+  gasMode: 'fast' | 'standard' | 'slow' = 'standard'
+): bigint {
+  console.log(`[Gas Estimation] Calculating gas for mode: ${gasMode}`);
+
+  // 기본 가스비 예측
+  // Jetton transfer: 약 4,000 gas
+  // 1 gas = 0.4 nanoton (현재 블록체인 기준)
+  // 즉, 약 1,600 nanoton ≈ 0.0000016 TON
+  
+  // 안전마진을 고려한 권장값
+  const baseGasNanoton = BigInt(1600);  // 기본값: 1,600 nanoton
+
+  const gasAmounts: Record<'slow' | 'standard' | 'fast', bigint> = {
+    'slow': baseGasNanoton,                    // 표준 속도 (빠르지 않음)
+    'standard': baseGasNanoton * BigInt(2),    // 표준 속도 (권장)
+    'fast': baseGasNanoton * BigInt(4)         // 빠른 속도 (가스비 증가)
+  };
+
+  const selectedGas = gasAmounts[gasMode];
+
+  // 최종 확인: 최소 가스비 이상인지 검증
+  const minGasNanoton = BigInt(10000);  // 최소 가스비 보장
+  const finalGas = selectedGas > minGasNanoton ? selectedGas : minGasNanoton;
+
+  console.log(`[Gas Estimation] ✅ Calculated:`, {
+    mode: gasMode,
+    selectedGas: selectedGas.toString(),
+    finalGas: finalGas.toString(),
+    inTon: `0.00000${finalGas}`,
+    description: gasMode === 'fast' 
+      ? '빠른 처리 (높은 가스비)'
+      : gasMode === 'slow'
+      ? '느린 처리 (낮은 가스비)'
+      : '표준 처리 (권장)'
+  });
+
+  return finalGas;
+}
+
+/**
+ * Jetton Transfer 총 수수료 계산 (가스비 포함)
+ * 
+ * Message 전송 비용 + Jetton Transfer 컴퓨팅 비용 계산
+ * 
+ * @param gasMode - 가스비 모드
+ * @returns 총 수수료 (nanoton)
+ */
+export function calculateJettonTransferFee(
+  gasMode: 'fast' | 'standard' | 'slow' = 'standard'
+): bigint {
+  const gas = estimateJettonTransferGas(gasMode);
+  
+  // 기본 메시지 전송 비용: 약 3,000 nanoton
+  const messageForwardFee = BigInt(3000);
+  
+  const totalFee = gas + messageForwardFee;
+
+  console.log(`[Fee Calculation] ✅ Total fee:`, {
+    gas: gas.toString(),
+    messageForwardFee: messageForwardFee.toString(),
+    totalFee: totalFee.toString(),
+    inTon: (Number(totalFee) / 1e9).toFixed(9)
+  });
+
+  return totalFee;
+}
+
 const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   // 상태 관리: depositState로 통합 (기존 useState 제거)
   const depositState = useDepositState('select');
