@@ -522,20 +522,33 @@ Time: ${new Date().toISOString()}
         retries++;
         console.log(`[TonConnect Deposit] Attempt ${retries}/${maxRetries + 1}`);
 
+        // ✅ 모든 주소를 TonConnect 호환 형식으로 변환 (Friendly format)
+        const destinationAddress = Address.parse(GAME_WALLET_ADDRESS)
+          .toString({ testOnly: false, bounceable: true });
+        const responseAddress = Address.parse(wallet.account.address)
+          .toString({ testOnly: false, bounceable: true });
+        const destinationAddressObj = Address.parse(destinationAddress); // Payload용 Address 객체
+        const responseAddressObj = Address.parse(responseAddress);
+
         // Jetton Transfer Payload 구성
         const amountInNano = BigInt(amount) * BigInt(1000000000);
-        const destinationAddress = Address.parse(GAME_WALLET_ADDRESS);
-        const responseAddress = Address.parse(wallet.account.address);
         
-        const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
+        const payload = buildJettonTransferPayload(amountInNano, destinationAddressObj, responseAddressObj);
         console.log('[TonConnect Deposit] ✓ Payload built successfully');
         console.log('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
+        console.log('[TonConnect Deposit] 📍 Addresses (TonConnect format):', {
+          destination: destinationAddress,
+          response: responseAddress
+        });
 
-        // CSPIN Jetton Wallet 주소 파싱 (정식 형식) - 안전한 파싱
+        // CSPIN Jetton 주소 파싱 (TonConnect 호환 형식)
         let jettonWalletAddress: string;
         try {
-          jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
-          console.log('[TonConnect Deposit] ✓ Jetton Wallet Address:', jettonWalletAddress);
+          // ✅ Address.parse → toString() = Friendly format (EQ... 또는 UQ...)
+          // 이것이 TonConnect가 요구하는 형식
+          const parsedAddress = Address.parse(CSPIN_JETTON_WALLET);
+          jettonWalletAddress = parsedAddress.toString({ testOnly: false, bounceable: true });
+          console.log('[TonConnect Deposit] ✓ Jetton Wallet Address (TonConnect format):', jettonWalletAddress);
         } catch (addressError) {
           console.error('[TonConnect Deposit] ❌ Invalid Jetton Wallet Address:', {
             rawAddress: CSPIN_JETTON_WALLET,
@@ -550,7 +563,7 @@ Time: ${new Date().toISOString()}
           validUntil: Math.floor(Date.now() / 1000) + 600,
           messages: [
             {
-              address: jettonWalletAddress,
+              address: jettonWalletAddress,  // TonConnect 호환 형식 (Friendly format)
               amount: '200000000', // 0.2 TON for fees
               payload: payload
             }
