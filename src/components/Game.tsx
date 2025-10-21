@@ -84,7 +84,7 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
         WebkitTextFillColor: 'transparent',
         backgroundClip: 'text'
       }}>
-        🚀 Candle Spinner
+        �️ Candle Spinner
       </h1>
 
       {/* 크레딧 표시 */}

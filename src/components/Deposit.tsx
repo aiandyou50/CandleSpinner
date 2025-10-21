@@ -42,20 +42,27 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   const handleDepositTonConnect = async () => {
     if (!wallet?.account?.address) {
       showToast('❌ 지갑이 연결되지 않았습니다. TonConnect 버튼을 클릭해주세요.', 'error');
-      if (isTMA) WebApp.showAlert('지갑을 연결해주세요.');
+      console.error('[TonConnect Deposit] Wallet not connected');
+      if (isTMA) {
+        try { WebApp.showAlert('지갑을 연결해주세요.'); } catch (e) { console.log('[TMA Alert] Not supported:', e); }
+      }
       return;
     }
 
     const validation = depositState.validateAmount();
     if (!validation.valid) {
       showToast(`❌ ${validation.error}`, 'error');
-      if (isTMA) WebApp.showAlert(validation.error || '올바른 금액을 입력해주세요.');
+      console.warn('[TonConnect Deposit] Validation failed:', validation.error);
+      if (isTMA) {
+        try { WebApp.showAlert(validation.error || '올바른 금액을 입력해주세요.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
+      }
       return;
     }
 
     const amount = parseFloat(depositState.depositAmount);
     depositState.setLoading(true);
     showToast('⏳ TonConnect: 지갑에서 트랜잭션을 확인해주세요...', 'info');
+    console.log(`[TonConnect Deposit] Starting deposit: amount=${amount} CSPIN, wallet=${wallet.account.address}`);
 
     try {
       // Jetton Transfer Payload 구성
@@ -64,9 +71,11 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
       const responseAddress = Address.parse(wallet.account.address);
       
       const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
+      console.log('[TonConnect Deposit] Payload built successfully');
 
       // CSPIN Jetton Wallet 주소 파싱 (정식 형식)
       const jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
+      console.log('[TonConnect Deposit] Jetton Wallet Address:', jettonWalletAddress);
 
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
@@ -79,9 +88,12 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
         ]
       };
 
+      console.log('[TonConnect Deposit] Calling sendTransaction...');
       const result = await tonConnectUI.sendTransaction(transaction as any);
+      console.log('[TonConnect Deposit] Transaction sent successfully:', result);
 
       // 백엔드에 입금 기록
+      console.log('[TonConnect Deposit] Recording deposit on backend...');
       const response = await fetch('/api/deposit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,18 +109,27 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
         throw new Error(`서버 오류: ${response.status}`);
       }
 
+      console.log('[TonConnect Deposit] Backend response successful');
       showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
       depositState.setAmount('100');
       
       if (onDepositSuccess) onDepositSuccess(amount);
-      if (isTMA) WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`);
+      if (isTMA) {
+        try { WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`); } catch (e) { console.log('[TMA Alert] Not supported'); }
+      }
 
       // 2초 후 자동 뒤로 가기
       setTimeout(() => onBack?.(), 2000);
     } catch (error) {
-      console.error('TonConnect 입금 실패:', error);
+      console.error('[TonConnect Deposit] Error:', error);
+      console.error('[TonConnect Deposit] Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       depositState.handleError(error, { method: 'tonconnect' });
-      if (isTMA) WebApp.showAlert('입금에 실패했습니다.');
+      if (isTMA) {
+        try { WebApp.showAlert('입금에 실패했습니다.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
+      }
     } finally {
       depositState.setLoading(false);
     }
@@ -119,12 +140,14 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
     const validation = depositState.validateAmount();
     if (!validation.valid) {
       showToast(`❌ ${validation.error}`, 'error');
+      console.warn('[RPC Deposit] Validation failed:', validation.error);
       return;
     }
 
     const amount = parseFloat(depositState.depositAmount);
     depositState.setLoading(true);
-    showToast('⏳ RPC: 백엔드에서 처리 중...', 'info');
+    showToast('⏳ RPC: 백엔드에서 처리 중... (테스트 모드)', 'info');
+    console.log(`[RPC Deposit] Starting TEST MODE deposit: amount=${amount} CSPIN, wallet=${wallet?.account?.address || 'anonymous'}`);
 
     try {
       const response = await fetch('/api/deposit-rpc', {
@@ -133,28 +156,42 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
         body: JSON.stringify({
           walletAddress: wallet?.account?.address || 'anonymous',
           depositAmount: amount,
-          method: 'rpc'
+          method: 'rpc',
+          testMode: true  // ← 테스트 모드 플래그 추가
         })
       });
 
       if (!response.ok) {
-        throw new Error(`서버 오류: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`서버 오류: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
       const data = await response.json();
+      console.log('[RPC Deposit] Server response:', data);
 
-      showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
+      // ⚠️ 주의: 이것은 테스트 모드입니다!
+      showToast(`⚠️ [테스트 모드] ${amount} CSPIN 추가됨 (실제 트랜잭션 없음)`, 'warning');
+      console.warn('[RPC Deposit] TEST MODE: No actual transaction executed');
+      
       depositState.setAmount('100');
       
       if (onDepositSuccess) onDepositSuccess(amount);
-      if (isTMA) WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`);
+      if (isTMA) {
+        try { WebApp.showAlert(`[테스트] ${amount} CSPIN 추가됨`); } catch (e) { console.log('[TMA Alert] Not supported'); }
+      }
 
       // 2초 후 자동 뒤로 가기
       setTimeout(() => onBack?.(), 2000);
     } catch (error) {
-      console.error('RPC 입금 실패:', error);
+      console.error('[RPC Deposit] Error:', error);
+      console.error('[RPC Deposit] Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
       depositState.handleError(error, { method: 'rpc' });
-      if (isTMA) WebApp.showAlert('입금에 실패했습니다.');
+      if (isTMA) {
+        try { WebApp.showAlert('입금에 실패했습니다.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
+      }
     } finally {
       depositState.setLoading(false);
     }
