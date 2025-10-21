@@ -16,17 +16,17 @@
 /**
  * 게임 지갑 주소
  * 사용자로부터 CSPIN 토큰을 수령할 지갑 주소
- * 정식 Base64 형식 (TonConnect 호환)
+ * URL-safe Base64 형식 (ton-core의 Address.parse()는 모든 형식 지원)
  *
  * @example
  * ```
  * // .env
- * VITE_GAME_WALLET_ADDRESS=UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83+batQ+dptaR8Mtd
+ * VITE_GAME_WALLET_ADDRESS=UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd
  * ```
  */
 export const GAME_WALLET_ADDRESS = 
   import.meta.env.VITE_GAME_WALLET_ADDRESS ||
-  "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83+batQ+dptaR8Mtd";
+  "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd";
 
 /**
  * CSPIN 토큰 메인 계약 주소 (Jetton Master)
@@ -45,17 +45,17 @@ export const CSPIN_TOKEN_ADDRESS =
 /**
  * CSPIN Jetton 지갑 주소 (Jetton Wallet)
  * 게임이 CSPIN을 전송할 때 사용하는 Jetton Wallet 주소
- * 정식 Base64 형식 (TonConnect 호환) + → +, / → /
+ * URL-safe Base64 형식 (ton-core의 Address.parse()는 모든 형식 지원)
  *
  * @example
  * ```
  * // .env
- * VITE_CSPIN_JETTON_WALLET=EQBbso+Bvv1r0N8aVQ1drMpqnJaYWCqH6s/8D1c8l92vGPzJ
+ * VITE_CSPIN_JETTON_WALLET=EQBbso-Bvv1r0N8aVQ1drMpqnJaYWCqH6s_8D1c8l92vGPzJ
  * ```
  */
 export const CSPIN_JETTON_WALLET =
   import.meta.env.VITE_CSPIN_JETTON_WALLET ||
-  "EQBbso+Bvv1r0N8aVQ1drMpqnJaYWCqH6s/8D1c8l92vGPzJ";
+  "EQBbso-Bvv1r0N8aVQ1drMpqnJaYWCqH6s_8D1c8l92vGPzJ";
 
 // ============================================
 // TonConnect 설정 (TonConnect Configuration)
