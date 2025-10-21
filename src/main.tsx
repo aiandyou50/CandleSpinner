@@ -31,28 +31,39 @@ try {
 const PACKAGE_JSON_VERSION = '2.3.0';  // package.json에서 읽기
 
 if (typeof window !== 'undefined') {
-  const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN || 'https://placeholder@sentry.io/123456';
+  // Sentry DSN: https://sentry.io 에서 Project Settings > Client Keys (DSN) 에서 가져온 값
+  const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN 
+    || 'https://77e80587476570467e15c594544197e3@o4510227583598592.ingest.us.sentry.io/4510227588186112';
   const environment = import.meta.env.MODE === 'production' ? 'production' : 'development';
   const isProduction = environment === 'production';
 
   Sentry.init({
+    // ============================================
+    // DSN & Environment
+    // ============================================
     dsn: SENTRY_DSN,
     environment: environment,
     
     // ============================================
-    // Sampling (샘플링 설정)
+    // Integrations (통합)
     // ============================================
-    tracesSampleRate: isProduction ? 0.1 : 1.0,  // 프로덕션: 10%, 개발: 100%
+    integrations: [
+      // BrowserTracing: 페이지 성능 및 트랜잭션 추적
+      Sentry.browserTracingIntegration(),
+      // Replay: 세션 리플레이 (사용자 세션 기록)
+      Sentry.replayIntegration(),
+    ],
     
     // ============================================
-    // Performance Monitoring (자동 활성화)
+    // Sampling (샘플링 설정)
     // ============================================
-    // Sentry는 자동으로 성능 모니터링을 활성화합니다
-    // 주요 모니터링 항목:
-    // - Page Load: 페이지 로딩 성능
-    // - Navigation: 페이지 전환
-    // - HTTP Requests: API 호출 성능
-    // - React Errors: 컴포넌트 에러
+    // 트랜잭션 샘플링: 100% (모든 트랜잭션 기록)
+    tracesSampleRate: isProduction ? 0.5 : 1.0,  // 프로덕션: 50%, 개발: 100%
+    
+    // 세션 리플레이 샘플링
+    replaysSessionSampleRate: isProduction ? 0.1 : 0.5,
+    // 에러 발생 시 리플레이 샘플링: 100% (에러 발생 시 항상 기록)
+    replaysOnErrorSampleRate: 1.0,
     
     // ============================================
     // Release & Version Tracking
@@ -60,10 +71,31 @@ if (typeof window !== 'undefined') {
     release: PACKAGE_JSON_VERSION,  // package.json의 버전
     
     // ============================================
-    // 기타 설정
+    // PII (개인 식별 정보) 처리
     // ============================================
-    maxBreadcrumbs: 50,  // 이벤트 기록 최대 수
+    // sendDefaultPii: false (기본값)
+    // PII 데이터를 보내지 않음 (프라이버시 보호)
+    // 필요시 'true'로 설정하여 IP 주소 등의 기본 PII 정보 포함
+    
+    // ============================================
+    // Performance & Error Tracking
+    // ============================================
+    maxBreadcrumbs: 100,  // 이벤트 기록 최대 수
     attachStacktrace: true,  // 모든 메시지에 스택 트레이스 첨부
+    
+    // ============================================
+    // 로깅 설정
+    // ============================================
+    enableLogs: true,  // Sentry 로그 활성화
+    
+    // ============================================
+    // 분산 추적 (Distributed Tracing)
+    // ============================================
+    tracePropagationTargets: [
+      'localhost',
+      /^https:\/\/candlespinner\.com\/api/,
+      /^https:\/\/.*\.pages\.dev\/api/,  // Cloudflare Pages
+    ],
   });
 }
 
