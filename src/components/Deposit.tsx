@@ -522,18 +522,31 @@ Time: ${new Date().toISOString()}
         retries++;
         console.log(`[TonConnect Deposit] Attempt ${retries}/${maxRetries + 1}`);
 
-        // ✅ 주소들을 먼저 파싱하여 Address 객체로 변환 (정식 형식 보증)
+        // ✅ 주소 파싱 (ton-core는 모든 Base64 형식 지원 - URL-safe, 정식 모두)
         let destinationAddressObj: Address;
         let responseAddressObj: Address;
+        let jettonWalletAddressStr: string;
         
         try {
+          // Address.parse()는 자동으로 모든 형식 처리
           destinationAddressObj = Address.parse(GAME_WALLET_ADDRESS);
           responseAddressObj = Address.parse(wallet.account.address);
-          console.log('[TonConnect Deposit] ✓ Addresses parsed successfully');
+          
+          // CSPIN Jetton 지갑도 미리 파싱 (검증용)
+          const jettonWalletObj = Address.parse(CSPIN_JETTON_WALLET);
+          jettonWalletAddressStr = jettonWalletObj.toString({ testOnly: false, bounceable: true });
+          
+          console.log('[TonConnect Deposit] ✓ All addresses parsed successfully');
+          console.log('[TonConnect Deposit] 📍 Addresses:', {
+            gameWallet: destinationAddressObj.toString(),
+            userWallet: responseAddressObj.toString(),
+            jettonWallet: jettonWalletAddressStr
+          });
         } catch (parseError) {
           console.error('[TonConnect Deposit] ❌ Address parse error:', {
             gameWallet: GAME_WALLET_ADDRESS,
             userWallet: wallet.account.address,
+            jettonWallet: CSPIN_JETTON_WALLET,
             error: parseError instanceof Error ? parseError.message : String(parseError)
           });
           throw parseError;
@@ -546,38 +559,12 @@ Time: ${new Date().toISOString()}
         console.log('[TonConnect Deposit] ✓ Payload built successfully');
         console.log('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
 
-        // TonConnect용 Friendly format 변환
-        const destinationAddressStr = destinationAddressObj.toString({ testOnly: false, bounceable: true });
-        const responseAddressStr = responseAddressObj.toString({ testOnly: false, bounceable: true });
-        console.log('[TonConnect Deposit] 📍 Addresses (Friendly format):', {
-          destination: destinationAddressStr,
-          response: responseAddressStr
-        });
-
-        // CSPIN Jetton 주소 (정식 Base64 형식 - TonConnect 호환)
-        // .env에서 로드되며, 이미 정식 형식
-        let jettonWalletAddress: string;
-        try {
-          // ✅ 정식 Base64 형식을 그대로 사용 (+ 와 / 포함)
-          const parsedAddress = Address.parse(CSPIN_JETTON_WALLET);
-          jettonWalletAddress = parsedAddress.toString({ testOnly: false, bounceable: true });
-          console.log('[TonConnect Deposit] ✓ Jetton Wallet Address (validated):', jettonWalletAddress);
-        } catch (addressError) {
-          console.error('[TonConnect Deposit] ❌ Invalid Jetton Wallet Address:', {
-            rawAddress: CSPIN_JETTON_WALLET,
-            error: addressError instanceof Error ? addressError.message : String(addressError),
-            hint: 'Check .env VITE_CSPIN_JETTON_WALLET format (should use standard Base64: + and /)'
-          });
-          // Fallback: 직접 사용 (마지막 수단)
-          jettonWalletAddress = CSPIN_JETTON_WALLET;
-          console.warn('[TonConnect Deposit] ⚠️ Using raw address from env (bypassing validation)');
-        }
-
+        // TonConnect 메시지 구성
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 600,
           messages: [
             {
-              address: jettonWalletAddress,  // ✅ 정식 Base64 형식
+              address: jettonWalletAddressStr,  // ✅ 미리 파싱된 Friendly format 주소
               amount: '200000000', // 0.2 TON for fees
               payload: payload
             }
