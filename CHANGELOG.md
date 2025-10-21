@@ -5,6 +5,28 @@
 
 ---
 
+#***REMOVED***[2.0.2] - 2025-10-21 (TonConnect 버그 수정)
+
+##***REMOVED***🐛 수정됨 (Fixed)
+- **TonConnect 입금 오류 수정 (v2.1.0 준비)**
+  - ✅ 문제: "100TON 지갑에 있어야 한다" 오류 발생
+  - ✅ 원인: Jetton Transfer Payload 미포함 + 잘못된 전송 주소
+  - ✅ 해결: 
+    - Jetton Transfer Payload (opcode: 0xF8A7EA5) 구성 추가
+    - CSPIN_JETTON_WALLET 주소로 전송 (게임 지갑이 아닌)
+    - PoC 코드 기반 올바른 payload 구조 적용
+  
+- **TMA 환경 TonConnect 버튼 표시**
+  - ✅ 이전: 웹 브라우저 환경에서만 표시
+  - ✅ 변경: TMA 환경과 웹 환경 모두에서 표시
+  - ✅ App.tsx 헤더에 TonConnect 버튼 추가
+
+##***REMOVED***📚 문서 (Docs)
+- [산출물2] v2.1.0 TonConnect UI 개선사항 기록
+- [산출물3] D.0 섹션 신규 작성: Jetton Transfer Payload 구성 방법
+
+---
+
 #***REMOVED***[2.0.1] - 2025-10-21 (긴급 배포)
 
 ##***REMOVED***🐛 수정됨 (Fixed)

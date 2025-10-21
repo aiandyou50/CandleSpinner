@@ -611,9 +611,53 @@ FUNCTION handleInitiateWithdrawal(request, env):
     RETURN { success: true, newCredit: state.credit, withdrawalAmount }
 ```
 
-##***REMOVED*****D. A/B 이중 입금 방식 (v1.5 추가)**
+##***REMOVED*****D. A/B 이중 입금 방식 (v1.5 추가 → v2.1.0 수정)**
 
-###***REMOVED*****D.1. 입금 방식 A: TonConnect 클라이언트 직접 서명 (DepositDirect)**
+###***REMOVED*****D.0. Jetton Transfer Payload 구성 (v2.1.0 핵심 수정)**
+
+* **문제:** 이전 버전에서 `payload: undefined`로 전송하여 "100TON 지갑에 있어야 한다" 오류 발생
+* **해결:** PoC 코드에서 제공하는 **Jetton Transfer Payload (opcode: 0xF8A7EA5)** 사용
+
+**Payload 생성 함수:**
+```typescript
+// Jetton Transfer Payload (Standard Jetton TEP-74)
+function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address): string {
+  const cell = beginCell()
+    .storeUint(0xf8a7ea5, 32)        // Jetton transfer opcode
+    .storeUint(0, 64)                 // query_id
+    .storeCoins(amount)               // Jetton amount
+    .storeAddress(destination)        // 수취인 (게임 지갑)
+    .storeAddress(responseTo)         // 응답 주소 (사용자 지갑)
+    .storeBit(0)                      // custom_payload: none
+    .storeCoins(BigInt(0))            // forward_ton_amount
+    .storeBit(0)                      // forward_payload: none
+    .endCell();
+  return cell.toBoc().toString('base64');
+}
+```
+
+**TonConnect 트랜잭션 구조 (v2.1.0):**
+```typescript
+const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
+const transaction = {
+  validUntil: Math.floor(Date.now() / 1000) + 600,
+  messages: [
+    {
+      address: CSPIN_JETTON_WALLET,  // CSPIN Jetton Wallet 주소 (중요!)
+      amount: '200000000',             // 0.2 TON (for fees)
+      payload: payload                 // ← Jetton Transfer Payload 필수
+    }
+  ]
+};
+const result = await tonConnectUI.sendTransaction(transaction);
+```
+
+**핵심 수정 요소:**
+1. **CSPIN_JETTON_WALLET 주소**: 게임 지갑이 아닌, CSPIN 토큰의 Jetton Wallet 주소 사용
+2. **payload 필수**: `undefined` 대신 Jetton Transfer Payload 포함
+3. **amount**: 게임 지갑이 아닌 CSPIN Jetton 주소로 전송할 때 필요한 TON 가스비
+
+###***REMOVED*****D.1. 입금 방식 A: TonConnect 클라이언트 직접 서명 (DepositDirect - v2.1.0 수정)**
 
 * **목적:** 사용자가 자신의 지갑에서 CSPIN을 직접 게임 지갑으로 전송. 백엔드는 KV 크레딧만 업데이트.
 * **장점:** 
