@@ -1,7 +1,7 @@
 // src/components/Deposit.tsx - 입금 UI 완전 재작성
 import React from 'react';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, beginCell } from 'ton-core';
+import { Address, beginCell } from '@ton/core';
 import { TonClient } from '@ton/ton';
 import type { Transaction } from '@ton/ton';
 import { JettonMaster } from '@ton/ton';
