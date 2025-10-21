@@ -1,12 +1,46 @@
 // src/App.tsx
-import React, { useState } from 'react';
-import Game from './components/Game';
-import Deposit from './components/Deposit';
+import React, { useState, Suspense, lazy } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { TonConnectUIProvider, TonConnectButton } from '@tonconnect/ui-react';
 import { TON_CONNECT_MANIFEST_URL } from './constants';
 
+// 동적 임포트: 번들 크기 최적화
+const Game = lazy(() => import('./components/Game'));
+const Deposit = lazy(() => import('./components/Deposit'));
+
 type AppMode = 'game' | 'deposit';
+
+// Suspense Fallback UI
+function LoadingScreen() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+      color: 'white',
+      gap: '16px'
+    }}>
+      <div style={{
+        width: '48px',
+        height: '48px',
+        border: '3px solid rgba(255, 255, 255, 0.3)',
+        borderTop: '3px solid #2563eb',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }} />
+      <p style={{ fontSize: '16px', fontWeight: '500' }}>로딩 중...</p>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 function App() {
   // TMA 환경 감지
@@ -42,13 +76,15 @@ function App() {
             minHeight: '100vh',
             padding: '20px'
           }}>
-            <div style={{ width: '100%', maxWidth: 720 }}>
-              {appMode === 'deposit' ? (
-                <Deposit onBack={() => setAppMode('game')} />
-              ) : (
-                <Game onDepositClick={() => setAppMode('deposit')} />
-              )}
-            </div>
+            <Suspense fallback={<LoadingScreen />}>
+              <div style={{ width: '100%', maxWidth: 720 }}>
+                {appMode === 'deposit' ? (
+                  <Deposit onBack={() => setAppMode('game')} />
+                ) : (
+                  <Game onDepositClick={() => setAppMode('deposit')} />
+                )}
+              </div>
+            </Suspense>
           </main>
         </div>
       ) : (
@@ -98,13 +134,15 @@ function App() {
             minHeight: '100vh',
             padding: '20px'
           }}>
-            <div style={{ width: '100%', maxWidth: 720 }}>
-              {appMode === 'deposit' ? (
-                <Deposit onBack={() => setAppMode('game')} />
-              ) : (
-                <Game onDepositClick={() => setAppMode('deposit')} />
-              )}
-            </div>
+            <Suspense fallback={<LoadingScreen />}>
+              <div style={{ width: '100%', maxWidth: 720 }}>
+                {appMode === 'deposit' ? (
+                  <Deposit onBack={() => setAppMode('game')} />
+                ) : (
+                  <Game onDepositClick={() => setAppMode('deposit')} />
+                )}
+              </div>
+            </Suspense>
           </main>
         </div>
       )}
