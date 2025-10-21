@@ -69,11 +69,14 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
       
       const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
 
+      // CSPIN Jetton Wallet 주소 파싱 (정식 형식)
+      const jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
+
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
-            address: CSPIN_JETTON_WALLET,
+            address: jettonWalletAddress,  // ← 정식 Address 형식
             amount: '200000000', // 0.2 TON for fees
             payload: payload
           }
