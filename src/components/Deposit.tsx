@@ -61,75 +61,130 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
 
     const amount = parseFloat(depositState.depositAmount);
     depositState.setLoading(true);
+    
+    console.log(`
+═════════════════════════════════════════════════════
+🚀 [TonConnect Deposit] START
+═════════════════════════════════════════════════════
+Amount: ${amount} CSPIN
+Wallet: ${wallet.account.address}
+Time: ${new Date().toISOString()}
+═════════════════════════════════════════════════════
+    `);
+
     showToast('⏳ TonConnect: 지갑에서 트랜잭션을 확인해주세요...', 'info');
-    console.log(`[TonConnect Deposit] Starting deposit: amount=${amount} CSPIN, wallet=${wallet.account.address}`);
+
+    let retries = 0;
+    const maxRetries = 2;
+
+    const attemptTransaction = async (): Promise<void> => {
+      try {
+        retries++;
+        console.log(`[TonConnect Deposit] Attempt ${retries}/${maxRetries + 1}`);
+
+        // Jetton Transfer Payload 구성
+        const amountInNano = BigInt(amount) * BigInt(1000000000);
+        const destinationAddress = Address.parse(GAME_WALLET_ADDRESS);
+        const responseAddress = Address.parse(wallet.account.address);
+        
+        const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
+        console.log('[TonConnect Deposit] ✓ Payload built successfully');
+        console.log('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
+
+        // CSPIN Jetton Wallet 주소 파싱 (정식 형식)
+        const jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
+        console.log('[TonConnect Deposit] ✓ Jetton Wallet Address:', jettonWalletAddress);
+
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 600,
+          messages: [
+            {
+              address: jettonWalletAddress,
+              amount: '200000000', // 0.2 TON for fees
+              payload: payload
+            }
+          ]
+        };
+
+        console.log('[TonConnect Deposit] 📤 Sending transaction...');
+        console.log('[TonConnect Deposit] Transaction object:', JSON.stringify(transaction, null, 2));
+
+        const result = await tonConnectUI.sendTransaction(transaction as any);
+        
+        console.log('[TonConnect Deposit] ✅ Transaction sent successfully!');
+        console.log('[TonConnect Deposit] Response:', result);
+
+        // 백엔드에 입금 기록
+        console.log('[TonConnect Deposit] 📝 Recording deposit on backend...');
+        try {
+          const response = await fetch('/api/deposit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress: wallet.account.address,
+              depositAmount: amount,
+              txHash: result.boc || result.toString(),
+              method: 'tonconnect'
+            })
+          });
+
+          if (!response.ok) {
+            console.warn(`[TonConnect Deposit] Backend returned ${response.status}`);
+          } else {
+            console.log('[TonConnect Deposit] ✓ Backend recorded successfully');
+          }
+        } catch (backendError) {
+          console.warn('[TonConnect Deposit] Backend recording failed (non-critical):', backendError);
+        }
+
+        showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
+        depositState.setAmount('100');
+        
+        if (onDepositSuccess) onDepositSuccess(amount);
+        if (isTMA) {
+          try { WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`); } catch (e) { console.log('[TMA Alert] Not supported'); }
+        }
+
+        console.log(`
+═════════════════════════════════════════════════════
+✅ [TonConnect Deposit] SUCCESS
+═════════════════════════════════════════════════════
+        `);
+
+        // 2초 후 자동 뒤로 가기
+        setTimeout(() => onBack?.(), 2000);
+      } catch (error) {
+        console.error(`[TonConnect Deposit] Attempt ${retries} failed:`, error);
+        console.error('[TonConnect Deposit] Error details:', {
+          message: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : undefined,
+          stack: error instanceof Error ? error.stack : undefined
+        });
+
+        // QUIC 에러나 타임아웃 시 재시도
+        const isRetryable = error instanceof Error && 
+          (error.message.includes('QUIC') || 
+           error.message.includes('timeout') ||
+           error.message.includes('Failed') ||
+           error.message.includes('disconnect'));
+
+        if (isRetryable && retries < maxRetries + 1) {
+          console.log('[TonConnect Deposit] 🔄 Retrying due to network error...');
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+          return attemptTransaction();
+        }
+
+        depositState.handleError(error, { method: 'tonconnect' });
+        if (isTMA) {
+          try { WebApp.showAlert('입금에 실패했습니다.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
+        }
+
+        throw error;
+      }
+    };
 
     try {
-      // Jetton Transfer Payload 구성
-      const amountInNano = BigInt(amount) * BigInt(1000000000);
-      const destinationAddress = Address.parse(GAME_WALLET_ADDRESS);
-      const responseAddress = Address.parse(wallet.account.address);
-      
-      const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
-      console.log('[TonConnect Deposit] Payload built successfully');
-
-      // CSPIN Jetton Wallet 주소 파싱 (정식 형식)
-      const jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
-      console.log('[TonConnect Deposit] Jetton Wallet Address:', jettonWalletAddress);
-
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 600,
-        messages: [
-          {
-            address: jettonWalletAddress,  // ← 정식 Address 형식
-            amount: '200000000', // 0.2 TON for fees
-            payload: payload
-          }
-        ]
-      };
-
-      console.log('[TonConnect Deposit] Calling sendTransaction...');
-      const result = await tonConnectUI.sendTransaction(transaction as any);
-      console.log('[TonConnect Deposit] Transaction sent successfully:', result);
-
-      // 백엔드에 입금 기록
-      console.log('[TonConnect Deposit] Recording deposit on backend...');
-      const response = await fetch('/api/deposit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          walletAddress: wallet.account.address,
-          depositAmount: amount,
-          txHash: result.boc || result,
-          method: 'tonconnect'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`서버 오류: ${response.status}`);
-      }
-
-      console.log('[TonConnect Deposit] Backend response successful');
-      showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
-      depositState.setAmount('100');
-      
-      if (onDepositSuccess) onDepositSuccess(amount);
-      if (isTMA) {
-        try { WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`); } catch (e) { console.log('[TMA Alert] Not supported'); }
-      }
-
-      // 2초 후 자동 뒤로 가기
-      setTimeout(() => onBack?.(), 2000);
-    } catch (error) {
-      console.error('[TonConnect Deposit] Error:', error);
-      console.error('[TonConnect Deposit] Error details:', {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      depositState.handleError(error, { method: 'tonconnect' });
-      if (isTMA) {
-        try { WebApp.showAlert('입금에 실패했습니다.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
-      }
+      await attemptTransaction();
     } finally {
       depositState.setLoading(false);
     }
