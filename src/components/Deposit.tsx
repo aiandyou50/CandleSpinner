@@ -270,7 +270,7 @@ async function recordDepositOnBackend(
       success: true,
       message: data.message || '입금 기록이 완료되었습니다',
       retryable: false,
-      recordId: data.recordId || undefined
+      ...(data.recordId ? { recordId: data.recordId } : {})
     };
 
   } catch (error) {
@@ -522,13 +522,22 @@ Time: ${new Date().toISOString()}
         retries++;
         console.log(`[TonConnect Deposit] Attempt ${retries}/${maxRetries + 1}`);
 
-        // ✅ 모든 주소를 TonConnect 호환 형식으로 변환 (Friendly format)
-        const destinationAddress = Address.parse(GAME_WALLET_ADDRESS)
-          .toString({ testOnly: false, bounceable: true });
-        const responseAddress = Address.parse(wallet.account.address)
-          .toString({ testOnly: false, bounceable: true });
-        const destinationAddressObj = Address.parse(destinationAddress); // Payload용 Address 객체
-        const responseAddressObj = Address.parse(responseAddress);
+        // ✅ 주소들을 먼저 파싱하여 Address 객체로 변환 (정식 형식 보증)
+        let destinationAddressObj: Address;
+        let responseAddressObj: Address;
+        
+        try {
+          destinationAddressObj = Address.parse(GAME_WALLET_ADDRESS);
+          responseAddressObj = Address.parse(wallet.account.address);
+          console.log('[TonConnect Deposit] ✓ Addresses parsed successfully');
+        } catch (parseError) {
+          console.error('[TonConnect Deposit] ❌ Address parse error:', {
+            gameWallet: GAME_WALLET_ADDRESS,
+            userWallet: wallet.account.address,
+            error: parseError instanceof Error ? parseError.message : String(parseError)
+          });
+          throw parseError;
+        }
 
         // Jetton Transfer Payload 구성
         const amountInNano = BigInt(amount) * BigInt(1000000000);
@@ -536,13 +545,17 @@ Time: ${new Date().toISOString()}
         const payload = buildJettonTransferPayload(amountInNano, destinationAddressObj, responseAddressObj);
         console.log('[TonConnect Deposit] ✓ Payload built successfully');
         console.log('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
-        console.log('[TonConnect Deposit] 📍 Addresses (TonConnect format):', {
-          destination: destinationAddress,
-          response: responseAddress
+
+        // TonConnect용 Friendly format 변환
+        const destinationAddressStr = destinationAddressObj.toString({ testOnly: false, bounceable: true });
+        const responseAddressStr = responseAddressObj.toString({ testOnly: false, bounceable: true });
+        console.log('[TonConnect Deposit] 📍 Addresses (Friendly format):', {
+          destination: destinationAddressStr,
+          response: responseAddressStr
         });
 
         // CSPIN Jetton 주소 (정식 Base64 형식 - TonConnect 호환)
-        // .env에서 로드되며, 이미 검증된 형식
+        // .env에서 로드되며, 이미 정식 형식
         let jettonWalletAddress: string;
         try {
           // ✅ 정식 Base64 형식을 그대로 사용 (+ 와 / 포함)
