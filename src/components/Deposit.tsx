@@ -270,7 +270,7 @@ async function recordDepositOnBackend(
       success: true,
       message: data.message || '입금 기록이 완료되었습니다',
       retryable: false,
-      recordId: data.recordId
+      recordId: data.recordId || undefined
     };
 
   } catch (error) {
