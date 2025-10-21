@@ -7,7 +7,37 @@
 
 ---
 
-## � [In Progress] - 진행 중인 작업
+## 🔄 [In Progress] - 진행 중인 작업
+
+(현재 진행 중인 작업 없음)
+
+---
+
+## ✅ [Done] - 완료된 작업
+
+### 🐛 TonConnect 버튼 표시 및 입금 오류 수정 (v2.0.2)
+- **시작일:** 2025년 10월 21일
+- **완료일:** 2025년 10월 21일
+- **담당:** GitHub Copilot
+- **최종 결과:**
+  - ✅ Deposit.tsx Jetton Transfer Payload 구현
+    - PoC 코드 기반 올바른 payload 구성
+    - opcode: 0xF8A7EA5 (Jetton Transfer 표준)
+    - CSPIN_JETTON_WALLET 주소 활용
+  - ✅ App.tsx TMA 환경 TonConnect 버튼 추가
+    - 웹/TMA 모두에서 버튼 표시
+    - 일관된 고정 헤더 레이아웃
+  - ✅ 문서화 완성 ([산출물2], [산출물3] 동기화)
+  - ✅ 버전 업데이트 (v2.0.2)
+  - ✅ Git 커밋 및 배포 (커밋: e78cc3c)
+- **핵심 기술:**
+  - Jetton TEP-74 Transfer Payload 생성
+  - ton-core 라이브러리 활용
+  - beginCell() → storeUint() → storeCoins() → endCell() 플로우
+- **알려진 사항:**
+  - 문제 원인: 이전 코드의 payload: undefined로 인한 오류
+  - 해결책: 표준 Jetton Transfer Payload 포함
+  - 테스트 상태: 빌드 성공, 배포 완료
 
 ### v2.1.0 A/B 테스트 준비
 - **시작일:** 2025년 10월 21일
