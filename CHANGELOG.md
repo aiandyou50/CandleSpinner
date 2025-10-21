@@ -5,6 +5,58 @@
 
 ---
 
+## [2.1.0] - 2025-10-21 (Phase 1 긴급 개선: 테스트 & 모니터링)
+
+### ✨ 추가됨 (Added)
+
+#### 1. Vitest 테스트 자동화 (Phase 1-1)
+- **설치**: vitest, @testing-library/react, happy-dom, @testing-library/jest-dom
+- **설정**: vitest.config.ts (80% 커버리지 목표, happy-dom 환경)
+- **테스트 추가**: src/components/Deposit.test.tsx (12 테스트)
+- **상태**: ✅ 모든 테스트 통과 (12/12 tests passed)
+- **NPM 스크립트**: `npm test`, `npm run test:ui`, `npm run test:coverage`
+
+#### 2. Sentry 에러 추적 통합 (Phase 1-2)
+- **설치**: @sentry/react, @sentry/tracing (14 packages)
+- **초기화**: src/main.tsx에서 Sentry SDK 설정
+- **ErrorBoundary**: 전역 에러 감지 및 자동 보고 컴포넌트 추가
+- **환경변수**: VITE_SENTRY_DSN 환경변수 기반 설정
+- **샘플링**: 개발 100%, 프로덕션 10%
+
+#### 3. 환경변수 관리 개선
+- **.env**: 기본 테스트 값 설정
+- **.env.example**: 프로덕션 템플릿 제공
+- **.gitignore**: .env.local, .env.production.local 추가
+- **타입 안정성**: src/vite-env.d.ts에 ImportMeta 타입 선언
+
+### 🔧 개선됨 (Improved)
+
+#### TypeScript 타입 안정성
+- vite-env.d.ts 개선 (CSS 모듈, ImportMeta)
+- tsconfig.json 업데이트 (vitest.config.ts 제외)
+- CSS 모듈 선언 정규화
+
+#### 개발 환경
+- npm test 스크립트 추가
+- 테스트 UI 및 커버리지 리포트 생성 가능
+- TonConnectUIProvider Wrapper 패턴 구현
+
+### 📦 패키지 변경
+
+**추가**:
+- vitest@3.2.4
+- @vitest/ui
+- @testing-library/react
+- @testing-library/jest-dom  
+- happy-dom
+- @testing-library/user-event
+- @sentry/react
+- @sentry/tracing
+
+**총 추가**: 64 packages
+
+---
+
 ## [2.0.2] - 2025-10-21 (TonConnect 버그 수정 및 긴급 핫픽스)
 
 ### 🐛 수정됨 (Fixed)
