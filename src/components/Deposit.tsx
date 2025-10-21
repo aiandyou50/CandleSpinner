@@ -401,4 +401,5 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   );
 };
 
-export default Deposit;
+// React.memo로 불필요한 리렌더링 방지
+export default React.memo(Deposit);
