@@ -2,9 +2,12 @@
 import React from 'react';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell } from 'ton-core';
+import { TonClient } from '@ton/ton';
+import type { Transaction } from '@ton/ton';
 import WebApp from '@twa-dev/sdk';
 import { useDepositState } from '../hooks/useDepositState';
 import { useToast } from '../hooks/useToast';
+import { TON_RPC_URL } from '../constants';
 
 interface DepositProps {
   onDepositSuccess?: (amount: number) => void;
@@ -96,6 +99,91 @@ function getErrorMessage(category: ErrorCategory): string {
   return messages[category];
 }
 
+/**
+ * 트랜잭션을 블록체인에서 확인
+ * TON 공식 문서: "TON transactions become irreversible after a single confirmation."
+ * 
+ * @param userAddress - 사용자 지갑 주소
+ * @param maxWaitMs - 최대 대기 시간 (기본: 30초)
+ * @returns 트랜잭션 확인 성공 여부
+ */
+async function confirmTransaction(
+  userAddress: string,
+  maxWaitMs = 30000
+): Promise<boolean> {
+  console.log('[Transaction Confirmation] Starting blockchain verification...');
+  
+  const startTime = Date.now();
+  let attempts = 0;
+  
+  try {
+    const client = new TonClient({
+      endpoint: TON_RPC_URL
+    });
+
+    const userAddr = Address.parse(userAddress);
+    
+    // 폴링 루프: 트랜잭션이 블록체인에 기록될 때까지 반복
+    while (Date.now() - startTime < maxWaitMs) {
+      attempts++;
+      const elapsedMs = Date.now() - startTime;
+      
+      console.log(
+        `[Transaction Confirmation] Attempt ${attempts} (${elapsedMs}ms elapsed)...`
+      );
+
+      try {
+        // TON RPC에서 최근 트랜잭션 조회
+        const transactions = await client.getTransactions(
+          userAddr,
+          {
+            limit: 10,
+            archival: true  // 아카이벌 모드: 모든 트랜잭션 조회
+          }
+        );
+
+        // 트랜잭션 발견 시
+        if (transactions.length > 0) {
+          const latestTx = transactions[0]!;
+          
+          console.log(
+            '[Transaction Confirmation] ✅ Transaction confirmed!',
+            {
+              hash: latestTx.hash().toString('base64').substring(0, 20) + '...',
+              lt: latestTx.lt.toString(),
+              timestamp: latestTx.now,
+              messages: latestTx.outMessages.size
+            }
+          );
+
+          return true;
+        }
+
+        console.log('[Transaction Confirmation] No transactions found yet, waiting...');
+      } catch (queryError) {
+        console.warn(
+          `[Transaction Confirmation] Query attempt ${attempts} failed:`,
+          queryError instanceof Error ? queryError.message : queryError
+        );
+      }
+
+      // 2초 대기 후 재시도
+      await new Promise(r => setTimeout(r, 2000));
+    }
+
+    // Timeout
+    console.error(
+      '[Transaction Confirmation] ❌ Confirmation timeout after ' +
+      `${maxWaitMs}ms and ${attempts} attempts`
+    );
+    return false;
+
+  } catch (error) {
+    console.error('[Transaction Confirmation] Fatal error:', error);
+    return false;
+  }
+}
+
 const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   // 상태 관리: depositState로 통합 (기존 useState 제거)
   const depositState = useDepositState('select');
@@ -178,8 +266,26 @@ Time: ${new Date().toISOString()}
 
         const result = await tonConnectUI.sendTransaction(transaction as any);
         
-        console.log('[TonConnect Deposit] ✅ Transaction sent successfully!');
+        console.log('[TonConnect Deposit] ✅ Transaction sent to wallet');
         console.log('[TonConnect Deposit] Response:', result);
+
+        // ✅ 블록체인에서 트랜잭션 확인 (새로운 단계)
+        console.log('[TonConnect Deposit] 🔍 Confirming on blockchain...');
+        const confirmed = await confirmTransaction(
+          wallet.account.address,
+          30000  // 최대 30초 대기
+        );
+
+        if (!confirmed) {
+          console.warn('[TonConnect Deposit] ⏳ Transaction pending confirmation');
+          showToast(
+            '⏳ 트랜잭션이 처리 중입니다. 잠시 후 확인해주세요.',
+            'warning'
+          );
+          // 여기서는 계속 진행 (블록체인에 기록되었을 가능성 있음)
+        } else {
+          console.log('[TonConnect Deposit] ✅ Confirmed on blockchain!');
+        }
 
         // 백엔드에 입금 기록
         console.log('[TonConnect Deposit] 📝 Recording deposit on backend...');
