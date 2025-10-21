@@ -525,22 +525,20 @@ Time: ${new Date().toISOString()}
         // ✅ 주소 파싱 (ton-core는 모든 Base64 형식 지원 - URL-safe, 정식 모두)
         let destinationAddressObj: Address;
         let responseAddressObj: Address;
-        let jettonWalletAddressStr: string;
         
         try {
           // Address.parse()는 자동으로 모든 형식 처리
           destinationAddressObj = Address.parse(GAME_WALLET_ADDRESS);
           responseAddressObj = Address.parse(wallet.account.address);
           
-          // CSPIN Jetton 지갑도 미리 파싱 (검증용)
-          const jettonWalletObj = Address.parse(CSPIN_JETTON_WALLET);
-          jettonWalletAddressStr = jettonWalletObj.toString({ testOnly: false, bounceable: true });
+          // CSPIN Jetton 지갑 검증만 (변환 금지!)
+          Address.parse(CSPIN_JETTON_WALLET);
           
           console.log('[TonConnect Deposit] ✓ All addresses parsed successfully');
           console.log('[TonConnect Deposit] 📍 Addresses:', {
-            gameWallet: destinationAddressObj.toString(),
-            userWallet: responseAddressObj.toString(),
-            jettonWallet: jettonWalletAddressStr
+            gameWallet: GAME_WALLET_ADDRESS,
+            userWallet: wallet.account.address,
+            jettonWallet: CSPIN_JETTON_WALLET
           });
         } catch (parseError) {
           console.error('[TonConnect Deposit] ❌ Address parse error:', {
@@ -559,12 +557,12 @@ Time: ${new Date().toISOString()}
         console.log('[TonConnect Deposit] ✓ Payload built successfully');
         console.log('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
 
-        // TonConnect 메시지 구성
+        // TonConnect 메시지 구성 (원본 주소 그대로 사용!)
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 600,
           messages: [
             {
-              address: jettonWalletAddressStr,  // ✅ 미리 파싱된 Friendly format 주소
+              address: CSPIN_JETTON_WALLET,  // ✅ 원본 URL-safe Base64 주소 사용
               amount: '200000000', // 0.2 TON for fees
               payload: payload
             }
