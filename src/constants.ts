@@ -16,16 +16,17 @@
 /**
  * 게임 지갑 주소
  * 사용자로부터 CSPIN 토큰을 수령할 지갑 주소
+ * 정식 Base64 형식 (TonConnect 호환)
  *
  * @example
  * ```
  * // .env
- * VITE_GAME_WALLET_ADDRESS=UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd
+ * VITE_GAME_WALLET_ADDRESS=UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83+batQ+dptaR8Mtd
  * ```
  */
 export const GAME_WALLET_ADDRESS = 
   import.meta.env.VITE_GAME_WALLET_ADDRESS ||
-  "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd";
+  "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83+batQ+dptaR8Mtd";
 
 /**
  * CSPIN 토큰 메인 계약 주소 (Jetton Master)
