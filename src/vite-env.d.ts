@@ -1,5 +1,7 @@
+/// <reference types="vite/client" />
+
 declare module "*.css" {
-  const content: { [className: string]: string };
+  const content: string;
   export default content;
 }
 
@@ -8,6 +10,14 @@ declare global {
   interface Window {
     Telegram?: {
       WebApp?: any;
+    };
+  }
+
+  interface ImportMeta {
+    readonly env: {
+      readonly VITE_SENTRY_DSN?: string;
+      readonly VITE_TON_RPC_URL?: string;
+      readonly MODE: 'development' | 'production';
     };
   }
 }

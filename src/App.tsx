@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Game from './components/Game';
 import Deposit from './components/Deposit';
+import ErrorBoundary from './components/ErrorBoundary';
 import { TonConnectUIProvider, TonConnectButton } from '@tonconnect/ui-react';
 import { TON_CONNECT_MANIFEST_URL } from './constants';
 
@@ -13,7 +14,8 @@ function App() {
   const [appMode, setAppMode] = useState<AppMode>('game');
 
   return (
-    <TonConnectUIProvider manifestUrl={TON_CONNECT_MANIFEST_URL}>
+    <ErrorBoundary>
+      <TonConnectUIProvider manifestUrl={TON_CONNECT_MANIFEST_URL}>
       {isTMA ? (
         // ==================== Telegram Mini App 환경 ====================
         <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white', position: 'relative' }}>
@@ -106,7 +108,8 @@ function App() {
           </main>
         </div>
       )}
-    </TonConnectUIProvider>
+      </TonConnectUIProvider>
+    </ErrorBoundary>
   );
 }
 

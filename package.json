@@ -24,6 +24,8 @@
   },
   "homepage": "https://github.com/aiandyou50/CandleSpinner#readme",
   "dependencies": {
+    "@sentry/react": "^10.20.0",
+    "@sentry/tracing": "^7.120.4",
     "@ton/core": "^0.62.0",
     "@ton/ton": "^16.0.0",
     "@tonconnect/ui-react": "^2.3.1",

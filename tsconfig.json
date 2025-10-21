@@ -48,6 +48,7 @@
     "PoC/**",
     "functions/**",
     "vite.config.ts",
+    "vitest.config.ts",
     "ton-docs/**",
     "jetton-contract/**",
     "token-contract/**",

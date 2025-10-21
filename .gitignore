@@ -3,6 +3,9 @@
 
 ***REMOVED***local env files
 .env
+.env.local
+.env.production.local
+.env.*.local
 
 ***REMOVED***build output
 /dist
