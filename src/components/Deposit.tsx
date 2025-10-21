@@ -14,19 +14,86 @@ interface DepositProps {
 const GAME_WALLET_ADDRESS = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
 const CSPIN_JETTON_WALLET = 'EQBX5_CVq_7UQR0_8Q-3o-Jg4FfT7R8N9K_2J-5q_e4S7P1J'; // CSPIN Jetton Wallet Address (Game Wallet의 CSPIN 잔액 계좌)
 
-// Jetton Transfer Payload 구성
+/**
+ * Jetton Transfer Payload 구성 (TEP-74 표준 준수)
+ * 
+ * @see https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
+ * @see https://docs.ton.org/develop/dapps/asset-processing/jettons
+ */
 function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address): string {
   const cell = beginCell()
-    .storeUint(0xf8a7ea5, 32) // Jetton transfer opcode
-    .storeUint(0, 64) // query_id
-    .storeCoins(amount)
-    .storeAddress(destination)
-    .storeAddress(responseTo)
-    .storeBit(0) // custom_payload: none
-    .storeCoins(BigInt(0)) // forward_ton_amount
-    .storeBit(0) // forward_payload: none
+    .storeUint(0xf8a7ea5, 32)      // Jetton transfer opcode (TEP-74 표준)
+    .storeUint(0, 64)              // query_id:uint64
+    .storeCoins(amount)            // amount:(VarUInteger 16)
+    .storeAddress(destination)     // destination:MsgAddress
+    .storeAddress(responseTo)      // response_destination:MsgAddress
+    .storeBit(0)                   // custom_payload:(Maybe ^Cell) = none
+    .storeCoins(BigInt(1))         // ✅ forward_ton_amount = 1 nanoton (TON 표준 준수)
+    .storeBit(0)                   // forward_payload:(Either Cell ^Cell) = none
     .endCell();
   return cell.toBoc().toString('base64');
+}
+
+/**
+ * 에러 카테고리 분류 (TON 트랜잭션 처리용)
+ */
+enum ErrorCategory {
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  TIMEOUT = 'TIMEOUT',
+  USER_REJECTION = 'USER_REJECTION',
+  INVALID_ADDRESS = 'INVALID_ADDRESS',
+  INSUFFICIENT_BALANCE = 'INSUFFICIENT_BALANCE',
+  UNKNOWN = 'UNKNOWN'
+}
+
+/**
+ * 에러를 분류하고 재시도 가능 여부 판단
+ */
+function classifyError(error: unknown): ErrorCategory {
+  if (!(error instanceof Error)) return ErrorCategory.UNKNOWN;
+
+  const msg = error.message.toLowerCase();
+
+  if (msg.includes('quic') || msg.includes('econnrefused') || msg.includes('network')) {
+    return ErrorCategory.NETWORK_ERROR;
+  }
+  if (msg.includes('timeout') || msg.includes('etimeout')) {
+    return ErrorCategory.TIMEOUT;
+  }
+  if (msg.includes('rejected') || msg.includes('user_rejection') || msg.includes('cancelled')) {
+    return ErrorCategory.USER_REJECTION;
+  }
+  if (msg.includes('invalid') || msg.includes('address')) {
+    return ErrorCategory.INVALID_ADDRESS;
+  }
+  if (msg.includes('insufficient') || msg.includes('balance')) {
+    return ErrorCategory.INSUFFICIENT_BALANCE;
+  }
+
+  return ErrorCategory.UNKNOWN;
+}
+
+/**
+ * 재시도 가능 여부 판단
+ */
+function isRetryableError(category: ErrorCategory): boolean {
+  return [ErrorCategory.NETWORK_ERROR, ErrorCategory.TIMEOUT].includes(category);
+}
+
+/**
+ * 사용자에게 표시할 에러 메시지 생성
+ */
+function getErrorMessage(category: ErrorCategory): string {
+  const messages: Record<ErrorCategory, string> = {
+    [ErrorCategory.NETWORK_ERROR]: '❌ 네트워크 연결 오류. 잠시 후 다시 시도해주세요.',
+    [ErrorCategory.TIMEOUT]: '⏱️ 요청 시간 초과. 지갑의 응답이 없습니다. 다시 시도해주세요.',
+    [ErrorCategory.USER_REJECTION]: '❌ 지갑에서 트랜잭션을 거부했습니다.',
+    [ErrorCategory.INVALID_ADDRESS]: '❌ 유효하지 않은 지갑 주소입니다.',
+    [ErrorCategory.INSUFFICIENT_BALANCE]: '❌ 지갑의 잔액이 부족합니다.',
+    [ErrorCategory.UNKNOWN]: '❌ 알 수 없는 오류가 발생했습니다.'
+  };
+
+  return messages[category];
 }
 
 const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
@@ -161,22 +228,27 @@ Time: ${new Date().toISOString()}
           stack: error instanceof Error ? error.stack : undefined
         });
 
-        // QUIC 에러나 타임아웃 시 재시도
-        const isRetryable = error instanceof Error && 
-          (error.message.includes('QUIC') || 
-           error.message.includes('timeout') ||
-           error.message.includes('Failed') ||
-           error.message.includes('disconnect'));
+        // ✅ 에러 분류 및 재시도 판단 (개선)
+        const errorCategory = classifyError(error);
+        const errorMessage = getErrorMessage(errorCategory);
+        const shouldRetry = isRetryableError(errorCategory) && retries < maxRetries + 1;
 
-        if (isRetryable && retries < maxRetries + 1) {
-          console.log('[TonConnect Deposit] 🔄 Retrying due to network error...');
+        console.log('[TonConnect Deposit] Error classification:', {
+          category: errorCategory,
+          message: errorMessage,
+          shouldRetry
+        });
+
+        if (shouldRetry) {
+          console.log('[TonConnect Deposit] 🔄 Retrying due to ' + errorCategory + '...');
           await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
           return attemptTransaction();
         }
 
         depositState.handleError(error, { method: 'tonconnect' });
+        showToast(errorMessage, 'error');
         if (isTMA) {
-          try { WebApp.showAlert('입금에 실패했습니다.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
+          try { WebApp.showAlert(errorMessage); } catch (e) { console.log('[TMA Alert] Not supported'); }
         }
 
         throw error;
