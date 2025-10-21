@@ -5,25 +5,42 @@
 
 ---
 
-## [2.0.2] - 2025-10-21 (TonConnect 버그 수정)
+## [2.0.2] - 2025-10-21 (TonConnect 버그 수정 및 긴급 핫픽스)
 
 ### 🐛 수정됨 (Fixed)
-- **TonConnect 입금 오류 수정 (v2.1.0 준비)**
-  - ✅ 문제: "100TON 지갑에 있어야 한다" 오류 발생
-  - ✅ 원인: Jetton Transfer Payload 미포함 + 잘못된 전송 주소
-  - ✅ 해결: 
-    - Jetton Transfer Payload (opcode: 0xF8A7EA5) 구성 추가
-    - CSPIN_JETTON_WALLET 주소로 전송 (게임 지갑이 아닌)
-    - PoC 코드 기반 올바른 payload 구조 적용
-  
-- **TMA 환경 TonConnect 버튼 표시**
-  - ✅ 이전: 웹 브라우저 환경에서만 표시
-  - ✅ 변경: TMA 환경과 웹 환경 모두에서 표시
-  - ✅ App.tsx 헤더에 TonConnect 버튼 추가
 
-### 📚 문서 (Docs)
-- [산출물2] v2.1.0 TonConnect UI 개선사항 기록
-- [산출물3] D.0 섹션 신규 작성: Jetton Transfer Payload 구성 방법
+#### 1. Jetton Transfer Payload 구성 오류 (v2.0.1 → v2.0.2)
+- **문제**: "100TON 지갑에 있어야 한다" 오류 발생
+- **원인**: Jetton Transfer Payload 미포함 + 잘못된 전송 주소
+- **해결**: 
+  - Jetton Transfer Payload (opcode: 0xF8A7EA5) 적용
+  - CSPIN_JETTON_WALLET 주소로 전송 (게임 지갑 ❌)
+  - PoC 코드 기반 올바른 payload 구조 도입
+
+#### 2. TonConnect Address 형식 오류 (긴급 핫픽스)
+- **문제**: `address: CSPIN_JETTON_WALLET` (문자열) 전달
+  - TonConnect SDK 오류: `"Wrong 'address' format in message at index 0"`
+- **해결**: `Address.parse(CSPIN_JETTON_WALLET).toString()` 적용
+  - TonConnect SDK의 정식 Address 형식 요구사항 충족
+- **영향**: Deposit.tsx 트랜잭션 구조 수정
+
+#### 3. TMA 환경 TonConnect 버튼 표시 (v2.0.1 → v2.0.2)
+- **문제**: TMA 환경에서 TonConnect 버튼 미표시
+- **해결**: `App.tsx`에 TMA 환경 `<header>` 추가
+- **결과**: 웹/TMA 모두에서 지갑 연결 가능
+
+### 📚 문서 (Docs) - SSoT 동기화
+- **[산출물2]**: TonConnect UI v2.0.x 개선사항 기록
+  - v2.0.1 웹 환경 버튼 표시
+  - v2.0.2 TMA 환경 버튼 + Address 형식 수정
+- **[산출물3]**: D.0 섹션 업데이트
+  - Jetton Transfer Payload 구성 방법
+  - Address 형식 오류 해결 과정 (테이블)
+  - v2.0.2 긴급 수정 내용 추가
+
+### 📝 작업 기록
+- **지시서**: TonConnect-버튼-표시-및-입금-오류-수정, TonConnect-주소-형식-오류-수정
+- **해결 기록**: 2개 생성 (solutions/ 폴더)
 
 ---
 

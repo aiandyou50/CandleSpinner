@@ -639,11 +639,15 @@ function buildJettonTransferPayload(amount: bigint, destination: Address, respon
 **TonConnect 트랜잭션 구조 (v2.1.0):**
 ```typescript
 const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
+
+// ✅ v2.0.2 긴급 수정: Address 형식 오류 해결
+const jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
+
 const transaction = {
   validUntil: Math.floor(Date.now() / 1000) + 600,
   messages: [
     {
-      address: CSPIN_JETTON_WALLET,  // CSPIN Jetton Wallet 주소 (중요!)
+      address: jettonWalletAddress,  // ← Address.parse().toString() 필수 (v2.0.2)
       amount: '200000000',             // 0.2 TON (for fees)
       payload: payload                 // ← Jetton Transfer Payload 필수
     }
@@ -654,8 +658,17 @@ const result = await tonConnectUI.sendTransaction(transaction);
 
 **핵심 수정 요소:**
 1. **CSPIN_JETTON_WALLET 주소**: 게임 지갑이 아닌, CSPIN 토큰의 Jetton Wallet 주소 사용
-2. **payload 필수**: `undefined` 대신 Jetton Transfer Payload 포함
-3. **amount**: 게임 지갑이 아닌 CSPIN Jetton 주소로 전송할 때 필요한 TON 가스비
+2. **Address 형식 (v2.0.2 핵심)**: `Address.parse().toString()` 필수 (TonConnect SDK 요구사항)
+3. **payload 필수**: `undefined` 대신 Jetton Transfer Payload 포함
+4. **amount**: 게임 지갑이 아닌 CSPIN Jetton 주소로 전송할 때 필요한 TON 가스비
+
+---
+
+**오류 해결 과정 (v2.0.2)**:
+| 단계 | 문제 | 해결책 |
+|------|------|--------|
+| **v2.0.1** | `address: CSPIN_JETTON_WALLET` (문자열) | ❌ TonConnect 거부: "Wrong 'address' format" |
+| **v2.0.2** | `address: Address.parse(CSPIN_JETTON_WALLET).toString()` | ✅ 정식 Address 형식 |
 
 #### **D.1. 입금 방식 A: TonConnect 클라이언트 직접 서명 (DepositDirect - v2.1.0 수정)**
 
