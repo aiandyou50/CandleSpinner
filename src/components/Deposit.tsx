@@ -8,7 +8,7 @@ import { JettonMaster } from '@ton/ton';
 import WebApp from '@twa-dev/sdk';
 import { useDepositState } from '../hooks/useDepositState';
 import { useToast } from '../hooks/useToast';
-import { TON_RPC_URL, GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS, CSPIN_JETTON_WALLET } from '../constants';
+import { TON_RPC_URL, GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
 
 interface DepositProps {
   onDepositSuccess?: (amount: number) => void;
@@ -526,25 +526,32 @@ Time: ${new Date().toISOString()}
         let destinationAddressObj: Address;
         let responseAddressObj: Address;
         
+        const client = new TonClient({
+          endpoint: TON_RPC_URL,
+        });
+
+        const userJettonWalletAddress = await getUserJettonWallet(
+          wallet.account.address,
+          client,
+          CSPIN_TOKEN_ADDRESS
+        );
+
         try {
           // Address.parse()는 자동으로 모든 형식 처리
           destinationAddressObj = Address.parse(GAME_WALLET_ADDRESS);
           responseAddressObj = Address.parse(wallet.account.address);
           
-          // CSPIN Jetton 지갑 검증만 (변환 금지!)
-          Address.parse(CSPIN_JETTON_WALLET);
-          
           console.log('[TonConnect Deposit] ✓ All addresses parsed successfully');
           console.log('[TonConnect Deposit] 📍 Addresses:', {
             gameWallet: GAME_WALLET_ADDRESS,
             userWallet: wallet.account.address,
-            jettonWallet: CSPIN_JETTON_WALLET
+            jettonWallet: userJettonWalletAddress
           });
         } catch (parseError) {
           console.error('[TonConnect Deposit] ❌ Address parse error:', {
             gameWallet: GAME_WALLET_ADDRESS,
             userWallet: wallet.account.address,
-            jettonWallet: CSPIN_JETTON_WALLET,
+            jettonWallet: userJettonWalletAddress,
             error: parseError instanceof Error ? parseError.message : String(parseError)
           });
           throw parseError;
@@ -562,7 +569,7 @@ Time: ${new Date().toISOString()}
           validUntil: Math.floor(Date.now() / 1000) + 600,
           messages: [
             {
-              address: CSPIN_JETTON_WALLET,  // ✅ 원본 URL-safe Base64 주소 사용
+              address: userJettonWalletAddress,
               amount: '200000000', // 0.2 TON for fees
               payload: payload
             }
