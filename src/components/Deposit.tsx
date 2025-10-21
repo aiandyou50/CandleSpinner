@@ -4,18 +4,16 @@ import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell } from 'ton-core';
 import { TonClient } from '@ton/ton';
 import type { Transaction } from '@ton/ton';
+import { JettonMaster } from '@ton/ton';
 import WebApp from '@twa-dev/sdk';
 import { useDepositState } from '../hooks/useDepositState';
 import { useToast } from '../hooks/useToast';
-import { TON_RPC_URL } from '../constants';
+import { TON_RPC_URL, GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS, CSPIN_JETTON_WALLET } from '../constants';
 
 interface DepositProps {
   onDepositSuccess?: (amount: number) => void;
   onBack?: () => void;
 }
-
-const GAME_WALLET_ADDRESS = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
-const CSPIN_JETTON_WALLET = 'EQBX5_CVq_7UQR0_8Q-3o-Jg4FfT7R8N9K_2J-5q_e4S7P1J'; // CSPIN Jetton Wallet Address (Game Wallet의 CSPIN 잔액 계좌)
 
 /**
  * Jetton Transfer Payload 구성 (TEP-74 표준 준수)
@@ -190,7 +188,7 @@ async function confirmTransaction(
 interface DepositApiResponse {
   success: boolean;
   message: string;
-  recordId?: string;
+  recordId?: string | undefined;
   transactionHash?: string;
   error?: string;
   retryable?: boolean;
@@ -272,7 +270,7 @@ async function recordDepositOnBackend(
       success: true,
       message: data.message || '입금 기록이 완료되었습니다',
       retryable: false,
-      recordId: data.recordId || undefined
+      recordId: data.recordId
     };
 
   } catch (error) {
@@ -288,6 +286,102 @@ async function recordDepositOnBackend(
       retryable: true  // 네트워크 에러는 일반적으로 재시도 가능
     };
   }
+}
+
+/**
+ * 사용자의 Jetton Wallet 주소를 동적으로 계산
+ * 
+ * TON 공식 문서 (ton-docs/guidelines/ton-connect/cookbook/jetton-transfer.mdx):
+ * "Jetton wallet state init and address preparation example"
+ * 
+ * @param userAddress - 사용자 지갑 주소
+ * @param client - TonClient 인스턴스
+ * @param jettonMasterAddr - JettonMaster 컨트랙트 주소
+ * @returns 사용자의 Jetton Wallet 주소
+ */
+async function getUserJettonWallet(
+  userAddress: string,
+  client: TonClient,
+  jettonMasterAddr: string
+): Promise<string> {
+  try {
+    console.log('[Jetton Wallet] Calculating user Jetton wallet address...');
+
+    const userAddr = Address.parse(userAddress);
+    const jettonMasterAddress = Address.parse(jettonMasterAddr);
+
+    // JettonMaster 컨트랙트 열기
+    const jettonMaster = client.open(JettonMaster.create(jettonMasterAddress));
+
+    // JettonMaster 컨트랙트에 질의 (provider 매개변수 필요)
+    const jettonWallet = await jettonMaster.getWalletAddress(userAddr);
+    const jettonWalletStr = jettonWallet.toString();
+    
+    console.log('[Jetton Wallet] ✅ Calculated:', {
+      user: userAddr.toString(),
+      jettonWallet: jettonWalletStr,
+      normalized: jettonWallet.toString({ bounceable: false })
+    });
+
+    return jettonWalletStr;
+
+  } catch (error) {
+    console.error('[Jetton Wallet] Failed to calculate:', error);
+    throw new Error(
+      `Jetton Wallet 주소 계산 실패: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
+
+/**
+ * 게임 지갑의 CSPIN Jetton Wallet 주소 초기화
+ * 애플리케이션 시작 시 한 번만 호출
+ * 
+ * @param client - TonClient 인스턴스
+ */
+let cachedGameJettonWallet: string | null = null;
+
+export async function initializeGameJettonWallet(
+  client: TonClient
+): Promise<void> {
+  if (cachedGameJettonWallet) {
+    console.log('[Init] Game Jetton Wallet already cached');
+    return;
+  }
+
+  try {
+    console.log('[Init] Initializing Game Jetton Wallet...');
+
+    // 게임 지갑의 CSPIN Jetton Wallet 주소 계산
+    cachedGameJettonWallet = await getUserJettonWallet(
+      GAME_WALLET_ADDRESS,
+      client,
+      CSPIN_TOKEN_ADDRESS
+    );
+
+    console.log('[Init] ✅ Game Jetton Wallet initialized successfully');
+
+  } catch (error) {
+    console.error('[Init] Failed to initialize Game Jetton Wallet:', error);
+    throw error;
+  }
+}
+
+/**
+ * 캐시된 게임 Jetton Wallet 주소 반환
+ * 
+ * @returns 게임 지갑의 CSPIN Jetton Wallet 주소
+ * @throws Game Jetton Wallet이 초기화되지 않은 경우
+ */
+export function getGameJettonWallet(): string {
+  if (!cachedGameJettonWallet) {
+    throw new Error(
+      'Game Jetton Wallet not initialized. Call initializeGameJettonWallet() first.'
+    );
+  }
+  return cachedGameJettonWallet;
 }
 
 const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
