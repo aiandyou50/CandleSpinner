@@ -165,7 +165,7 @@ export const onRequest = async (context: any) => {
     // Create internal message
     const transferMessage = internal({
       to: Address.parse(gameJettonWalletAddress),
-      value: toNano('0.03'), // 네트워크 수수료
+  value: toNano(context.env.NETWORK_FEE_TON ?? '0.03'), // 네트워크 수수료 (환경 변수 적용)
       body: jettonTransferBody
     });
 
