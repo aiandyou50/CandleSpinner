@@ -16,12 +16,38 @@ function App() {
     <TonConnectUIProvider manifestUrl={TON_CONNECT_MANIFEST_URL}>
       {isTMA ? (
         // ==================== Telegram Mini App 환경 ====================
-        <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white' }}>
-          {appMode === 'deposit' ? (
-            <Deposit onBack={() => setAppMode('game')} />
-          ) : (
-            <Game onDepositClick={() => setAppMode('deposit')} />
-          )}
+        <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)', color: 'white', position: 'relative' }}>
+          {/* TMA 환경에서도 TonConnect 버튼 표시 */}
+          <header style={{
+            position: 'fixed',
+            top: 16,
+            right: 16,
+            zIndex: 1000,
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center'
+          }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', padding: '4px', borderRadius: '6px' }}>
+              <TonConnectButton />
+            </div>
+          </header>
+
+          {/* 메인 콘텐츠 */}
+          <main style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '100vh',
+            padding: '20px'
+          }}>
+            <div style={{ width: '100%', maxWidth: 720 }}>
+              {appMode === 'deposit' ? (
+                <Deposit onBack={() => setAppMode('game')} />
+              ) : (
+                <Game onDepositClick={() => setAppMode('deposit')} />
+              )}
+            </div>
+          </main>
         </div>
       ) : (
         // ==================== 일반 웹 브라우저 환경 ====================

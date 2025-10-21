@@ -1,6 +1,7 @@
 // src/components/Deposit.tsx - 입금 UI 완전 재작성
 import React, { useState } from 'react';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
+import { Address, beginCell } from 'ton-core';
 import WebApp from '@twa-dev/sdk';
 
 interface DepositProps {
@@ -11,6 +12,22 @@ interface DepositProps {
 type DepositMethod = 'select' | 'tonconnect' | 'rpc';
 
 const GAME_WALLET_ADDRESS = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
+const CSPIN_JETTON_WALLET = 'EQBX5_CVq_7UQR0_8Q-3o-Jg4FfT7R8N9K_2J-5q_e4S7P1J'; // CSPIN Jetton Wallet Address (Game Wallet의 CSPIN 잔액 계좌)
+
+// Jetton Transfer Payload 구성
+function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address): string {
+  const cell = beginCell()
+    .storeUint(0xf8a7ea5, 32) // Jetton transfer opcode
+    .storeUint(0, 64) // query_id
+    .storeCoins(amount)
+    .storeAddress(destination)
+    .storeAddress(responseTo)
+    .storeBit(0) // custom_payload: none
+    .storeCoins(BigInt(0)) // forward_ton_amount
+    .storeBit(0) // forward_payload: none
+    .endCell();
+  return cell.toBoc().toString('base64');
+}
 
 const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   const [depositMethod, setDepositMethod] = useState<DepositMethod>('select');
@@ -45,13 +62,20 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
     setMessage('⏳ TonConnect: 지갑에서 트랜잭션을 확인해주세요...');
 
     try {
+      // Jetton Transfer Payload 구성
+      const amountInNano = BigInt(amount) * BigInt(1000000000);
+      const destinationAddress = Address.parse(GAME_WALLET_ADDRESS);
+      const responseAddress = Address.parse(wallet.account.address);
+      
+      const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
+
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [
           {
-            address: GAME_WALLET_ADDRESS,
-            amount: (BigInt(amount) * BigInt(1000000000)).toString(),
-            payload: undefined
+            address: CSPIN_JETTON_WALLET,
+            amount: '200000000', // 0.2 TON for fees
+            payload: payload
           }
         ]
       };
