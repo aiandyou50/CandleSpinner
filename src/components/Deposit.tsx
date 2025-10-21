@@ -184,6 +184,112 @@ async function confirmTransaction(
   }
 }
 
+/**
+ * 백엔드 API 응답 타입
+ */
+interface DepositApiResponse {
+  success: boolean;
+  message: string;
+  recordId?: string;
+  transactionHash?: string;
+  error?: string;
+  retryable?: boolean;
+  details?: Record<string, unknown>;
+}
+
+/**
+ * 백엔드에 입금 기록
+ * 
+ * @param walletAddress - 사용자 지갑 주소
+ * @param depositAmount - 입금 금액 (CSPIN)
+ * @param txHash - 트랜잭션 해시
+ * @param method - 입금 방법 ('tonconnect' | 'rpc')
+ * @returns 백엔드 응답 결과
+ */
+async function recordDepositOnBackend(
+  walletAddress: string,
+  depositAmount: number,
+  txHash: string,
+  method: string
+): Promise<{
+  success: boolean;
+  message: string;
+  retryable: boolean;
+  recordId?: string;
+}> {
+  console.log('[Backend Recording] Starting deposit record...');
+
+  try {
+    const response = await fetch('/api/deposit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        walletAddress,
+        depositAmount,
+        txHash,
+        method,
+        timestamp: new Date().toISOString()
+      })
+    });
+
+    // 응답 body 파싱
+    let data: DepositApiResponse;
+    try {
+      data = await response.json() as DepositApiResponse;
+    } catch (parseError) {
+      console.error('[Backend Recording] Failed to parse response JSON:', parseError);
+      return {
+        success: false,
+        message: '백엔드 응답 파싱 실패',
+        retryable: true  // JSON 파싱 실패는 일반적으로 일시적 오류
+      };
+    }
+
+    // 상태 코드 확인
+    if (!response.ok) {
+      console.warn('[Backend Recording] HTTP Error', {
+        status: response.status,
+        statusText: response.statusText,
+        error: data.error,
+        retryable: data.retryable
+      });
+
+      return {
+        success: false,
+        message: data.error || `서버 에러 (${response.status})`,
+        retryable: data.retryable ?? response.status >= 500  // 5xx는 재시도 가능
+      };
+    }
+
+    // 성공 응답
+    console.log('[Backend Recording] ✅ Successfully recorded:', {
+      recordId: data.recordId,
+      transactionHash: data.transactionHash,
+      message: data.message
+    });
+
+    return {
+      success: true,
+      message: data.message || '입금 기록이 완료되었습니다',
+      retryable: false,
+      recordId: data.recordId || undefined
+    };
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('[Backend Recording] Network or other error:', {
+      message: errorMessage,
+      error
+    });
+
+    return {
+      success: false,
+      message: '백엔드와의 통신 실패',
+      retryable: true  // 네트워크 에러는 일반적으로 재시도 가능
+    };
+  }
+}
+
 const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   // 상태 관리: depositState로 통합 (기존 useState 제거)
   const depositState = useDepositState('select');
@@ -287,27 +393,24 @@ Time: ${new Date().toISOString()}
           console.log('[TonConnect Deposit] ✅ Confirmed on blockchain!');
         }
 
-        // 백엔드에 입금 기록
+        // ✅ 백엔드에 입금 기록 (개선: 구조화된 응답 처리)
         console.log('[TonConnect Deposit] 📝 Recording deposit on backend...');
-        try {
-          const response = await fetch('/api/deposit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              walletAddress: wallet.account.address,
-              depositAmount: amount,
-              txHash: result.boc || result.toString(),
-              method: 'tonconnect'
-            })
-          });
+        const backendResult = await recordDepositOnBackend(
+          wallet.account.address,
+          amount,
+          result.boc || result.toString(),
+          'tonconnect'
+        );
 
-          if (!response.ok) {
-            console.warn(`[TonConnect Deposit] Backend returned ${response.status}`);
-          } else {
-            console.log('[TonConnect Deposit] ✓ Backend recorded successfully');
+        if (!backendResult.success) {
+          console.warn('[TonConnect Deposit] Backend recording failed:', backendResult);
+          // 블록체인 기록은 성공했으므로, 백엔드 재시도 또는 무시
+          if (!backendResult.retryable) {
+            console.error('❌ Backend error (non-retryable): manual review needed');
+            // 여기서는 계속 진행 (블록체인은 성공했음)
           }
-        } catch (backendError) {
-          console.warn('[TonConnect Deposit] Backend recording failed (non-critical):', backendError);
+        } else {
+          console.log('[TonConnect Deposit] ✓ Backend recorded:', backendResult);
         }
 
         showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
