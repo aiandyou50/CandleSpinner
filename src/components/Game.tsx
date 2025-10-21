@@ -1,14 +1,23 @@
-// src/components/Game.tsx - MVP UI 완전 재작성
+// src/components/Game.tsx - MVP 완전 테스트 UI (v3.0)
 import React, { useState, useMemo, useCallback } from 'react';
 import { useGameState } from '../hooks/useGameState';
+import { useToast } from '../hooks/useToast';
 
 interface GameProps {
   onDepositClick?: () => void;
+  onDoubleUpClick?: () => void;
+  onWithdrawClick?: () => void;
 }
 
-const Game: React.FC<GameProps> = ({ onDepositClick }) => {
+type GameScreen = 'main' | 'result' | 'doubleup' | 'collect' | 'withdraw';
+
+const Game: React.FC<GameProps> = ({ onDepositClick, onDoubleUpClick, onWithdrawClick }) => {
   // 게임 상태 hook으로 통합 (기존 Zustand 제거)
   const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings } = useGameState();
+  const { toast, showToast } = useToast();
+  
+  // 화면 상태 관리
+  const [currentScreen, setCurrentScreen] = useState<GameScreen>('main');
   const [spinResult, setSpinResult] = useState<string>('');
 
   // 스핀 시뮬레이션 (useCallback으로 최적화)

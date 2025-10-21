@@ -5,7 +5,7 @@ import { TonConnectUIProvider, TonConnectButton } from '@tonconnect/ui-react';
 import { TON_CONNECT_MANIFEST_URL } from './constants';
 
 // 동적 임포트: 번들 크기 최적화
-const Game = lazy(() => import('./components/Game'));
+const GameComplete = lazy(() => import('./components/GameComplete'));
 const Deposit = lazy(() => import('./components/Deposit'));
 
 type AppMode = 'game' | 'deposit';
@@ -81,7 +81,7 @@ function App() {
                 {appMode === 'deposit' ? (
                   <Deposit onBack={() => setAppMode('game')} />
                 ) : (
-                  <Game onDepositClick={() => setAppMode('deposit')} />
+                  <GameComplete onDepositClick={() => setAppMode('deposit')} />
                 )}
               </div>
             </Suspense>
@@ -139,7 +139,7 @@ function App() {
                 {appMode === 'deposit' ? (
                   <Deposit onBack={() => setAppMode('game')} />
                 ) : (
-                  <Game onDepositClick={() => setAppMode('deposit')} />
+                  <GameComplete onDepositClick={() => setAppMode('deposit')} />
                 )}
               </div>
             </Suspense>
