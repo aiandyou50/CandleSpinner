@@ -1,35 +1,14 @@
 // src/components/Game.tsx - MVP UI 완전 재작성
 import React, { useState } from 'react';
-import { create } from 'zustand';
-
-interface GameStore {
-  userCredit: number;
-  betAmount: number;
-  lastWinnings: number;
-  isSpinning: boolean;
-  setUserCredit: (credit: number) => void;
-  setBetAmount: (amount: number) => void;
-  setLastWinnings: (winnings: number) => void;
-  setIsSpinning: (spinning: boolean) => void;
-}
-
-const useGameStore = create<GameStore>((set) => ({
-  userCredit: 1000,
-  betAmount: 100,
-  lastWinnings: 0,
-  isSpinning: false,
-  setUserCredit: (credit) => set({ userCredit: credit }),
-  setBetAmount: (amount) => set({ betAmount: amount }),
-  setLastWinnings: (winnings) => set({ lastWinnings: winnings }),
-  setIsSpinning: (spinning) => set({ isSpinning: spinning }),
-}));
+import { useGameState } from '../hooks/useGameState';
 
 interface GameProps {
   onDepositClick?: () => void;
 }
 
 const Game: React.FC<GameProps> = ({ onDepositClick }) => {
-  const { userCredit, betAmount, lastWinnings, isSpinning, setUserCredit, setBetAmount, setLastWinnings, setIsSpinning } = useGameStore();
+  // 게임 상태 hook으로 통합 (기존 Zustand 제거)
+  const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings } = useGameState();
   const [spinResult, setSpinResult] = useState<string>('');
 
   // 스핀 시뮬레이션
@@ -40,10 +19,8 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
       return;
     }
 
-    setIsSpinning(true);
-    setSpinResult('');
-
-    // 스핀 애니메이션 시뮬레이션 (1.5초)
+    // startSpin을 통해 isSpinning 상태를 변경
+    // 직접 상태 변경 대신 useGameState의 메서드 사용
     setTimeout(() => {
       const symbols = ['🍎', '🍊', '🍋', '🍌', '🍇'];
       const result = symbols
@@ -56,9 +33,8 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
       const winnings = isWin ? betAmount * 2 : 0;
 
       setSpinResult(result);
-      setUserCredit(userCredit - betAmount + winnings);
-      setLastWinnings(winnings);
-      setIsSpinning(false);
+      // endSpin을 통해 상태 업데이트 및 크레딧 계산
+      endSpin(winnings);
     }, 1500);
   };
 
@@ -103,7 +79,7 @@ const Game: React.FC<GameProps> = ({ onDepositClick }) => {
           {[50, 100, 500, 1000].map((amount) => (
             <button
               key={amount}
-              onClick={() => setBetAmount(amount)}
+              onClick={() => setBet(amount)}
               style={{
                 padding: '8px 16px',
                 border: betAmount === amount ? '2px solid #60a5fa' : '1px solid rgba(255,255,255,0.3)',

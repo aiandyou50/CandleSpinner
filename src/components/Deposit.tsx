@@ -1,15 +1,15 @@
 // src/components/Deposit.tsx - 입금 UI 완전 재작성
-import React, { useState } from 'react';
+import React from 'react';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell } from 'ton-core';
 import WebApp from '@twa-dev/sdk';
+import { useDepositState } from '../hooks/useDepositState';
+import { useToast } from '../hooks/useToast';
 
 interface DepositProps {
   onDepositSuccess?: (amount: number) => void;
   onBack?: () => void;
 }
-
-type DepositMethod = 'select' | 'tonconnect' | 'rpc';
 
 const GAME_WALLET_ADDRESS = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
 const CSPIN_JETTON_WALLET = 'EQBX5_CVq_7UQR0_8Q-3o-Jg4FfT7R8N9K_2J-5q_e4S7P1J'; // CSPIN Jetton Wallet Address (Game Wallet의 CSPIN 잔액 계좌)
@@ -30,11 +30,9 @@ function buildJettonTransferPayload(amount: bigint, destination: Address, respon
 }
 
 const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
-  const [depositMethod, setDepositMethod] = useState<DepositMethod>('select');
-  const [depositAmount, setDepositAmount] = useState('100');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'info' | 'success' | 'error'>('info');
+  // 상태 관리: depositState로 통합 (기존 useState 제거)
+  const depositState = useDepositState('select');
+  const { toast, showToast } = useToast();
 
   const wallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
@@ -43,23 +41,21 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   // ==================== TonConnect 입금 ====================
   const handleDepositTonConnect = async () => {
     if (!wallet?.account?.address) {
-      setMessageType('error');
-      setMessage('❌ 지갑이 연결되지 않았습니다. TonConnect 버튼을 클릭해주세요.');
+      showToast('❌ 지갑이 연결되지 않았습니다. TonConnect 버튼을 클릭해주세요.', 'error');
       if (isTMA) WebApp.showAlert('지갑을 연결해주세요.');
       return;
     }
 
-    const amount = parseFloat(depositAmount);
-    if (!amount || amount <= 0) {
-      setMessageType('error');
-      setMessage('❌ 올바른 입금액을 입력하세요.');
-      if (isTMA) WebApp.showAlert('올바른 금액을 입력해주세요.');
+    const validation = depositState.validateAmount();
+    if (!validation.valid) {
+      showToast(`❌ ${validation.error}`, 'error');
+      if (isTMA) WebApp.showAlert(validation.error || '올바른 금액을 입력해주세요.');
       return;
     }
 
-    setIsProcessing(true);
-    setMessageType('info');
-    setMessage('⏳ TonConnect: 지갑에서 트랜잭션을 확인해주세요...');
+    const amount = parseFloat(depositState.depositAmount);
+    depositState.setLoading(true);
+    showToast('⏳ TonConnect: 지갑에서 트랜잭션을 확인해주세요...', 'info');
 
     try {
       // Jetton Transfer Payload 구성
@@ -101,9 +97,8 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
         throw new Error(`서버 오류: ${response.status}`);
       }
 
-      setMessageType('success');
-      setMessage(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`);
-      setDepositAmount('100');
+      showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
+      depositState.setAmount('100');
       
       if (onDepositSuccess) onDepositSuccess(amount);
       if (isTMA) WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`);
@@ -112,26 +107,24 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
       setTimeout(() => onBack?.(), 2000);
     } catch (error) {
       console.error('TonConnect 입금 실패:', error);
-      setMessageType('error');
-      setMessage(`❌ 입금 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      depositState.handleError(error, { method: 'tonconnect' });
       if (isTMA) WebApp.showAlert('입금에 실패했습니다.');
     } finally {
-      setIsProcessing(false);
+      depositState.setLoading(false);
     }
   };
 
   // ==================== RPC 입금 (테스트용) ====================
   const handleDepositRPC = async () => {
-    const amount = parseFloat(depositAmount);
-    if (!amount || amount <= 0) {
-      setMessageType('error');
-      setMessage('❌ 올바른 입금액을 입력하세요.');
+    const validation = depositState.validateAmount();
+    if (!validation.valid) {
+      showToast(`❌ ${validation.error}`, 'error');
       return;
     }
 
-    setIsProcessing(true);
-    setMessageType('info');
-    setMessage('⏳ RPC: 백엔드에서 처리 중...');
+    const amount = parseFloat(depositState.depositAmount);
+    depositState.setLoading(true);
+    showToast('⏳ RPC: 백엔드에서 처리 중...', 'info');
 
     try {
       const response = await fetch('/api/deposit-rpc', {
@@ -150,9 +143,8 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
 
       const data = await response.json();
 
-      setMessageType('success');
-      setMessage(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`);
-      setDepositAmount('100');
+      showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
+      depositState.setAmount('100');
       
       if (onDepositSuccess) onDepositSuccess(amount);
       if (isTMA) WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`);
@@ -161,11 +153,10 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
       setTimeout(() => onBack?.(), 2000);
     } catch (error) {
       console.error('RPC 입금 실패:', error);
-      setMessageType('error');
-      setMessage(`❌ 입금 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      depositState.handleError(error, { method: 'rpc' });
       if (isTMA) WebApp.showAlert('입금에 실패했습니다.');
     } finally {
-      setIsProcessing(false);
+      depositState.setLoading(false);
     }
   };
 
@@ -188,7 +179,7 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
       </h2>
 
       {/* 입금 방식 선택 화면 */}
-      {depositMethod === 'select' && (
+      {depositState.depositMethod === 'select' && (
         <div>
           <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '20px' }}>
             입금 방식을 선택해주세요
@@ -196,7 +187,7 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
 
           {/* TonConnect 입금 */}
           <button
-            onClick={() => setDepositMethod('tonconnect')}
+            onClick={() => depositState.setMethod('tonconnect')}
             style={{
               display: 'block',
               width: '100%',
@@ -226,7 +217,7 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
 
           {/* RPC 입금 (테스트용) */}
           <button
-            onClick={() => setDepositMethod('rpc')}
+            onClick={() => depositState.setMethod('rpc')}
             style={{
               display: 'block',
               width: '100%',
@@ -283,15 +274,15 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
       )}
 
       {/* 입금 상세 입력 화면 */}
-      {(depositMethod === 'tonconnect' || depositMethod === 'rpc') && (
+      {(depositState.depositMethod === 'tonconnect' || depositState.depositMethod === 'rpc') && (
         <div>
           <div style={{ marginBottom: '20px', textAlign: 'left' }}>
             <label style={{ fontSize: '12px', opacity: 0.8 }}>입금액 (CSPIN)</label>
             <input
               type="number"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(e.target.value)}
-              disabled={isProcessing}
+              value={depositState.depositAmount}
+              onChange={(e) => depositState.setAmount(e.target.value)}
+              disabled={depositState.isProcessing}
               style={{
                 width: '100%',
                 padding: '10px 12px',
@@ -302,7 +293,7 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
                 color: 'white',
                 fontSize: '14px',
                 boxSizing: 'border-box',
-                opacity: isProcessing ? 0.5 : 1
+                opacity: depositState.isProcessing ? 0.5 : 1
               }}
               placeholder="100"
             />
@@ -313,8 +304,8 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
             {[50, 100, 500, 1000].map((amount) => (
               <button
                 key={amount}
-                onClick={() => setDepositAmount(amount.toString())}
-                disabled={isProcessing}
+                onClick={() => depositState.setAmount(amount.toString())}
+                disabled={depositState.isProcessing}
                 style={{
                   padding: '8px 12px',
                   border: '1px solid rgba(255,255,255,0.3)',
@@ -322,8 +313,8 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
                   background: 'rgba(255,255,255,0.05)',
                   color: 'white',
                   fontSize: '12px',
-                  cursor: isProcessing ? 'not-allowed' : 'pointer',
-                  opacity: isProcessing ? 0.5 : 1
+                  cursor: depositState.isProcessing ? 'not-allowed' : 'pointer',
+                  opacity: depositState.isProcessing ? 0.5 : 1
                 }}
               >
                 {amount}
@@ -331,29 +322,29 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
             ))}
           </div>
 
-          {/* 메시지 표시 */}
-          {message && (
+          {/* 토스트 메시지 표시 */}
+          {toast && (
             <div style={{
               padding: '12px',
               marginBottom: '20px',
               borderRadius: '6px',
-              background: messageType === 'success'
+              background: toast.type === 'success'
                 ? 'rgba(34, 197, 94, 0.2)'
-                : messageType === 'error'
+                : toast.type === 'error'
                 ? 'rgba(239, 68, 68, 0.2)'
                 : 'rgba(59, 130, 246, 0.2)',
-              border: `1px solid ${messageType === 'success' ? '#22c55e' : messageType === 'error' ? '#ef4444' : '#3b82f6'}`,
-              color: messageType === 'success' ? '#22c55e' : messageType === 'error' ? '#ef4444' : '#3b82f6',
+              border: `1px solid ${toast.type === 'success' ? '#22c55e' : toast.type === 'error' ? '#ef4444' : '#3b82f6'}`,
+              color: toast.type === 'success' ? '#22c55e' : toast.type === 'error' ? '#ef4444' : '#3b82f6',
               fontSize: '12px'
             }}>
-              {message}
+              {toast.message}
             </div>
           )}
 
           {/* 입금 버튼 */}
           <button
-            onClick={depositMethod === 'tonconnect' ? handleDepositTonConnect : handleDepositRPC}
-            disabled={isProcessing || !depositAmount}
+            onClick={depositState.depositMethod === 'tonconnect' ? handleDepositTonConnect : handleDepositRPC}
+            disabled={depositState.isProcessing || !depositState.depositAmount}
             style={{
               display: 'block',
               width: '100%',
@@ -361,19 +352,19 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
               marginBottom: '12px',
               border: 'none',
               borderRadius: '8px',
-              background: isProcessing
+              background: depositState.isProcessing
                 ? 'rgba(107, 114, 128, 0.5)'
-                : depositMethod === 'tonconnect'
+                : depositState.depositMethod === 'tonconnect'
                 ? 'linear-gradient(135deg, #3b82f6, #06b6d4)'
                 : 'linear-gradient(135deg, #ec4899, #f43f5e)',
               color: 'white',
               fontWeight: 'bold',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              opacity: isProcessing ? 0.7 : 1,
+              cursor: depositState.isProcessing ? 'not-allowed' : 'pointer',
+              opacity: depositState.isProcessing ? 0.7 : 1,
               transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => {
-              if (!isProcessing && depositAmount) {
+              if (!depositState.isProcessing && depositState.depositAmount) {
                 e.currentTarget.style.transform = 'scale(1.02)';
               }
             }}
@@ -381,13 +372,13 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            {isProcessing ? '처리 중...' : `${depositAmount} CSPIN 입금`}
+            {depositState.isProcessing ? '처리 중...' : `${depositState.depositAmount} CSPIN 입금`}
           </button>
 
           {/* 뒤로 가기 */}
           <button
-            onClick={() => setDepositMethod('select')}
-            disabled={isProcessing}
+            onClick={() => depositState.setMethod('select')}
+            disabled={depositState.isProcessing}
             style={{
               display: 'block',
               width: '100%',
@@ -397,8 +388,8 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
               background: 'rgba(255,255,255,0.05)',
               color: 'white',
               fontSize: '14px',
-              cursor: isProcessing ? 'not-allowed' : 'pointer',
-              opacity: isProcessing ? 0.5 : 1,
+              cursor: depositState.isProcessing ? 'not-allowed' : 'pointer',
+              opacity: depositState.isProcessing ? 0.5 : 1,
               transition: 'all 0.2s'
             }}
           >
