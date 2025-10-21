@@ -4,7 +4,21 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import App from './App';
+import { validateConfiguration } from './constants';
 import './index.css';
+
+/**
+ * Configuration 검증
+ * 필수 환경변수 확인
+ */
+try {
+  validateConfiguration();
+} catch (error) {
+  console.error('Configuration validation error:', error);
+  if (import.meta.env.MODE === 'production') {
+    throw error;
+  }
+}
 
 /**
  * Sentry 초기화

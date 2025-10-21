@@ -15,8 +15,26 @@ declare global {
 
   interface ImportMeta {
     readonly env: {
-      readonly VITE_SENTRY_DSN?: string;
+      // Blockchain Configuration
+      readonly VITE_GAME_WALLET_ADDRESS?: string;
+      readonly VITE_CSPIN_TOKEN_ADDRESS?: string;
+      readonly VITE_CSPIN_JETTON_WALLET?: string;
+
+      // TonConnect Configuration
+      readonly VITE_TON_CONNECT_MANIFEST_URL?: string;
+
+      // TON RPC Configuration
       readonly VITE_TON_RPC_URL?: string;
+      readonly VITE_TON_API_KEY?: string;
+
+      // Monitoring
+      readonly VITE_SENTRY_DSN?: string;
+
+      // Feature Flags
+      readonly VITE_IS_TESTNET?: string;
+      readonly VITE_DEBUG_MODE?: string;
+
+      // Built-in
       readonly MODE: 'development' | 'production';
     };
   }
