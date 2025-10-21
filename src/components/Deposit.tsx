@@ -541,29 +541,30 @@ Time: ${new Date().toISOString()}
           response: responseAddress
         });
 
-        // CSPIN Jetton 주소 파싱 (TonConnect 호환 형식)
+        // CSPIN Jetton 주소 (정식 Base64 형식 - TonConnect 호환)
+        // .env에서 로드되며, 이미 검증된 형식
         let jettonWalletAddress: string;
         try {
-          // ✅ Address.parse → toString() = Friendly format (EQ... 또는 UQ...)
-          // 이것이 TonConnect가 요구하는 형식
+          // ✅ 정식 Base64 형식을 그대로 사용 (+ 와 / 포함)
           const parsedAddress = Address.parse(CSPIN_JETTON_WALLET);
           jettonWalletAddress = parsedAddress.toString({ testOnly: false, bounceable: true });
-          console.log('[TonConnect Deposit] ✓ Jetton Wallet Address (TonConnect format):', jettonWalletAddress);
+          console.log('[TonConnect Deposit] ✓ Jetton Wallet Address (validated):', jettonWalletAddress);
         } catch (addressError) {
           console.error('[TonConnect Deposit] ❌ Invalid Jetton Wallet Address:', {
             rawAddress: CSPIN_JETTON_WALLET,
-            error: addressError instanceof Error ? addressError.message : String(addressError)
+            error: addressError instanceof Error ? addressError.message : String(addressError),
+            hint: 'Check .env VITE_CSPIN_JETTON_WALLET format (should use standard Base64: + and /)'
           });
-          // Fallback: 직접 주소 사용 (검증 우회 - 마지막 수단)
+          // Fallback: 직접 사용 (마지막 수단)
           jettonWalletAddress = CSPIN_JETTON_WALLET;
-          console.warn('[TonConnect Deposit] ⚠️ Using raw Jetton Wallet Address (no validation)');
+          console.warn('[TonConnect Deposit] ⚠️ Using raw address from env (bypassing validation)');
         }
 
         const transaction = {
           validUntil: Math.floor(Date.now() / 1000) + 600,
           messages: [
             {
-              address: jettonWalletAddress,  // TonConnect 호환 형식 (Friendly format)
+              address: jettonWalletAddress,  // ✅ 정식 Base64 형식
               amount: '200000000', // 0.2 TON for fees
               payload: payload
             }
