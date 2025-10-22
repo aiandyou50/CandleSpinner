@@ -42,21 +42,6 @@ export const CSPIN_TOKEN_ADDRESS =
   import.meta.env.VITE_CSPIN_TOKEN_ADDRESS ||
   "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV";
 
-/**
- * CSPIN Jetton 지갑 주소 (Jetton Wallet)
- * 게임이 CSPIN을 전송할 때 사용하는 Jetton Wallet 주소
- * URL-safe Base64 형식 (ton-core의 Address.parse()는 모든 형식 지원)
- *
- * @example
- * ```
- * // .env
- * VITE_CSPIN_JETTON_WALLET=EQBbso-Bvv1r0N8aVQ1drMpqnJaYWCqH6s_8D1c8l92vGPzJ
- * ```
- */
-export const CSPIN_JETTON_WALLET =
-  import.meta.env.VITE_CSPIN_JETTON_WALLET ||
-  "EQBbso-Bvv1r0N8aVQ1drMpqnJaYWCqH6s_8D1c8l92vGPzJ";
-
 // ============================================
 // TonConnect 설정 (TonConnect Configuration)
 // ============================================
@@ -181,7 +166,6 @@ export function validateConfiguration(): void {
   const required = [
     { name: "VITE_GAME_WALLET_ADDRESS", value: GAME_WALLET_ADDRESS },
     { name: "VITE_CSPIN_TOKEN_ADDRESS", value: CSPIN_TOKEN_ADDRESS },
-    { name: "VITE_CSPIN_JETTON_WALLET", value: CSPIN_JETTON_WALLET },
   ];
 
   const missing = required.filter(({ value }) => !value || value === "");
@@ -196,7 +180,6 @@ export function validateConfiguration(): void {
     console.log("✅ Configuration loaded:", {
       GAME_WALLET_ADDRESS,
       CSPIN_TOKEN_ADDRESS,
-      CSPIN_JETTON_WALLET,
       ENVIRONMENT,
       IS_TESTNET,
       DEBUG_MODE,
