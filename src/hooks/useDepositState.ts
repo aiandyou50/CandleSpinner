@@ -50,9 +50,18 @@ export function useDepositState(initialMethod: DepositMethod = 'select') {
    * 입금액 설정 (숫자만 허용)
    */
   const setAmount = useCallback((amount: string) => {
-    // 숫자만 필터링
+    // 숫자와 첫 번째 소수점만 허용
     const numericAmount = amount.replace(/[^0-9.]/g, '');
-    setDepositAmount(numericAmount);
+    const parts = numericAmount.split('.');
+    const integerPart = parts.shift() || '';
+    const fractionalPart = parts.join('');
+
+    let finalAmount = integerPart;
+    if (parts.length > 0) {
+      finalAmount += '.' + fractionalPart;
+    }
+
+    setDepositAmount(finalAmount);
   }, []);
 
   /**

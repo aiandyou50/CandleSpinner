@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import Deposit from './Deposit';
+import { useDepositState } from '../hooks/useDepositState';
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <TonConnectUIProvider manifestUrl="https://ton.org/manifest.json">
@@ -144,5 +145,17 @@ describe('Deposit Component', () => {
       const buttons = screen.getAllByRole('button');
       expect(buttons.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe('useDepositState Hook', () => {
+  it('should handle multiple decimals in amount', () => {
+    const { result } = renderHook(() => useDepositState());
+
+    act(() => {
+      result.current.setAmount('10.2.3');
+    });
+
+    expect(result.current.depositAmount).toBe('10.23');
   });
 });
