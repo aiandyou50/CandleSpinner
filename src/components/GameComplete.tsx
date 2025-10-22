@@ -16,6 +16,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   
   // UI 상태
   const [currentScreen, setCurrentScreen] = useState<GameScreen>('main');
+  const [withdrawAmount, setWithdrawAmount] = useState(userCredit);
   const [spinResult, setSpinResult] = useState<{ symbols: string[]; winnings: number; isWin: boolean }>({
     symbols: [],
     winnings: 0,
@@ -694,8 +695,6 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
   // ==================== 인출 화면 ====================
   if (currentScreen === 'withdraw') {
-    const [withdrawAmount, setWithdrawAmount] = useState(userCredit);
-
     return (
       <div style={{
         minHeight: '100vh',
