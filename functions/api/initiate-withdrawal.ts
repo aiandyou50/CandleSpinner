@@ -189,14 +189,13 @@ export async function onRequestPost(context: any) {
     const { request, context: requestContext } = context;
     env = context.env;
 
-    // ✅ RPC URL 구성 (Ankr API 키를 동적으로 추가)
-    const backendRpcUrl = env.BACKEND_RPC_URL || 'https://rpc.ankr.com/ton_api_v2';
-    const tonRpcApiKey = env.TON_RPC_API_KEY;
-    const rpcUrl = tonRpcApiKey 
-      ? `${backendRpcUrl}/${tonRpcApiKey}`
-      : backendRpcUrl;
+    // ✅ RPC URL 사용 (Ankr JSON-RPC 엔드포인트)
+    const ankrJsonRpcUrl = env.ANKR_JSON_RPC_HTTPS_ENDPOINT;
+    if (!ankrJsonRpcUrl) {
+      throw new Error('ANKR_JSON_RPC_HTTPS_ENDPOINT 환경변수 미설정');
+    }
     
-    console.log(`[RPC] 사용 중인 URL: ${rpcUrl.replace(tonRpcApiKey || '', '***API_KEY***')}`);
+    console.log(`[RPC] Ankr JSON-RPC 사용: ${ankrJsonRpcUrl.substring(0, 30)}...`);
 
     // 요청 바디 파싱
     const body = await request.json() as {
