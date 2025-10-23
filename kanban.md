@@ -3,29 +3,59 @@
 이 파일은 프로젝트의 모든 작업 상태를 관리합니다.
 작업은 [To Do], [In Progress], [Done] 상태로 분류됩니다.
 
-**마지막 업데이트:** 2025년 10월 21일
+**마지막 업데이트:** 2025년 10월 23일
 
 ---
 
 #***REMOVED***🔄 [In Progress] - 진행 중인 작업
 
-##***REMOVED***🔧 TON 표준 준수 개선 (v2.5.1)
-- **시작일:** 2025년 10월 21일
-- **예상 종료:** 2025년 10월 21일
+##***REMOVED***🔧 Task 2 - 보안 인출 로직 (seqno 원자성 포함)
+- **시작일:** 2025년 10월 23일
+- **예상 종료:** 2025년 10월 23일
 - **담당:** GitHub Copilot
-- **진행 상황:**
-  - ✅ Issue #1: forward_ton_amount = 1 nanoton (TEP-74 표준)
-  - ✅ Issue #2: 에러 분류 enum 추가 (ErrorCategory)
-  - ✅ Issue #3: 재시도 로직 개선 (isRetryableError)
-  - ✅ 테스트: 12/12 통과
-  - ✅ 빌드 성공
-  - ✅ 커밋: b288994
-  - ✅ 배포: git push 완료 (Cloudflare Pages 자동 배포 진행 중)
-- **다음 단계:** 블록체인 확인 로직 추가 (Issue #4, #5)
+- **상태:**
+  - ✅ `/api/initiate-withdrawal` 완전 재구현
+    - seqno 원자적 관리 (KV)
+    - 실제 Jetton 트랜잭션 생성
+    - TonAPI 통합
+  - ✅ seqno 증가 및 저장 로직
+  - ✅ 크레딧 차감 로직
+  - 🔄 MVP 테스트 중 (검증 대기)
+- **다음:** Task 2 테스트 결과 후 배포 또는 수정
 
 ---
 
 #***REMOVED***✅ [Done] - 완료된 작업
+
+##***REMOVED***🔧 크레딧 입금/인출 로직 완전 수정 (v2.4.0)
+- **시작일:** 2025년 10월 23일
+- **완료일:** 2025년 10월 23일
+- **담당:** GitHub Copilot
+- **최종 결과:**
+  - ✅ Issue #1: KV 키 통일 (`state:${walletAddress}`)
+    - useGameState 초기 로드 useEffect 추가
+    - 신규 사용자 1,000 / 기존 사용자 KV 값 유지
+  - ✅ Issue #2: 입금 후 상태 동기화
+    - GameComplete.tsx에서 `onDepositSuccess` 콜백 처리
+    - (또는 useEffect로 GET /api/get-credit 호출)
+  - ✅ Issue #3: 인출 버튼 API 호출 구현
+    - GameComplete.tsx 인출 버튼 → POST `/api/initiate-withdrawal` 호출
+    - useTonWallet 추가
+    - 실제 블록체인 트랜잭션 발생 가능
+  - ✅ 빌드 성공 (컴파일 오류 없음)
+  - ✅ 커밋: 29e1683
+- **기술 사항:**
+  - KV 키: `state:${walletAddress}` (통일)
+  - 초기화: `useEffect` + `/api/get-credit` 조회
+  - 인출: 원자적 seqno 관리 + Jetton Transfer
+- **테스트 대기 사항:**
+  - 입금 후 UI 크레딧 업데이트 확인
+  - 새로고침 후 크레딧 유지 확인
+  - 인출 시 블록체인 트랜잭션 발생 확인
+
+---
+
+#***REMOVED***🔄 [In Progress] - 진행 중인 작업 (이전)
 
 ##***REMOVED***🐛 TonConnect 버튼 표시 및 입금 오류 수정 (v2.0.2)
 - **시작일:** 2025년 10월 21일
