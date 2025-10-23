@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
 import { mnemonicNew, mnemonicToPrivateKey } from '@ton/crypto';
-import { WalletContractV4 } from '@ton/ton';
+import { WalletContractV5R1 } from '@ton/ton';
 
 export async function onRequestGet() {
   try {
@@ -10,8 +10,8 @@ export async function onRequestGet() {
     // 니모닉에서 프라이빗 키 생성
     const keyPair = await mnemonicToPrivateKey(mnemonic);
 
-    // V4 월렛 컨트랙트 생성
-    const wallet = WalletContractV4.create({
+    // V5R1 월렛 컨트랙트 생성 (Telegram TON Wallet)
+    const wallet = WalletContractV5R1.create({
       publicKey: keyPair.publicKey,
       workchain: 0
     });

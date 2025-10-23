@@ -18,6 +18,7 @@ TON_RPC_HTTPS_ENDPOINT = "https://rpc.ankr.com/ton_api_v2/${TON_RPC_API_KEY}"
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
+***REMOVED***GAME_WALLET_PRIVATE_KEY: Cloudflare Pages 환경에서 설정 필요 (하드코딩 금지)
 
 [env.production]
 
@@ -27,3 +28,4 @@ TON_RPC_HTTPS_ENDPOINT = "https://rpc.ankr.com/ton_api_v2/${TON_RPC_API_KEY}"
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
+***REMOVED***GAME_WALLET_PRIVATE_KEY: Cloudflare Pages 환경에서 설정 필요 (하드코딩 금지)

@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
 import { keyPairFromSecretKey } from '@ton/crypto';
-import { WalletContractV4, internal, beginCell, toNano, Address } from '@ton/ton';
+import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode } from '@ton/ton';
 
 /**
  * POST /api/initiate-withdrawal
@@ -253,7 +253,7 @@ export async function onRequestPost(context: any) {
 
     // Step 4: 게임 지갑 생성
     const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-    const gameWallet = WalletContractV4.create({
+    const gameWallet = WalletContractV5R1.create({
       publicKey: keyPair.publicKey,
       workchain: 0
     });
@@ -296,7 +296,8 @@ export async function onRequestPost(context: any) {
     const transfer = gameWallet.createTransfer({
       seqno,
       secretKey: keyPair.secretKey,
-      messages: [transferMessage]
+      messages: [transferMessage],
+      sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS
     });
 
     // Step 10: BOC 생성 및 전송
