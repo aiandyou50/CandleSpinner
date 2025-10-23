@@ -1,5 +1,5 @@
 // src/components/GameComplete.tsx - MVP 완전 테스트 UI (v3.0)
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTonWallet } from '@tonconnect/ui-react';
 import { useGameState } from '../hooks/useGameState';
 import { useToast } from '../hooks/useToast';
@@ -16,7 +16,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   const wallet = useTonWallet();
   
   // 게임 상태
-  const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings } = useGameState();
+  const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings, refreshCreditFromKV } = useGameState();
   const { toast, showToast } = useToast();
   
   // 개발자 모드
@@ -95,6 +95,25 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
       </button>
     ));
   }, [betAmount, setBet]);
+
+  /**
+   * 입금 성공 후 크레딧 새로고침
+   * localStorage depositSuccess_ 변화 감지 또는 주기적 새로고침
+   */
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'depositSuccess_') {
+        console.log('[GameComplete] 📢 입금 완료 이벤트 감지! 크레딧 새로고침 시작...');
+        // 200ms 후 새로고침 (입금 처리 완료 대기)
+        setTimeout(() => {
+          refreshCreditFromKV();
+        }, 200);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [refreshCreditFromKV]);
 
   // ==================== 메인 게임 화면 ====================
   if (currentScreen === 'main') {

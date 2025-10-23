@@ -625,6 +625,9 @@ Time: ${new Date().toISOString()}
         showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
         depositState.setAmount('100');
         
+        // localStorage 이벤트 발생 (GameComplete에서 감지)
+        localStorage.setItem('depositSuccess_', Date.now().toString());
+        
         if (onDepositSuccess) onDepositSuccess(amount);
         if (isTMA) {
           try { WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`); } catch (e) { console.log('[TMA Alert] Not supported'); }
@@ -719,6 +722,9 @@ Time: ${new Date().toISOString()}
       console.warn('[RPC Deposit] TEST MODE: No actual transaction executed');
       
       depositState.setAmount('100');
+      
+      // localStorage 이벤트 발생 (GameComplete에서 감지)
+      localStorage.setItem('depositSuccess_', Date.now().toString());
       
       if (onDepositSuccess) onDepositSuccess(amount);
       if (isTMA) {
