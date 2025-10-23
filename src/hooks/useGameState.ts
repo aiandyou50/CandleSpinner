@@ -36,7 +36,32 @@ export function useGameState(initialCredit = 1000) {
   const [isSpinning, setIsSpinning] = useState(false);
 
   /**
-   * 지갑 연결 시 KV에서 크레딧 조회
+   * KV에서 크레딧을 다시 로드하는 함수 (수동 리프레시용)
+   */
+  const refreshCreditFromKV = useCallback(async () => {
+    if (!wallet?.account?.address) return;
+
+    try {
+      const response = await fetch(
+        `/api/get-credit?walletAddress=${encodeURIComponent(wallet.account!.address)}`
+      );
+      
+      if (!response.ok) {
+        console.warn('[useGameState] 크레딧 재조회 실패');
+        return;
+      }
+
+      const data = await response.json() as { credit: number };
+      // KV에 저장된 크레딧으로 설정
+      setUserCredit(Math.max(0, data.credit));
+      console.log('[useGameState] 🔄 KV 크레딧 재로드:', data.credit);
+    } catch (error) {
+      console.error('[useGameState] KV 재조회 오류:', error);
+    }
+  }, [wallet?.account?.address]);
+
+  /**
+   * 지갑 연결 시 KV에서 크레딧 조회 (초기 로드)
    * 신규 사용자: initialCredit 유지
    * 기존 사용자: KV 값 적용
    */
@@ -137,6 +162,7 @@ export function useGameState(initialCredit = 1000) {
     startSpin,
     endSpin,
     resetGame,
+    refreshCreditFromKV,
 
     // 유도된 상태
     canSpin: userCredit >= betAmount && !isSpinning,
