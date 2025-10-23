@@ -9,23 +9,37 @@
 
 ## 🔄 [In Progress] - 진행 중인 작업
 
-### 🔧 Task 2 - 보안 인출 로직 (seqno 원자성 포함)
-- **시작일:** 2025년 10월 23일
-- **예상 종료:** 2025년 10월 23일
-- **담당:** GitHub Copilot
-- **상태:**
-  - ✅ `/api/initiate-withdrawal` 완전 재구현
-    - seqno 원자적 관리 (KV)
-    - 실제 Jetton 트랜잭션 생성
-    - TonAPI 통합
-  - ✅ seqno 증가 및 저장 로직
-  - ✅ 크레딧 차감 로직
-  - 🔄 MVP 테스트 중 (검증 대기)
-- **다음:** Task 2 테스트 결과 후 배포 또는 수정
+현재 진행 중인 작업이 없습니다.
 
 ---
 
 ## ✅ [Done] - 완료된 작업
+
+### 🔧 Task 2 - 보안 인출 로직 (seqno 원자성 포함) (v2.5.0)
+- **시작일:** 2025년 10월 23일
+- **완료일:** 2025년 10월 24일
+- **담당:** GitHub Copilot
+- **최종 결과:**
+  - ✅ `/api/initiate-withdrawal` 완전 재구현
+    - seqno 원자적 관리 (KV 기반 - 동시성 안전)
+    - 실제 Jetton 트랜잭션 생성 (TEP-74)
+    - TonAPI 통합 (BOC 전송)
+    - 크레딧 차감 (성공 후)
+    - 거래 로그 저장 (7일 TTL)
+  - ✅ 에러 처리 완성 (구체적 메시지 + 로그)
+  - ✅ 보안 검증 완료 (개인키 환경변수만)
+  - ✅ 문서 동기화 완료 (SSoT, instructions, solutions)
+  - ✅ 배포 준비 완료
+- **기술 사항:**
+  - seqno: KV 원자적 연산으로 경합 조건 방지
+  - Payload: TEP-74 표준 (opcode: 0xf8a7ea5, forward_ton_amount: 1)
+  - SendMode: PAY_GAS_SEPARATELY | IGNORE_ERRORS
+  - 거래 로그: `tx:${walletAddress}:${timestamp}` (7일 보관)
+- **커밋:** 준비 (배포 전 최종 커밋)
+- **참고:**
+  - `docs/instructions/Task2-...` - 작업 지시서
+  - `docs/solutions/Task2-...` - 해결 기록
+  - `docs/ssot/README.md` 섹션 6.7 추가 & 4.2 업데이트
 
 ### 🔧 크레딧 입금/인출 로직 완전 수정 (v2.4.0)
 - **시작일:** 2025년 10월 23일
