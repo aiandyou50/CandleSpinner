@@ -18,8 +18,9 @@ async function mnemonicToWallet(mnemonicInput) {
     
     const keyPair = await mnemonicToPrivateKey(mnemonic);
     
-    const privateKeyHex = keyPair.secretKey.slice(0, 32).toString('hex');
-    console.log(`\nPrivate Key (ED25519):\n${privateKeyHex}`);
+    // ⚠️ 중요: keyPairFromSecretKey는 64바이트(128자 hex)를 요구하므로 전체 secretKey 사용
+    const privateKeyHex = keyPair.secretKey.toString('hex');
+    console.log(`\nPrivate Key (ED25519 - Full 64 bytes):\n${privateKeyHex}`);
     
     const publicKeyHex = keyPair.publicKey.toString('hex');
     console.log(`\nPublic Key:\n${publicKeyHex}`);
