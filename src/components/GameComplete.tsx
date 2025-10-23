@@ -43,7 +43,9 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
     // API 호출 (시뮬레이션)
     try {
-      // updateCredit(userCredit - betAmount); // 크레딧 차감
+      // Step 1: 베팅액 차감 (스핀 시 크레딧 소비)
+      updateCredit(-betAmount);
+      
       const symbols = ['🍎', '🍊', '🍋', '🍌', '🍇', '🍓', '🍑'];
       const result = Array(3)
         .fill(0)
@@ -648,7 +650,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             {spinResult.isWin ? '🎉 승리!' : '😢 아쉬워요'}
           </h2>
 
-          {/* 릴 결과 */}
+          {/* 릴 결과 - 애니메이션 추가 */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -659,8 +661,42 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             padding: '30px',
             borderRadius: '12px'
           }}>
+            <style>{`
+              @keyframes spinReel {
+                0% { transform: rotateY(0deg) scale(1); opacity: 0.7; }
+                50% { transform: rotateY(180deg) scale(1.1); opacity: 0.5; }
+                100% { transform: rotateY(360deg) scale(1); opacity: 1; }
+              }
+              .reel {
+                animation: spinReel 0.8s ease-out forwards;
+              }
+              .reel-1 { animation-delay: 0s; }
+              .reel-2 { animation-delay: 0.2s; }
+              .reel-3 { animation-delay: 0.4s; }
+              @keyframes spin3d {
+                0%, 100% { transform: rotateY(0deg); }
+                50% { transform: rotateY(720deg); }
+              }
+            `}</style>
             {spinResult.symbols.map((symbol, idx) => (
-              <div key={idx}>{symbol}</div>
+              <div
+                key={idx}
+                className={`reel reel-${idx + 1}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.1)',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  fontWeight: 'bold',
+                  perspective: '1000px'
+                }}
+              >
+                {symbol}
+              </div>
             ))}
           </div>
 
@@ -741,6 +777,40 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
   // ==================== 더블업 화면 ====================
   if (currentScreen === 'doubleup') {
+    // 더블업 결과 상태 (선택되었나? 결과는?)
+    const [doubleupChoice, setDoubleupChoice] = React.useState<'red' | 'blue' | null>(null);
+    const [doubleupResult, setDoubleupResult] = React.useState<'win' | 'lose' | null>(null);
+
+    const handleDoubleupChoice = (choice: 'red' | 'blue') => {
+      setDoubleupChoice(choice);
+      
+      // 50% 확률
+      const result = Math.random() < 0.5 ? 'win' : 'lose';
+      setDoubleupResult(result);
+      
+      if (result === 'win') {
+        // 성공: 상금 2배
+        const newWinnings = spinResult.winnings * 2;
+        setSpinResult({ ...spinResult, winnings: newWinnings });
+        showToast(`🎉 성공! 상금 2배 획득: ${newWinnings} CSPIN`, 'success');
+        
+        // 1.5초 후 자동으로 수령 화면으로 전환
+        setTimeout(() => {
+          setCurrentScreen('collect');
+        }, 1500);
+      } else {
+        // 실패: 상금 잃음
+        showToast(`❌ 실패! 상금을 잃었습니다.`, 'error');
+        setSpinResult({ ...spinResult, winnings: 0 });
+        
+        // 1.5초 후 자동으로 메인으로 돌아감
+        setTimeout(() => {
+          setCurrentScreen('main');
+          setLastWinnings(0);
+        }, 1500);
+      }
+    };
+
     return (
       <div style={{
         minHeight: '100vh',
@@ -758,7 +828,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
         }}>
           <h2 style={{ fontSize: '28px', marginBottom: '20px' }}>🎰 더블업 미니게임</h2>
           <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '30px' }}>
-            빨강 또는 파랑을 선택하세요!
+            {doubleupResult ? '결과를 기다리세요...' : '빨강 또는 파랑을 선택하세요!'}
           </p>
 
           {/* 상금 표시 */}
@@ -768,86 +838,115 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             borderRadius: '10px',
             marginBottom: '30px'
           }}>
-            <p style={{ fontSize: '12px', opacity: 0.7, margin: '0 0 5px 0' }}>상금</p>
+            <p style={{ fontSize: '12px', opacity: 0.7, margin: '0 0 5px 0' }}>
+              {doubleupResult === 'win' ? '획득 상금 (2배)' : '현재 상금'}
+            </p>
             <p style={{
               fontSize: '32px',
               fontWeight: 'bold',
-              color: '#fbbf24',
+              color: doubleupResult === 'win' ? '#10b981' : doubleupResult === 'lose' ? '#ef4444' : '#fbbf24',
               margin: '0',
-              fontFamily: 'monospace'
+              fontFamily: 'monospace',
+              transition: 'all 0.3s'
             }}>
               {spinResult.winnings.toLocaleString()} CSPIN
             </p>
           </div>
 
-          {/* 선택 버튼 */}
+          {/* 선택 버튼 (결과 나올 때까지만 활성화) */}
           <div style={{
             display: 'flex',
             gap: '20px',
             justifyContent: 'center',
-            marginBottom: '20px'
+            marginBottom: '20px',
+            opacity: doubleupResult ? 0.5 : 1,
+            pointerEvents: doubleupResult ? 'none' : 'auto'
           }}>
             <button
-              onClick={() => {
-                showToast('빨강을 선택했습니다!', 'info');
-                setCurrentScreen('main');
-              }}
+              onClick={() => handleDoubleupChoice('red')}
+              disabled={!!doubleupResult}
               style={{
                 flex: 1,
                 padding: '30px',
                 fontSize: '24px',
                 fontWeight: 'bold',
-                border: '2px solid #ef4444',
+                border: doubleupChoice === 'red' ? '3px solid #ef4444' : '2px solid #ef4444',
                 borderRadius: '10px',
-                background: 'rgba(239, 68, 68, 0.2)',
+                background: doubleupChoice === 'red' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)',
                 color: '#ef4444',
-                cursor: 'pointer',
+                cursor: doubleupResult ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
-                e.currentTarget.style.transform = 'scale(1.05)';
+                if (!doubleupResult) {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-                e.currentTarget.style.transform = 'scale(1)';
+                if (!doubleupResult) {
+                  e.currentTarget.style.background = doubleupChoice === 'red' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
               }}
             >
-              빨강
+              🔴 빨강
             </button>
 
             <button
-              onClick={() => {
-                showToast('파랑을 선택했습니다!', 'info');
-                setCurrentScreen('main');
-              }}
+              onClick={() => handleDoubleupChoice('blue')}
+              disabled={!!doubleupResult}
               style={{
                 flex: 1,
                 padding: '30px',
                 fontSize: '24px',
                 fontWeight: 'bold',
-                border: '2px solid #3b82f6',
+                border: doubleupChoice === 'blue' ? '3px solid #3b82f6' : '2px solid #3b82f6',
                 borderRadius: '10px',
-                background: 'rgba(59, 130, 246, 0.2)',
+                background: doubleupChoice === 'blue' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)',
                 color: '#3b82f6',
-                cursor: 'pointer',
+                cursor: doubleupResult ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
-                e.currentTarget.style.transform = 'scale(1.05)';
+                if (!doubleupResult) {
+                  e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
-                e.currentTarget.style.transform = 'scale(1)';
+                if (!doubleupResult) {
+                  e.currentTarget.style.background = doubleupChoice === 'blue' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(59, 130, 246, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
               }}
             >
-              파랑
+              🔵 파랑
             </button>
           </div>
 
+          {/* 결과 메시지 */}
+          {doubleupResult && (
+            <div style={{
+              padding: '20px',
+              marginBottom: '20px',
+              borderRadius: '10px',
+              background: doubleupResult === 'win' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+              border: `1px solid ${doubleupResult === 'win' ? '#10b981' : '#ef4444'}`,
+              color: doubleupResult === 'win' ? '#10b981' : '#ef4444',
+              fontWeight: 'bold'
+            }}>
+              {doubleupResult === 'win' ? '✅ 더블업 성공!' : '❌ 더블업 실패!'}
+            </div>
+          )}
+
           <button
-            onClick={() => setCurrentScreen('main')}
+            onClick={() => {
+              setCurrentScreen('main');
+              setLastWinnings(0);
+              setDoubleupChoice(null);
+              setDoubleupResult(null);
+            }}
             style={{
               width: '100%',
               padding: '10px',
@@ -908,7 +1007,8 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
           <button
             onClick={() => {
-              updateCredit(userCredit + spinResult.winnings);
+              // 상금 수령: spinResult.winnings를 크레딧에 추가 (베팅액은 이미 스핀 시 차감됨)
+              updateCredit(spinResult.winnings);
               showToast(`${spinResult.winnings} CSPIN을 수령했습니다!`, 'success');
               setLastWinnings(0);
               setCurrentScreen('main');
