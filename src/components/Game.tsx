@@ -1,5 +1,7 @@
 // src/components/Game.tsx - MVP 완전 테스트 UI (v3.0)
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useTonWallet } from '@tonconnect/ui-react';
+import * as Sentry from '@sentry/react';
 import { useGameState } from '../hooks/useGameState';
 import { useToast } from '../hooks/useToast';
 
@@ -12,6 +14,9 @@ interface GameProps {
 type GameScreen = 'main' | 'result' | 'doubleup' | 'collect' | 'withdraw';
 
 const Game: React.FC<GameProps> = ({ onDepositClick, onDoubleUpClick, onWithdrawClick }) => {
+  // TonConnect 지갑 연결 상태
+  const wallet = useTonWallet();
+  
   // 게임 상태 hook으로 통합 (기존 Zustand 제거)
   const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings } = useGameState();
   const { toast, showToast } = useToast();
@@ -19,6 +24,31 @@ const Game: React.FC<GameProps> = ({ onDepositClick, onDoubleUpClick, onWithdraw
   // 화면 상태 관리
   const [currentScreen, setCurrentScreen] = useState<GameScreen>('main');
   const [spinResult, setSpinResult] = useState<string>('');
+
+  // 지갑 연결 시 KV에서 크레딧 리로드
+  useEffect(() => {
+    if (!wallet?.account?.address) return;
+
+    const loadCredits = async () => {
+      try {
+        const response = await fetch(`/api/get-credit?walletAddress=${encodeURIComponent(wallet.account!.address)}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to load credits: ${response.statusText}`);
+        }
+
+        const data = await response.json() as { credit: number; walletAddress: string; timestamp: string };
+        updateCredit(data.credit);
+        showToast(`크레딧 로드됨: ${data.credit}`, 'success');
+      } catch (error) {
+        Sentry.captureException(error);
+        console.error('Credit load error:', error);
+        showToast('크레딧 로드 실패', 'error');
+      }
+    };
+
+    loadCredits();
+  }, [wallet?.account?.address, updateCredit, showToast]);
 
   // 스핀 시뮬레이션 (useCallback으로 최적화)
   const handleSpin = useCallback(() => {
