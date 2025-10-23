@@ -45,6 +45,9 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     };
     // ⚠️ keyPairFromSecretKey는 64바이트(128자 hex) secret key를 요구합니다
     const hasPrivateKey = !!env.GAME_WALLET_PRIVATE_KEY && env.GAME_WALLET_PRIVATE_KEY.length === 128;
+    const privateKeyMasked = hasPrivateKey 
+      ? `${env.GAME_WALLET_PRIVATE_KEY.substring(0, 8)}...${env.GAME_WALLET_PRIVATE_KEY.substring(120)}` 
+      : '❌ NOT SET';
 
     // 1. 환경변수 기본 확인
     const diagnostics: any = {
