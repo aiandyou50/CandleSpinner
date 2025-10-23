@@ -104,9 +104,29 @@ async function getJettonWalletAddress(
   ownerAddress: string
 ): Promise<string> {
   const url = 'https://tonapi.io/v2/jettons/wallets';
+  
+  // 주소 형식 정규화 (raw format 0:xxx → user-friendly format UQA...)
+  let normalizedMasterAddress = masterAddress;
+  let normalizedOwnerAddress = ownerAddress;
+  
+  try {
+    // raw format이면 user-friendly로 변환
+    if (masterAddress.includes(':')) {
+      normalizedMasterAddress = Address.parse(masterAddress).toString();
+    }
+    if (ownerAddress.includes(':')) {
+      normalizedOwnerAddress = Address.parse(ownerAddress).toString();
+    }
+    
+    console.log(`[TonAPI] 주소 정규화: master=${normalizedMasterAddress}, owner=${normalizedOwnerAddress}`);
+  } catch (parseError) {
+    console.error('[TonAPI] 주소 파싱 오류:', parseError);
+    // 파싱 실패해도 원본 주소로 계속 시도
+  }
+  
   const params = new URLSearchParams({
-    owner_account: ownerAddress,
-    jetton: masterAddress
+    owner_account: normalizedOwnerAddress,
+    jetton: normalizedMasterAddress
   });
 
   const response = await fetch(`${url}?${params}`, {
