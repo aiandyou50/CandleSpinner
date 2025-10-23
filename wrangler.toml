@@ -13,19 +13,25 @@ id = "e573c59cb09b4d58b5f38a56ef65dd6f"
 binding = "CREDIT_KV"
 
 [vars]
-BACKEND_RPC_URL = "https://rpc.ankr.com/ton_api_v2/${TON_RPC_API_KEY}"
-TON_RPC_HTTPS_ENDPOINT = "https://rpc.ankr.com/ton_api_v2/${TON_RPC_API_KEY}"
+# ⚠️ 주의: RPC URL의 TON_RPC_API_KEY는 Cloudflare 환경변수에서 제공됨
+# 코드에서 사용할 때: env.TON_RPC_API_KEY로 직접 접근
+BACKEND_RPC_URL = "https://rpc.ankr.com/ton_api_v2"
+TON_RPC_HTTPS_ENDPOINT = "https://rpc.ankr.com/ton_api_v2"
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
 # GAME_WALLET_PRIVATE_KEY: Cloudflare Pages 환경에서 설정 필요 (하드코딩 금지)
+# TON_RPC_API_KEY: Cloudflare Pages 환경에서 설정 필요
 
 [env.production]
 
 [env.production.vars]
-BACKEND_RPC_URL = "https://rpc.ankr.com/ton_api_v2/${TON_RPC_API_KEY}"
-TON_RPC_HTTPS_ENDPOINT = "https://rpc.ankr.com/ton_api_v2/${TON_RPC_API_KEY}"
+# ⚠️ 주의: RPC URL의 TON_RPC_API_KEY는 Cloudflare 환경변수에서 제공됨
+# 코드에서 사용할 때: env.TON_RPC_API_KEY로 직접 접근
+BACKEND_RPC_URL = "https://rpc.ankr.com/ton_api_v2"
+TON_RPC_HTTPS_ENDPOINT = "https://rpc.ankr.com/ton_api_v2"
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
 # GAME_WALLET_PRIVATE_KEY: Cloudflare Pages 환경에서 설정 필요 (하드코딩 금지)
+# TON_RPC_API_KEY: Cloudflare Pages 환경에서 설정 필요
