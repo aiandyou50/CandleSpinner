@@ -71,8 +71,9 @@ export async function onRequest(context: { request: Request; env: Env }): Promis
 
     console.log('[get-credit] 조회 요청:', walletAddress);
 
-    // KV에서 해당 지갑의 상태 조회
-    const gameState = await getKVState(env.CREDIT_KV, walletAddress);
+    // KV에서 해당 지갑의 상태 조회 (키 형식: state:${walletAddress})
+    const stateKey = `state:${walletAddress}`;
+    const gameState = await getKVState(env.CREDIT_KV, stateKey);
 
     // 크레딧이 없으면 0 반환
     const credit = gameState?.credit || 0;
