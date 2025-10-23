@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, useEffect } from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { TonConnectUIProvider, TonConnectButton } from '@tonconnect/ui-react';
 import { TON_CONNECT_MANIFEST_URL } from './constants';
@@ -53,6 +53,40 @@ function App() {
     // 게임 화면으로 복귀
     setAppMode('game');
   };
+
+  // 페이지 언로드 시 크레딧을 강제 저장
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // 모든 localStorage 크레딧 데이터를 KV에 저장하려고 시도
+      const walletAddresses = Object.keys(localStorage)
+        .filter((key) => key.startsWith('gameCredit_'))
+        .map((key) => key.replace('gameCredit_', ''));
+
+      walletAddresses.forEach((addr) => {
+        const credit = localStorage.getItem(`gameCredit_${addr}`);
+        if (credit && addr !== 'backup') {
+          // 비동기이지만 페이지 언로드 전에 최소한 시도
+          fetch('/api/save-game-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              walletAddress: addr,
+              credit: parseInt(credit),
+              canDoubleUp: false,
+              pendingWinnings: 0
+            }),
+            // keepalive 플래그로 페이지 언로드 후에도 완료될 수 있도록
+            keepalive: true
+          }).catch(() => {
+            console.log('[App] 언로드 시 크레딧 저장 시도 (실패 무시)');
+          });
+        }
+      });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   return (
     <ErrorBoundary>

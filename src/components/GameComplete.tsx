@@ -307,7 +307,15 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
           {/* 입금 버튼 */}
           <button
-            onClick={onDepositClick}
+            onClick={() => {
+              // 입금 전에 현재 크레딧을 명시적으로 저장
+              console.log('[GameComplete] 💾 입금 페이지 이동 전 크레딧 저장:', userCredit);
+              saveGameState();
+              // 약간의 딜레이 후 입금 페이지로 이동
+              setTimeout(() => {
+                onDepositClick?.();
+              }, 50);
+            }}
             style={{
               width: '100%',
               maxWidth: '400px',
