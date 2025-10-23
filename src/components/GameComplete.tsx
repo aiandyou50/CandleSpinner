@@ -3,6 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useTonWallet } from '@tonconnect/ui-react';
 import { useGameState } from '../hooks/useGameState';
 import { useToast } from '../hooks/useToast';
+import { useDeveloperMode } from '../hooks/useDeveloperMode';
 
 interface GameProps {
   onDepositClick?: () => void;
@@ -17,6 +18,11 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   // 게임 상태
   const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings } = useGameState();
   const { toast, showToast } = useToast();
+  
+  // 개발자 모드
+  const { isDeveloperMode, toggleDeveloperMode } = useDeveloperMode();
+  const [passwordInput, setPasswordInput] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   
   // UI 상태
   const [currentScreen, setCurrentScreen] = useState<GameScreen>('main');
@@ -43,13 +49,14 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
         .fill(0)
         .map(() => symbols[Math.floor(Math.random() * symbols.length)] || '🍎') as string[];
 
-      const isWin = Math.random() < 0.3; // 30% 승률
+      // 개발자 모드: 100% 승리, 일반 모드: 30% 승률
+      const isWin = isDeveloperMode ? true : Math.random() < 0.3;
       const winnings = isWin ? betAmount * 2 : 0;
 
       setSpinResult({ symbols: result, winnings, isWin });
       setCurrentScreen('result');
 
-      showToast(isWin ? `승리! +${winnings} CSPIN 획득` : '다시 시도해주세요', isWin ? 'success' : 'error');
+      showToast(isWin ? `${isDeveloperMode ? '🔧 개발자 모드: ' : ''}승리! +${winnings} CSPIN 획득` : '다시 시도해주세요', isWin ? 'success' : 'error');
       
       if (isWin) {
         setLastWinnings(winnings);
@@ -58,7 +65,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
       showToast('스핀 실패', 'error');
       console.error('Spin error:', error);
     }
-  }, [userCredit, betAmount, onDepositClick, showToast, endSpin, setLastWinnings]);
+  }, [userCredit, betAmount, onDepositClick, showToast, endSpin, setLastWinnings, isDeveloperMode]);
 
   // 베팅액 버튼 (useMemo 최적화)
   const betAmountButtons = useMemo(() => {
@@ -105,7 +112,8 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
           textAlign: 'center',
           marginBottom: '40px',
           paddingBottom: '20px',
-          borderBottom: '1px solid rgba(255,255,255,0.1)'
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          position: 'relative'
         }}>
           <h1 style={{
             fontSize: '40px',
@@ -121,6 +129,33 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
           <p style={{ fontSize: '12px', opacity: 0.7, margin: '0' }}>
             v2.5.0 - MVP 테스트
           </p>
+          
+          {/* 개발자 모드 버튼 (상단 우측) */}
+          <button
+            onClick={() => setShowPasswordModal(true)}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              border: isDeveloperMode ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.3)',
+              borderRadius: '6px',
+              background: isDeveloperMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)',
+              color: isDeveloperMode ? '#10b981' : 'rgba(255,255,255,0.7)',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isDeveloperMode ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isDeveloperMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255,255,255,0.05)';
+            }}
+          >
+            {isDeveloperMode ? '🔴 개발자 모드 ON' : '⚪ 개발자 모드'}
+          </button>
         </header>
 
         {/* 메인 콘텐츠 */}
@@ -368,6 +403,165 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             }
           }
         `}</style>
+
+        {/* 비밀번호 입력 모달 */}
+        {showPasswordModal && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1001
+          }} onClick={() => {
+            setShowPasswordModal(false);
+            setPasswordInput('');
+          }}>
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.95)',
+              border: '1px solid rgba(96, 165, 250, 0.3)',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '300px',
+              width: '90%',
+              backdropFilter: 'blur(10px)'
+            }} onClick={(e) => e.stopPropagation()}>
+              <h2 style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                margin: '0 0 20px 0',
+                textAlign: 'center',
+                color: '#60a5fa'
+              }}>
+                개발자 모드
+              </h2>
+
+              <p style={{
+                fontSize: '12px',
+                opacity: 0.7,
+                marginBottom: '16px',
+                textAlign: 'center'
+              }}>
+                {isDeveloperMode ? '현재 개발자 모드가 켜져있습니다.' : '비밀번호를 입력하여 개발자 모드를 활성화하세요.'}
+              </p>
+
+              {!isDeveloperMode ? (
+                <>
+                  <input
+                    type="password"
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        toggleDeveloperMode(passwordInput);
+                        setPasswordInput('');
+                        setShowPasswordModal(false);
+                      }
+                    }}
+                    placeholder="비밀번호 입력"
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid rgba(96, 165, 250, 0.3)',
+                      borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      color: 'white',
+                      fontSize: '14px',
+                      marginBottom: '16px',
+                      boxSizing: 'border-box'
+                    }}
+                    autoFocus
+                  />
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '10px'
+                  }}>
+                    <button
+                      onClick={() => {
+                        toggleDeveloperMode(passwordInput);
+                        setPasswordInput('');
+                        setShowPasswordModal(false);
+                      }}
+                      style={{
+                        padding: '10px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        background: 'rgba(16, 185, 129, 0.2)',
+                        color: '#10b981',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(16, 185, 129, 0.2)';
+                      }}
+                    >
+                      확인
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowPasswordModal(false);
+                        setPasswordInput('');
+                      }}
+                      style={{
+                        padding: '10px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '8px',
+                        background: 'transparent',
+                        color: 'rgba(255,255,255,0.7)',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    toggleDeveloperMode('');
+                    setShowPasswordModal(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    background: 'rgba(239, 68, 68, 0.2)',
+                    color: '#ef4444',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                  }}
+                >
+                  개발자 모드 OFF
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
