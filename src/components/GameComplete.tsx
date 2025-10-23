@@ -99,16 +99,36 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   /**
    * 화면 전환 시 자동으로 현재 크레딧 저장
    * 모든 화면 이동에서 KV 동기화 (상금 손실 방지)
+   * 주의: 뒤로가기 시에도 저장되도록 즉시 호출 (100ms 딜레이 제거)
    */
   useEffect(() => {
     if (currentScreen !== 'main') {
-      console.log('[GameComplete] 💾 화면 전환 시 크레딧 자동 저장:', currentScreen, userCredit);
-      // 비동기 처리 (UI 블로킹 방지)
-      setTimeout(() => {
-        saveGameState();
-      }, 100);
+      console.log('[GameComplete] 💾 화면 전환 감지 (즉시 저장):', currentScreen, userCredit);
+      // 즉시 저장 (딜레이 없음 - 뒤로가기 시에도 완료됨)
+      saveGameState();
     }
   }, [currentScreen, userCredit, saveGameState]);
+
+  /**
+   * 페이지 언로드 시 강제 저장 (뒤로가기 포함)
+   * beforeunload 이벤트로 마지막 기회 확보
+   */
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log('[GameComplete] 🚪 페이지 언로드 감지 (강제 저장):', currentScreen, userCredit);
+      // 동기적으로 localStorage에 저장 (KV 저장은 비동기지만 최소한 로컬에 저장)
+      if (currentScreen !== 'main' && userCredit > 0) {
+        localStorage.setItem('lastGameState_emergency', JSON.stringify({
+          credit: userCredit,
+          currentScreen,
+          timestamp: Date.now()
+        }));
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [currentScreen, userCredit]);
 
   /**
    * 입금 성공 후 크레딧 새로고침
