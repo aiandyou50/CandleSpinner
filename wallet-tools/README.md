@@ -1,81 +1,193 @@
-# Wallet Tools
+# 🔧 Wallet Tools
 
-이 폴더에는 TON 블록체인 월렛 생성, 니모닉 변환, 키 파생 등과 관련된 유틸리티 스크립트들이 포함되어 있습니다.
+TON 블록체인 월렛 생성, 니모닉 변환, 키 파생 등과 관련된 유틸리티 스크립트 모음입니다.
 
-## 파일 설명
+**⚠️ 보안 경고:** 이 스크립트들로 생성한 **개인키는 절대 Git에 커밋하면 안 됩니다.**
 
-### mnemonic-to-key.mjs
-니모닉 문구를 TON 호환 프라이빗 키로 변환하는 스크립트입니다.
+---
+
+## � 파일 목록
+
+### ✅ mnemonic-to-key.mjs
+**Telegram TON Wallet (V5R1) 호환** - 24단어 니모닉을 개인키로 변환
 
 **사용법:**
 ```bash
-node mnemonic-to-key.mjs
+node wallet-tools/mnemonic-to-key.mjs "your 24-word mnemonic here"
 ```
-스크립트를 실행하면 니모닉을 입력하라는 프롬프트가 나타납니다. 24단어 니모닉을 공백으로 구분하여 입력하세요.
 
 **출력:**
-- 프라이빗 키 (16진수)
-- 퍼블릭 키 (16진수)
-- 월렛 주소
+```
+privateKey: 4e6568d1...ef7978fc (128자 16진수)
+publicKey:  3a59677f...530... (64자 16진수)
+walletAddress (V5R1): UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd
+```
 
-### secure-mnemonic-to-key.mjs
-보안 강화된 니모닉 변환 스크립트입니다. 추가적인 검증과 안전한 키 파생을 수행합니다.
+**👉 Cloudflare 환경변수 설정:**
+1. https://dash.cloudflare.com → Pages → candlespinner
+2. Settings → Environment variables → Production
+3. 변수명: `GAME_WALLET_PRIVATE_KEY`
+4. 값: 위의 `privateKey` 입력
+
+---
+
+### ✅ generate-wallet.mjs
+**새로운 TON V5R1 지갑 생성** - 랜덤 니모닉 & 키 자동 생성
 
 **사용법:**
 ```bash
-node secure-mnemonic-to-key.mjs
+node wallet-tools/generate-wallet.mjs
 ```
+
+**출력:**
+```
+mnemonic: [BIP39 24-word mnemonic]
+privateKey: [128-char hex] (예시: 4e6568d1...ef7978fc)
+publicKey: [64-char hex]
+walletAddress: UQBFPDdSlPgqPrn2Xwh...
+```
+
+---
+
+### ✅ secure-mnemonic-to-key.mjs
+**보안 강화 버전** - 추가 검증 & 안전한 키 파생
+
+**사용법:**
+```bash
+node wallet-tools/secure-mnemonic-to-key.mjs
+```
+
+---
 
 ### test-mnemonic.mjs
-니모닉의 유효성을 테스트하고 키 파생 과정을 검증하는 스크립트입니다.
+니모닉의 유효성 테스트 및 키 파생 과정 검증
 
-**사용법:**
 ```bash
-node test-mnemonic.mjs
+node wallet-tools/test-mnemonic.mjs
 ```
 
-### generate-wallet.mjs
-새로운 TON 월렛을 생성하는 스크립트입니다. 랜덤 니모닉을 생성하고 키를 파생합니다.
-
-**사용법:**
-```bash
-node generate-wallet.mjs
-```
-
-**출력:**
-- 24단어 니모닉
-- 프라이빗 키
-- 퍼블릭 키
-- 월렛 주소
+---
 
 ### test-v3-wallet.mjs
-TON Wallet V3 컨트랙트 생성 및 테스트를 위한 스크립트입니다.
+TON Wallet V3 컨트랙트 테스트 (레거시 - 사용 금지)
 
-**사용법:**
-```bash
-node test-v3-wallet.mjs
-```
+---
 
 ### test-v5-wallet.mjs
-TON Wallet V5 컨트랙트 생성 및 테스트를 위한 스크립트입니다.
+TON Wallet V5 컨트랙트 테스트
 
-**사용법:**
 ```bash
-node test-v5-wallet.mjs
+node wallet-tools/test-v5-wallet.mjs
 ```
 
-## 주의사항
+---
 
-- 프라이빗 키는 절대 공개하지 마세요
-- 니모닉은 안전한 곳에 백업하세요
-- 테스트넷에서 먼저 테스트한 후 메인넷에 적용하세요
-- 이 스크립트들은 개발 및 테스트 목적으로만 사용하세요
+## � 보안 가이드
 
-## 의존성
+### ❌ 절대 금지
+```bash
+# 금지: 터미널에 니모닉 노출
+node wallet-tools/mnemonic-to-key.mjs "tornado run casual carbon..."  # X
 
-이 스크립트들을 실행하려면 다음 패키지들이 설치되어 있어야 합니다:
-- @ton/core
-- @ton/crypto
-- @ton/ton
+# 금지: 파일에 개인키 저장
+echo "privateKey=4e6568d1..." > .env  # X (Git에 커밋 위험)
+```
 
-프로젝트 루트에서 `npm install`을 실행하여 의존성을 설치하세요.
+### ✅ 올바른 절차
+```bash
+# 1. 니모닉만 터미널에 입력 (타입/붙여넣기 후 즉시 히스토리 삭제)
+node wallet-tools/mnemonic-to-key.mjs
+
+# 2. 출력된 privateKey만 복사
+# (출력: privateKey: 4e6568d1...)
+
+# 3. Cloudflare 대시보드에 즉시 입력
+# https://dash.cloudflare.com/Pages/candlespinner/Settings/Environment-variables
+
+# 4. 로컬 히스토리 정리
+Clear-History  # PowerShell
+# 또는
+history -c  # Bash
+```
+
+---
+
+## � 지원 지갑 버전
+
+| 버전 | 상태 | 사용 사례 |
+|------|------|---------|
+| **V5R1** | ✅ 사용 | Telegram TON Wallet (현재) |
+| V4 | ❌ 레거시 | 이전 TonKeeper |
+| V3 | ❌ 레거시 | 초기 TON Wallet |
+
+**현재 프로젝트에서 사용 중인 버전: V5R1**
+
+---
+
+## � 의존성
+
+```
+@ton/core    - TON 블록체인 코어 라이브러리
+@ton/crypto  - 암호화 기능
+@ton/ton     - TON 클라이언트
+```
+
+**설치:**
+```bash
+npm install  # 프로젝트 루트에서
+```
+
+---
+
+## 🚀 예제
+
+### 1️⃣ 기존 니모닉에서 개인키 얻기
+```bash
+node wallet-tools/mnemonic-to-key.mjs "[your-24-word-mnemonic]"
+# 출력된 privateKey를 Cloudflare에 설정
+```
+
+### 2️⃣ 새 지갑 생성
+```bash
+node wallet-tools/generate-wallet.mjs
+# 니모닉 안전 백업 → privateKey 추출 → Cloudflare 설정
+```
+
+### 3️⃣ 지갑 주소 검증
+```bash
+node wallet-tools/test-v5-wallet.mjs
+# V5R1 호환 확인
+```
+
+---
+
+## ⚠️ 자주 묻는 질문
+
+### Q: 생성된 주소가 원래 지갑과 다릙니다
+**A:** 지갑 버전 확인
+- Telegram Wallet → V5R1 사용
+- 다른 지갑 → V3 또는 V4 확인
+
+### Q: 프라이빗 키 길이 오류
+**A:** 개인키는 128자 (16진수 64바이트)여야 합니다. 니모닉 확인 필요.
+
+### Q: 터미널 히스토리가 보안 위험?
+**A:** 즉시 정리하세요:
+```powershell
+Clear-History
+Remove-Item (Get-PSReadlineOption).HistorySavePath -Force
+```
+
+---
+
+## 📚 참고 자료
+
+- 📖 [보안 정책 가이드](../workflows/[보안-정책]_보안-워크플로우-강제.md)
+- 📖 [SECURITY.md](../solutions/[보안가이드]_20251023_개인키-환경변수-관리.md)
+- 🔗 [TON 문서](https://docs.ton.org)
+- 🔗 [Telegram TON Wallet](https://wallet.ton.org)
+
+---
+
+**마지막 업데이트:** 2025-10-23  
+**V5R1 호환성:** ✅ 검증됨

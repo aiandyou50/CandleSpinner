@@ -8,7 +8,7 @@
  */
 
 import { keyPairFromSecretKey } from '@ton/crypto';
-import { WalletContractV4 } from '@ton/ton';
+import { WalletContractV5R1 } from '@ton/ton';
 
 export async function onRequestGet(context: any) {
   const env = context.env;
@@ -67,7 +67,7 @@ export async function onRequestGet(context: any) {
 
         // 4. 게임 지갑 주소 생성 가능한가?
         try {
-          const gameWallet = WalletContractV4.create({
+          const gameWallet = WalletContractV5R1.create({
             publicKey: keyPair.publicKey,
             workchain: 0
           });
@@ -83,7 +83,7 @@ export async function onRequestGet(context: any) {
               `환경변수: ${gameWalletAddress}`
             );
           } else {
-            result.verification = '✅ 개인키와 지갑 주소가 일치합니다!';
+            result.verification = '✅ 개인키와 지갑 주소가 일치합니다! (V5R1 - Telegram TON Wallet)';
           }
         } catch (walletError) {
           result.walletCreationError = walletError instanceof Error ? walletError.message : String(walletError);

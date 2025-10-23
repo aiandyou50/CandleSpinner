@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
 import { keyPairFromSecretKey } from '@ton/crypto';
-import { WalletContractV4, internal, beginCell, toNano, Address } from '@ton/ton';
+import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode } from '@ton/ton';
 
 // Cloudflare Functions 환경에서는 Node's Buffer가 항상 존재하지 않습니다.
 // 작은 헥스 -> Uint8Array 변환 유틸을 사용해 Buffer 의존성을 제거합니다.
@@ -140,7 +140,7 @@ export const onRequest = async (context: any) => {
     // Create game wallet
     const privateKeyBytes = hexToBytes(gameWalletPrivateKeyHex);
     const keyPair = keyPairFromSecretKey(Buffer.from(privateKeyBytes));
-    const gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    const gameWallet = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
 
     // Get jetton wallet address for game wallet
     const gameJettonWalletAddress = await retry(() =>
@@ -173,7 +173,8 @@ export const onRequest = async (context: any) => {
     const transfer = gameWallet.createTransfer({
       seqno,
       secretKey: keyPair.secretKey,
-      messages: [transferMessage]
+      messages: [transferMessage],
+      sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS
     });
 
     const boc = transfer.toBoc();
