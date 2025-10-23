@@ -97,6 +97,20 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   }, [betAmount, setBet]);
 
   /**
+   * 화면 전환 시 자동으로 현재 크레딧 저장
+   * 모든 화면 이동에서 KV 동기화 (상금 손실 방지)
+   */
+  useEffect(() => {
+    if (currentScreen !== 'main') {
+      console.log('[GameComplete] 💾 화면 전환 시 크레딧 자동 저장:', currentScreen, userCredit);
+      // 비동기 처리 (UI 블로킹 방지)
+      setTimeout(() => {
+        saveGameState();
+      }, 100);
+    }
+  }, [currentScreen, userCredit, saveGameState]);
+
+  /**
    * 입금 성공 후 크레딧 새로고침
    * localStorage depositSuccess_ 변화 감지 또는 주기적 새로고침
    */
