@@ -78,6 +78,8 @@ async function getAndIncrementSeqno(env: any): Promise<number> {
 
 // TonAPI를 통해 BOC 전송
 async function sendBocViaTonAPI(bocBase64: string): Promise<string> {
+  // 📝 참고: Ankr RPC URL은 postman.onRequestPost()에서 rpcUrl 변수로 구성됨
+  // 향후 Ankr RPC 직접 사용 시 이곳에서 rpcUrl을 전달받아 사용 가능
   const url = 'https://tonapi.io/v1/blockchain/message';
 
   const response = await fetch(url, {
@@ -186,6 +188,15 @@ export async function onRequestPost(context: any) {
   try {
     const { request, context: requestContext } = context;
     env = context.env;
+
+    // ✅ RPC URL 구성 (Ankr API 키를 동적으로 추가)
+    const backendRpcUrl = env.BACKEND_RPC_URL || 'https://rpc.ankr.com/ton_api_v2';
+    const tonRpcApiKey = env.TON_RPC_API_KEY;
+    const rpcUrl = tonRpcApiKey 
+      ? `${backendRpcUrl}/${tonRpcApiKey}`
+      : backendRpcUrl;
+    
+    console.log(`[RPC] 사용 중인 URL: ${rpcUrl.replace(tonRpcApiKey || '', '***API_KEY***')}`);
 
     // 요청 바디 파싱
     const body = await request.json() as {
