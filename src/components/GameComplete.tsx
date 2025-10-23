@@ -1,5 +1,6 @@
 // src/components/GameComplete.tsx - MVP 완전 테스트 UI (v3.0)
 import React, { useState, useMemo, useCallback } from 'react';
+import { useTonWallet } from '@tonconnect/ui-react';
 import { useGameState } from '../hooks/useGameState';
 import { useToast } from '../hooks/useToast';
 
@@ -10,6 +11,9 @@ interface GameProps {
 type GameScreen = 'main' | 'result' | 'doubleup' | 'collect' | 'withdraw';
 
 const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
+  // TonConnect 지갑
+  const wallet = useTonWallet();
+  
   // 게임 상태
   const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings } = useGameState();
   const { toast, showToast } = useToast();
@@ -762,13 +766,49 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
           </div>
 
           <button
-            onClick={() => {
-              if (withdrawAmount > 0) {
-                showToast(`${withdrawAmount} CSPIN 인출 요청을 보냈습니다.`, 'success');
-                updateCredit(userCredit - withdrawAmount);
-                setCurrentScreen('main');
-              } else {
+            onClick={async () => {
+              if (withdrawAmount <= 0) {
                 showToast('인출액을 입력해주세요.', 'error');
+                return;
+              }
+
+              if (!wallet?.account?.address) {
+                showToast('지갑을 연결해주세요.', 'error');
+                return;
+              }
+
+              try {
+                showToast('인출 요청 중...', 'info');
+
+                // Step 1: 백엔드에 인출 요청
+                const response = await fetch('/api/initiate-withdrawal', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    walletAddress: wallet.account.address,
+                    withdrawalAmount: withdrawAmount
+                  })
+                });
+
+                if (!response.ok) {
+                  const error = await response.json();
+                  showToast(`인출 실패: ${error.error || error.message}`, 'error');
+                  return;
+                }
+
+                const result = await response.json();
+
+                // Step 2: 성공 시 UI 업데이트
+                if (result.success) {
+                  updateCredit(userCredit - withdrawAmount);
+                  showToast(`✅ ${withdrawAmount} CSPIN 인출 완료!`, 'success');
+                  setCurrentScreen('main');
+                } else {
+                  showToast(`인출 실패: ${result.error}`, 'error');
+                }
+              } catch (error) {
+                console.error('[인출 오류]:', error);
+                showToast('인출 중 오류 발생', 'error');
               }
             }}
             style={{

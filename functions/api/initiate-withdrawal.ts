@@ -1,74 +1,83 @@
 import '../_bufferPolyfill';
-import TonWeb from 'tonweb';
 import { keyPairFromSecretKey } from '@ton/crypto';
-import { WalletContractV4, internal, beginCell, storeMessage, toNano, Address, fromNano, TonClient4 } from '@ton/ton';
+import { WalletContractV4, internal, beginCell, toNano, Address } from '@ton/ton';
 
-// Cloudflare Functions 환경에서는 Node's Buffer가 항상 존재하지 않습니다.
-// 작은 헥스 -> Uint8Array 변환 유틸을 사용해 Buffer 의존성을 제거합니다.
-function hexToBytes(hex: string): Uint8Array {
-  if (!hex) return new Uint8Array();
-  const normalized = hex.startsWith('0x') ? hex.slice(2) : hex;
-  const len = normalized.length;
-  const bytes = new Uint8Array(Math.ceil(len / 2));
-  for (let i = 0; i < len; i += 2) {
-    bytes[i / 2] = parseInt(normalized.substr(i, 2), 16);
-  }
-  return bytes;
-}
+/**
+ * POST /api/initiate-withdrawal
+ * 
+ * 사용자의 크레딧을 CSPIN 토큰으로 인출합니다.
+ * 
+ * 요청:
+ * {
+ *   walletAddress: string,        // 사용자 지갑 주소
+ *   withdrawalAmount: number      // 인출액 (CSPIN)
+ * }
+ * 
+ * 응답:
+ * {
+ *   success: boolean,
+ *   message?: string,
+ *   txHash?: string,              // 트랜잭션 해시
+ *   error?: string
+ * }
+ */
 
 interface UserState {
   credit: number;
-  canDoubleUp: boolean;
-  pendingWinnings: number;
+  canDoubleUp?: boolean;
+  pendingWinnings?: number;
 }
 
-// Simple retry helper with exponential backoff for transient errors (e.g., 429 rate limit)
-async function retry<T>(fn: () => Promise<T>, attempts = 3, baseDelay = 500): Promise<T> {
-  let lastError: any;
-  for (let i = 0; i < attempts; i++) {
+// Jetton Transfer Payload 생성 (TEP-74 표준)
+function buildJettonTransferPayload(
+  amount: bigint,
+  destination: Address,
+  responseTo: Address
+): string {
+  const cell = beginCell()
+    .storeUint(0xf8a7ea5, 32)      // Jetton transfer opcode
+    .storeUint(0, 64)              // query_id
+    .storeCoins(amount)            // amount
+    .storeAddress(destination)     // destination
+    .storeAddress(responseTo)      // response_destination
+    .storeBit(0)                   // custom_payload
+    .storeCoins(BigInt(1))         // forward_ton_amount = 1 nanoton
+    .storeBit(0)                   // forward_payload
+    .endCell();
+
+  return cell.toBoc().toString('base64');
+}
+
+// seqno를 원자적으로 증가시키고 반환
+async function getAndIncrementSeqno(env: any): Promise<number> {
+  const SEQNO_KEY = 'game_wallet_seqno';
+  const maxRetries = 5;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      return await fn();
-    } catch (err: any) {
-      lastError = err;
-      const msg = err && err.message ? String(err.message) : '';
-      // If it's 429 or network, retry; otherwise break early
-      if (/\b429\b/.test(msg) || /rate limit/i.test(msg) || /ECONNRESET|ETIMEDOUT/.test(msg)) {
-        const delay = baseDelay * Math.pow(2, i);
-        await new Promise((res) => setTimeout(res, delay));
-        continue;
+      // 현재 seqno 읽기
+      const current = await env.CREDIT_KV.get(SEQNO_KEY);
+      const currentSeqno = current ? parseInt(current) : 0;
+      const nextSeqno = currentSeqno + 1;
+
+      // 새로운 seqno 저장 (원자적 - KV put은 원자적 연산)
+      await env.CREDIT_KV.put(SEQNO_KEY, nextSeqno.toString());
+
+      console.log(`[seqno] ${currentSeqno} → ${nextSeqno}`);
+      return nextSeqno;
+    } catch (error) {
+      console.error(`[seqno] 시도 ${attempt + 1}/${maxRetries} 실패:`, error);
+      if (attempt < maxRetries - 1) {
+        await new Promise((res) => setTimeout(res, 100 * (attempt + 1)));
       }
-      throw err;
     }
   }
-  throw lastError;
+
+  throw new Error('seqno 업데이트 실패');
 }
 
-// Direct API call to get jetton wallet address using tonapi.io
-async function getJettonWalletAddress(masterAddress: string, ownerAddress: string): Promise<string> {
-  const url = 'https://tonapi.io/v1/jetton/getWalletAddress';
-  const params = new URLSearchParams({
-    account: ownerAddress,
-    jetton: masterAddress
-  });
-
-  const response = await fetch(`${url}?${params}`, {
-    method: 'GET',
-    headers: {
-      'accept': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`TonAPI getWalletAddress failed: ${response.status} ${text}`);
-  }
-
-  const data = await response.json();
-  return data.wallet_address.address;
-}
-
-// Direct API call to send BOC using tonapi.io
-async function sendBocViaTonAPI(bocBase64: string): Promise<any> {
+// TonAPI를 통해 BOC 전송
+async function sendBocViaTonAPI(bocBase64: string): Promise<string> {
   const url = 'https://tonapi.io/v1/blockchain/message';
 
   const response = await fetch(url, {
@@ -82,185 +91,197 @@ async function sendBocViaTonAPI(bocBase64: string): Promise<any> {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`TonAPI sendBoc failed: ${response.status} ${text}`);
+    throw new Error(`TonAPI sendBoc 실패: ${response.status} ${text}`);
   }
 
-  return await response.json();
+  const data = await response.json();
+  return data.message_hash || 'pending';
+}
+
+// TonAPI를 통해 Jetton 지갑 주소 조회
+async function getJettonWalletAddress(
+  masterAddress: string,
+  ownerAddress: string
+): Promise<string> {
+  const url = 'https://tonapi.io/v2/jettons/wallets';
+  const params = new URLSearchParams({
+    owner_account: ownerAddress,
+    jetton: masterAddress
+  });
+
+  const response = await fetch(`${url}?${params}`, {
+    method: 'GET',
+    headers: { 'accept': 'application/json' }
+  });
+
+  if (!response.ok) {
+    throw new Error(`TonAPI Jetton 지갑 조회 실패: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!data.addresses || data.addresses.length === 0) {
+    throw new Error('Jetton 지갑 주소 없음');
+  }
+
+  return data.addresses[0];
 }
 
 export async function onRequestPost(context: any) {
   try {
     const { request, env } = context;
-    const { walletAddress, withdrawalAmount, action, txBoc }: {
-      walletAddress: string,
-      withdrawalAmount: number,
-      action?: string,
-      txBoc?: string
-    } = await request.json();
 
-    // KV에서 사용자 상태 가져오기
-    const stateKey = `user_${walletAddress}`;
+    // 요청 바디 파싱
+    const body = await request.json() as {
+      walletAddress?: string;
+      withdrawalAmount?: number;
+    };
+
+    const { walletAddress, withdrawalAmount } = body;
+
+    // 입력 검증
+    if (!walletAddress) {
+      return new Response(
+        JSON.stringify({ success: false, error: '지갑 주소 필수' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!withdrawalAmount || withdrawalAmount <= 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: '유효하지 않은 인출액' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`[인출] 요청: ${walletAddress} → ${withdrawalAmount} CSPIN`);
+
+    // Step 1: KV에서 사용자 상태 조회
+    const stateKey = `state:${walletAddress}`;
     const stateData = await env.CREDIT_KV.get(stateKey);
-    const state: UserState = stateData ? JSON.parse(stateData) : {
+    const userState: UserState = stateData ? JSON.parse(stateData) : {
       credit: 0,
       canDoubleUp: false,
       pendingWinnings: 0
     };
 
-    // 크레딧 검증만 하는 경우 (프론트엔드에서 트랜잭션 발생 전)
-    if (action === 'verify_only') {
-      if (state.credit < withdrawalAmount) {
-        return new Response(JSON.stringify({
-          canWithdraw: false,
-          error: '인출할 수 있는 크레딧이 부족합니다.'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+    console.log(`[인출] 현재 크레딧: ${userState.credit}`);
 
-      return new Response(JSON.stringify({
-        canWithdraw: true,
-        availableCredit: state.credit
-      }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
+    // Step 2: 크레딧 확인
+    if (userState.credit < withdrawalAmount) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: '인출할 크레딧이 부족합니다.'
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    // 최종 처리 (트랜잭션 성공 후 크레딧 차감)
-    if (action === 'finalize') {
-      if (state.credit < withdrawalAmount) {
-        return new Response(JSON.stringify({
-          error: '크레딧이 부족합니다.'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+    // Step 3: 환경 변수 확인
+    const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
+    const gameWalletAddress = env.GAME_WALLET_ADDRESS;
+    const cspinTokenAddress = env.CSPIN_TOKEN_ADDRESS;
 
-      // 크레딧 차감
-      state.credit -= withdrawalAmount;
-      state.canDoubleUp = false;
-      state.pendingWinnings = 0;
-
-      // KV에 상태 저장
-      await env.CREDIT_KV.put(stateKey, JSON.stringify(state));
-
-      return new Response(JSON.stringify({
-        success: true,
-        withdrawalAmount,
-        newCredit: state.credit,
-        message: `크레딧 차감 완료: ${withdrawalAmount} CSPIN`
-      }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!gameWalletPrivateKey || !gameWalletAddress || !cspinTokenAddress) {
+      console.error('[인출] 환경변수 누락:', { gameWalletPrivateKey: !!gameWalletPrivateKey, gameWalletAddress, cspinTokenAddress });
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: '서버 설정 오류'
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    // 기존 로직 (시뮬레이션 모드)
-    if (withdrawalAmount <= 0 || state.credit < withdrawalAmount) {
-      return new Response(JSON.stringify({
-        error: '인출할 수 있는 크레딧이 부족합니다.'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // 실제 블록체인 전송 로직
-    try {
-      console.log(`Processing withdrawal: ${withdrawalAmount} CSPIN to ${walletAddress}`);
-
-      // 게임 월렛 프라이빗 키 가져오기
-      const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
-      if (!gameWalletPrivateKey) {
-        throw new Error('게임 월렛 프라이빗 키가 설정되지 않았습니다.');
-      }
-
-      // 키 페어 생성
-      const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-      
-      // 게임 월렛 컨트랙트 생성
-      const gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 });
-      
-      // TON 클라이언트 (TonClient4 사용)
-      const client = new TonClient4({ endpoint: 'https://mainnet-v4.tonhubapi.com' });
-
-      // CSPIN 제톤 전송 메시지 생성
-      const jettonTransferBody = beginCell()
-        .storeUint(0x0f8a7ea5, 32) // op: transfer
-        .storeUint(0, 64) // query_id
-        .storeCoins(toNano(withdrawalAmount.toString())) // amount
-        .storeAddress(Address.parse(walletAddress)) // destination
-        .storeAddress(Address.parse(gameWallet.address.toString())) // response_destination
-        .storeBit(0) // custom_payload
-        .storeCoins(toNano('0.01')) // forward_ton_amount
-        .storeBit(0) // forward_payload
-        .endCell();
-
-      // CSPIN 지갑 주소 계산 (게임 월렛의 CSPIN 지갑)
-      const cspinMasterAddress = 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV';
-      const gameJettonWalletAddress = await getJettonWalletAddress(cspinMasterAddress, gameWallet.address.toString());
-
-      // 내부 메시지 생성
-      const transferMessage = internal({
-        to: gameJettonWalletAddress,
-  value: toNano(env.NETWORK_FEE_TON ?? '0.03'), // 네트워크 수수료 (환경 변수 적용)
-        body: jettonTransferBody
-      });
-
-      // 트랜잭션 전송 (seqno는 0으로 가정, 실제 운영 시 KV에 저장해서 관리)
-      const seqno = 0;
-      const transfer = gameWallet.createTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        messages: [transferMessage]
-      });
-
-      // BOC 생성 및 전송
-      const boc = transfer.toBoc();
-      const bocBase64 = boc.toString('base64');
-      
-      await sendBocViaTonAPI(bocBase64);
-
-      console.log('Withdrawal transaction sent successfully');
-
-      // KV에서 크레딧 차감
-      state.credit -= withdrawalAmount;
-      state.canDoubleUp = false;
-      state.pendingWinnings = 0;
-
-      // KV에 상태 저장
-      await env.CREDIT_KV.put(stateKey, JSON.stringify(state));
-
-      return new Response(JSON.stringify({
-        success: true,
-        withdrawalAmount,
-        newCredit: state.credit,
-        message: `✅ ${withdrawalAmount} CSPIN 토큰이 ${walletAddress}로 전송되었습니다.`
-      }), {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-    } catch (blockchainError: any) {
-      console.error('Blockchain transfer error:', blockchainError);
-
-      return new Response(JSON.stringify({
-        error: `블록체인 전송 실패: ${blockchainError.message || '알 수 없는 오류'}`,
-        withdrawalAmount: 0,
-        newCredit: state.credit
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-  } catch (error: any) {
-    console.error('Initiate withdrawal error:', error);
-    return new Response(JSON.stringify({
-      error: '인출 요청 처리 중 오류가 발생했습니다.'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
+    // Step 4: 게임 지갑 생성
+    const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
+    const gameWallet = WalletContractV4.create({
+      publicKey: keyPair.publicKey,
+      workchain: 0
     });
+
+    console.log(`[인출] 게임 지갑: ${gameWallet.address.toString()}`);
+
+    // Step 5: seqno 원자적으로 증가
+    const seqno = await getAndIncrementSeqno(env);
+
+    // Step 6: 게임 지갑의 CSPIN Jetton 지갑 주소 조회
+    const gameJettonWalletAddress = await getJettonWalletAddress(
+      cspinTokenAddress,
+      gameWallet.address.toString()
+    );
+
+    console.log(`[인출] 게임 Jetton 지갑: ${gameJettonWalletAddress}`);
+
+    // Step 7: Jetton Transfer Payload 생성
+    const jettonPayload = buildJettonTransferPayload(
+      toNano(withdrawalAmount.toString()),
+      Address.parse(walletAddress),
+      gameWallet.address
+    );
+
+    // Step 8: 내부 메시지 생성
+    const transferMessage = internal({
+      to: Address.parse(gameJettonWalletAddress),
+      value: toNano('0.03'),
+      body: jettonPayload
+    });
+
+    // Step 9: 트랜잭션 생성
+    const transfer = gameWallet.createTransfer({
+      seqno,
+      secretKey: keyPair.secretKey,
+      messages: [transferMessage]
+    });
+
+    // Step 10: BOC 생성 및 전송
+    const boc = transfer.toBoc().toString('base64');
+    const txHash = await sendBocViaTonAPI(boc);
+
+    console.log(`[인출] 트랜잭션 발송 성공: ${txHash}`);
+
+    // Step 11: KV에서 크레딧 차감 (트랜잭션 성공 후)
+    userState.credit -= withdrawalAmount;
+    userState.canDoubleUp = false;
+    userState.pendingWinnings = 0;
+
+    await env.CREDIT_KV.put(stateKey, JSON.stringify(userState));
+
+    // Step 12: 거래 로그 저장
+    const txLogKey = `tx:${walletAddress}:${Date.now()}`;
+    await env.CREDIT_KV.put(
+      txLogKey,
+      JSON.stringify({
+        type: 'withdrawal',
+        amount: withdrawalAmount,
+        txHash,
+        timestamp: new Date().toISOString(),
+        status: 'confirmed'
+      }),
+      { expirationTtl: 86400 * 7 } // 7일 보관
+    );
+
+    console.log(`[인출] ✅ 완료: ${walletAddress} -${withdrawalAmount} CSPIN (남은 잔액: ${userState.credit})`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: '인출 완료',
+        txHash,
+        newCredit: userState.credit,
+        withdrawalAmount
+      }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('[인출] ❌ 오류:', error);
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : '알 수 없는 오류'
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
