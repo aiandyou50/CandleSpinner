@@ -40,7 +40,7 @@ async function secureMnemonicToKey() {
 
     console.log('\n✅ 변환 완료! (터미널에만 표시됨)\n');
 
-    console.log('🔑 프라이빗 키 (GAME_WALLET_PRIVATE_KEY):');
+    console.log('🔑 프라이빗 키 (GAME_WALLET_PRIVATE_KEY) - 전체 64바이트:');
     console.log(keyPair.secretKey.toString('hex'));
     console.log('');
 
