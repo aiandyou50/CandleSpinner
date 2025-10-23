@@ -36,7 +36,8 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 
   try {
     const privateKeyMasked = maskPrivateKey(env.GAME_WALLET_PRIVATE_KEY || '');
-    const hasPrivateKey = !!env.GAME_WALLET_PRIVATE_KEY && env.GAME_WALLET_PRIVATE_KEY.length === 128;
+    // TON ED25519 개인키: 32바이트 = 64자 hex (NOT 128자!)
+    const hasPrivateKey = !!env.GAME_WALLET_PRIVATE_KEY && env.GAME_WALLET_PRIVATE_KEY.length === 64;
 
     // 1. 환경변수 기본 확인
     const diagnostics: any = {
