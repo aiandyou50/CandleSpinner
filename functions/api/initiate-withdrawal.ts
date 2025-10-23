@@ -127,8 +127,13 @@ async function getJettonWalletAddress(
 }
 
 export async function onRequestPost(context: any) {
+  let env: any;
+  let walletAddress: string | undefined;
+  let withdrawalAmount: number | undefined;
+  
   try {
-    const { request, env } = context;
+    const { request, context: requestContext } = context;
+    env = context.env;
 
     // 요청 바디 파싱
     const body = await request.json() as {
@@ -136,7 +141,8 @@ export async function onRequestPost(context: any) {
       withdrawalAmount?: number;
     };
 
-    const { walletAddress, withdrawalAmount } = body;
+    walletAddress = body.walletAddress;
+    withdrawalAmount = body.withdrawalAmount;
 
     // 입력 검증
     if (!walletAddress) {
@@ -274,12 +280,33 @@ export async function onRequestPost(context: any) {
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('[인출] ❌ 오류:', error);
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+    const errorStack = error instanceof Error ? error.stack : 'No stack trace';
+    
+    console.error('[인출] ❌ 오류:', errorMessage);
+    console.error('[인출] 스택:', errorStack);
+
+    // KV에 오류 로그 저장 (나중에 조회 가능)
+    try {
+      await env.CREDIT_KV.put(
+        'withdrawal_last_error',
+        JSON.stringify({
+          timestamp: new Date().toISOString(),
+          error: errorMessage,
+          stack: errorStack,
+          walletAddress: walletAddress || 'unknown',
+          withdrawalAmount: withdrawalAmount || 0
+        })
+      );
+    } catch (logError) {
+      console.error('[인출] 로그 저장 실패:', logError);
+    }
 
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : '알 수 없는 오류'
+        error: errorMessage,
+        errorType: error?.constructor?.name || 'Unknown'
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

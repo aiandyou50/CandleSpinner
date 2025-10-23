@@ -133,15 +133,25 @@ export function useGameState(initialCredit = 1000) {
    * @param amount 변경할 금액 (음수도 가능)
    */
   const updateCredit = useCallback((amount: number) => {
-    setUserCredit((prev) => Math.max(0, prev + amount));
-  }, []);
+    setUserCredit((prev) => {
+      const newCredit = Math.max(0, prev + amount);
+      // 동기적으로 localStorage에 백업 저장
+      localStorage.setItem(`gameCredit_${wallet?.account?.address || 'backup'}`, newCredit.toString());
+      return newCredit;
+    });
+  }, [wallet?.account?.address]);
 
   /**
    * 크레딧을 절대값으로 설정
    */
   const setCredit = useCallback((credit: number) => {
-    setUserCredit(Math.max(0, credit));
-  }, []);
+    setUserCredit((prev) => {
+      const newCredit = Math.max(0, credit);
+      // 동기적으로 localStorage에 백업 저장
+      localStorage.setItem(`gameCredit_${wallet?.account?.address || 'backup'}`, newCredit.toString());
+      return newCredit;
+    });
+  }, [wallet?.account?.address]);
 
   /**
    * 베팅액 설정 (유효성 검사)
