@@ -46,6 +46,16 @@ function App() {
   // TMA 환경 감지
   const isTMA = typeof window !== 'undefined' && window.Telegram?.WebApp;
   const [appMode, setAppMode] = useState<AppMode>('game');
+  const [depositTrigger, setDepositTrigger] = useState(0); // 입금 완료 신호
+
+  // 입금 완료 처리
+  const handleDepositSuccess = (amount: number) => {
+    console.log(`[App] 입금 완료: ${amount} CSPIN`);
+    // 입금 완료 신호 전송 (useGameState의 useEffect를 트리거)
+    setDepositTrigger(prev => prev + 1);
+    // 게임 화면으로 복귀
+    setAppMode('game');
+  };
 
   return (
     <ErrorBoundary>
@@ -79,7 +89,10 @@ function App() {
             <Suspense fallback={<LoadingScreen />}>
               <div style={{ width: '100%', maxWidth: 720 }}>
                 {appMode === 'deposit' ? (
-                  <Deposit onBack={() => setAppMode('game')} />
+                  <Deposit 
+                    onBack={() => setAppMode('game')}
+                    onDepositSuccess={handleDepositSuccess}
+                  />
                 ) : (
                   <GameComplete onDepositClick={() => setAppMode('deposit')} />
                 )}
@@ -137,7 +150,10 @@ function App() {
             <Suspense fallback={<LoadingScreen />}>
               <div style={{ width: '100%', maxWidth: 720 }}>
                 {appMode === 'deposit' ? (
-                  <Deposit onBack={() => setAppMode('game')} />
+                  <Deposit 
+                    onBack={() => setAppMode('game')}
+                    onDepositSuccess={handleDepositSuccess}
+                  />
                 ) : (
                   <GameComplete onDepositClick={() => setAppMode('deposit')} />
                 )}
