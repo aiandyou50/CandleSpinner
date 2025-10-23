@@ -146,6 +146,38 @@ async function getJettonWalletAddress(
   return data.addresses[0];
 }
 
+// 게임 지갑의 TON 잔액 확인
+async function getGameWalletTonBalance(gameWalletAddress: string): Promise<{ balance: bigint; isEnough: boolean }> {
+  try {
+    const url = `https://tonapi.io/v2/accounts/${gameWalletAddress}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'accept': 'application/json' }
+    });
+
+    if (!response.ok) {
+      console.warn(`[잔액 조회] 실패: ${response.status}`);
+      // 실패해도 진행 시도 (잔액 조회는 선택사항)
+      return { balance: BigInt(0), isEnough: true };
+    }
+
+    const data = await response.json();
+    const balance = BigInt(data.balance || 0);
+    
+    // TON 수수료 기준: 0.05 TON (충분한 여유)
+    const requiredTon = BigInt('50000000'); // 0.05 TON in nanotons
+    const isEnough = balance >= requiredTon;
+
+    console.log(`[잔액 조회] 게임 지갑: ${(Number(balance) / 1e9).toFixed(4)} TON (필요: 0.05 TON, 충분: ${isEnough})`);
+
+    return { balance, isEnough };
+  } catch (error) {
+    console.error('[잔액 조회] 오류:', error);
+    return { balance: BigInt(0), isEnough: true }; // 오류 시 진행
+  }
+}
+
 export async function onRequestPost(context: any) {
   let env: any;
   let walletAddress: string | undefined;
@@ -230,6 +262,13 @@ export async function onRequestPost(context: any) {
 
     // Step 5: seqno 원자적으로 증가
     const seqno = await getAndIncrementSeqno(env);
+
+    // Step 5.5: 게임 지갑의 TON 잔액 확인 (경고만)
+    const tonStatus = await getGameWalletTonBalance(gameWallet.address.toString());
+    if (!tonStatus.isEnough) {
+      console.warn(`⚠️ 게임 지갑의 TON 부족: ${(Number(tonStatus.balance) / 1e9).toFixed(4)} TON`);
+      // 경고만 하고 계속 진행 (실패할 가능성 있음)
+    }
 
     // Step 6: 게임 지갑의 CSPIN Jetton 지갑 주소 조회
     const gameJettonWalletAddress = await getJettonWalletAddress(

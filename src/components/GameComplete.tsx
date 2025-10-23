@@ -33,6 +33,10 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
     isWin: false
   });
 
+  // 더블업 상태 (컴포넌트 top-level에 선언)
+  const [doubleupChoice, setDoubleupChoice] = useState<'red' | 'blue' | null>(null);
+  const [doubleupResult, setDoubleupResult] = useState<'win' | 'lose' | null>(null);
+
   // 스핀 핸들러 (useCallback 최적화)
   const handleSpin = useCallback(() => {
     if (userCredit < betAmount) {
@@ -734,6 +738,9 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
               onClick={async () => {
                 // 현재 크레딧 상태를 KV에 저장 (스핀 결과가 손실되지 않도록)
                 await saveGameState();
+                // 더블업 상태 리셋
+                setDoubleupChoice(null);
+                setDoubleupResult(null);
                 setCurrentScreen('main');
               }}
               style={{
@@ -777,10 +784,6 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
   // ==================== 더블업 화면 ====================
   if (currentScreen === 'doubleup') {
-    // 더블업 결과 상태 (선택되었나? 결과는?)
-    const [doubleupChoice, setDoubleupChoice] = React.useState<'red' | 'blue' | null>(null);
-    const [doubleupResult, setDoubleupResult] = React.useState<'win' | 'lose' | null>(null);
-
     const handleDoubleupChoice = (choice: 'red' | 'blue') => {
       setDoubleupChoice(choice);
       
@@ -805,6 +808,9 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
         
         // 1.5초 후 자동으로 메인으로 돌아감
         setTimeout(() => {
+          // 더블업 상태 리셋
+          setDoubleupChoice(null);
+          setDoubleupResult(null);
           setCurrentScreen('main');
           setLastWinnings(0);
         }, 1500);
