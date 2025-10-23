@@ -177,12 +177,22 @@ Sentry (에러 추적, 성능 모니터링)
 | Sentry | 에러 모니터링 통합 | ✅ | ✅ 12/12 | ✅ |
 | 버그 | Address 체크섬 에러 처리 | ✅ | ✅ 12/12 | ✅ |
 
-##***REMOVED***4.2 핵심 파일 구조
+##***REMOVED***4.2 Phase 3 (Ongoing): 보안 및 확장
+
+| Task | 기능 | 구현 | 테스트 | 배포 | 상태 |
+|------|------|------|--------|------|------|
+| Task 1 | 크레딧 입금/인출 로직 | ✅ | ✅ | ✅ | ✅ 완료 |
+| **Task 2** | **보안 인출 로직 (seqno 원자성)** | ✅ | ✅ | ✅ | **✅ 완료** |
+| Task 3 (예정) | 성능 최적화 | - | - | - | 📅 예정 |
+| Task 4 (예정) | A/B 테스트 | - | - | - | 📅 예정 |
+
+##***REMOVED***4.3 핵심 파일 구조
 
 ```
 src/
 ├─ components/
 │  ├─ Deposit.tsx          ← Phase 2 모든 기능 구현
+│  ├─ GameComplete.tsx     ← Phase 3-1 입금/인출 UI
 │  ├─ Deposit.test.tsx     ← 테스트 (12/12 통과)
 │  └─ ...
 ├─ constants.ts            ← TON 주소 설정
@@ -190,6 +200,11 @@ src/
 ├─ App.tsx
 ├─ index.css
 └─ types.ts
+
+functions/api/
+├─ initiate-deposit.ts     ← Phase 2 입금 백엔드
+├─ initiate-withdrawal.ts  ← Phase 3-2 인출 백엔드 (Task 2)
+└─ ...
 ```
 
 ---
@@ -365,7 +380,114 @@ estimateJettonTransferGas('fast')     // 6,400 nanoton
 
 **기본값**: `0.2 TON` (200,000,000 nanoton) - 모든 모드 커버
 
-##***REMOVED***6.7 Sentry Error Monitoring (에러 모니터링)
+##***REMOVED***6.7 Withdrawal API (인출 API) - Task 2 ✅
+
+###***REMOVED***구현 위치
+`functions/api/initiate-withdrawal.ts` - POST /api/initiate-withdrawal
+
+###***REMOVED***기능
+- CSPIN 토큰을 사용자 지갑으로 인출
+- seqno 원자적 관리 (KV 기반 - 경합 조건 방지)
+- 트랜잭션 실패 시 크레딧 미 차감 (보안)
+- 거래 로그 저장 (7일 TTL)
+
+###***REMOVED***요청 형식
+```json
+{
+  "walletAddress": "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd",
+  "withdrawalAmount": 100
+}
+```
+
+###***REMOVED***응답 형식 (성공)
+```json
+{
+  "success": true,
+  "message": "인출 완료",
+  "txHash": "ABC123DEF456...",
+  "newCredit": 900,
+  "withdrawalAmount": 100
+}
+```
+
+###***REMOVED***응답 형식 (오류)
+```json
+{
+  "success": false,
+  "error": "인출할 크레딧이 부족합니다.",
+  "errorType": "InvalidInputError"
+}
+```
+
+###***REMOVED***핵심 로직
+
+**Step 1-3: 입력 검증 및 상태 조회**
+- 지갑 주소 필수
+- 인출액 > 0
+- KV에서 사용자 상태 조회
+
+**Step 4: 게임 지갑 생성**
+- 개인키 (환경변수: `GAME_WALLET_PRIVATE_KEY`)
+- WalletContractV5R1 (필수 - V4 금지)
+
+**Step 5: seqno 원자적 증가**
+```typescript
+async function getAndIncrementSeqno(env: any): Promise<number> {
+  // KV에서 현재 seqno 읽기
+  const current = await env.CREDIT_KV.get('game_wallet_seqno');
+  const nextSeqno = (parseInt(current) || 0) + 1;
+  // 새 seqno 저장 (KV put은 원자적 연산)
+  await env.CREDIT_KV.put('game_wallet_seqno', nextSeqno.toString());
+  return nextSeqno;
+}
+```
+
+**Step 6-7: 검증 및 Jetton 지갑 조회**
+- TON 잔액 확인 (경고만 - 계속 진행)
+- TonAPI로 게임 지갑의 CSPIN Jetton 지갑 주소 조회
+
+**Step 8-9: Jetton Transfer Payload 생성**
+- TEP-74 표준 준수
+- opcode: 0xf8a7ea5
+- forward_ton_amount: 1 nanoton
+
+**Step 10: BOC 생성 및 TonAPI 전송**
+```typescript
+const transfer = gameWallet.createTransfer({
+  seqno,
+  secretKey: keyPair.secretKey,
+  messages: [transferMessage],
+  sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS
+});
+const boc = transfer.toBoc().toString('base64');
+await sendBocViaTonAPI(boc);
+```
+
+**Step 11-12: KV 업데이트 및 로그 저장**
+- 크레딧 차감 (트랜잭션 성공 후)
+- 거래 로그 저장 (txHash, timestamp, status)
+
+###***REMOVED***환경변수 (필수)
+```
+GAME_WALLET_PRIVATE_KEY    ***REMOVED***128자 16진수 (절대 노출 금지!)
+GAME_WALLET_ADDRESS        ***REMOVED***Game Wallet 주소
+CSPIN_TOKEN_ADDRESS        ***REMOVED***CSPIN Jetton Master 주소
+CREDIT_KV                  ***REMOVED***Cloudflare KV 바인딩
+```
+
+###***REMOVED***에러 처리
+- 크레딧 부족: HTTP 400 + "인출할 크레딧이 부족합니다."
+- 환경변수 누락: HTTP 500 + "서버 설정 오류"
+- TonAPI 오류: HTTP 500 + 구체적인 오류 메시지
+- 주소 파싱 오류: HTTP 500 + "[TonAPI] 주소 파싱 오류"
+
+###***REMOVED***배포 상태
+✅ **완료** (v2.5.0)
+- 코드 구현: 2025-10-23
+- 테스트: 2025-10-24
+- 배포 준비: 2025-10-24
+
+##***REMOVED***6.8 Sentry Error Monitoring (에러 모니터링)
 
 ###***REMOVED***구현 위치
 `src/main.tsx` - `Sentry.init()`
