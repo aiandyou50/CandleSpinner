@@ -408,6 +408,58 @@ FUNCTION handleApiRpc(request, env):
     RETURN { success: true, requestedAmount: amountToWithdraw }
 ```
 
+#### **A.8. API 엔드포인트: `/api/get-credit` (v2.3.0 추가)**
+
+  * **목적:** 지갑 주소로 KV에 저장된 크레딧을 조회합니다. 프론트엔드가 페이지 새로고침 후 크레딧을 복구하기 위해 사용됩니다.
+  * **요청 (Query Param):** `walletAddress` (지갑 주소)
+  * **응답:** `{ credit: number, walletAddress: string, timestamp: number }`
+
+```
+FUNCTION handleApiGetCredit(request, env):
+    // 1. 요청 검증
+    IF request.method !== 'GET' THEN
+        RETURN ERROR 405 "Method not allowed"
+    
+    GET walletAddress FROM request.query_params
+    IF NOT walletAddress THEN
+        RETURN ERROR 400 "Missing walletAddress parameter"
+    
+    // 2. KV에서 해당 지갑의 상태 조회 (getKVState 재사용)
+    state = await getKVState(walletAddress, env)
+    
+    // 3. 크레딧 반환 (없으면 0)
+    credit = state.credit OR 0
+    
+    RETURN {
+        credit: credit,
+        walletAddress: walletAddress,
+        timestamp: getCurrentTimestamp(),
+        cacheControl: "no-cache" // 항상 최신값 조회
+    }
+```
+
+**사용 사례:**
+- 프론트엔드가 지갑 연결 시 이 API를 호출하여 KV에 저장된 크레딧을 Zustand 상태에 동기화
+- 페이지 새로고침 후 크레딧 복구 문제 해결
+- 게임 컴포넌트의 `useEffect` 훅에서 `wallet?.account?.address` 변경 시 자동 호출
+
+```typescript
+// React 프론트엔드 예제
+useEffect(() => {
+  if (!wallet?.account?.address) return;
+  
+  const loadCredits = async () => {
+    const response = await fetch(
+      `/api/get-credit?walletAddress=${encodeURIComponent(wallet.account!.address)}`
+    );
+    const data = await response.json();
+    updateCredit(data.credit);
+  };
+  
+  loadCredits();
+}, [wallet?.account?.address, updateCredit]);
+```
+
 -----
 
 ### **B. 프론트엔드 로직 (React - `src/components/Game.tsx`)**
