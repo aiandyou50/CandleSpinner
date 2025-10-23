@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
+import { useTonWallet } from '@tonconnect/ui-react';
 
 /**
  * 게임 상태 인터페이스
@@ -13,6 +14,10 @@ export interface GameStateData {
 /**
  * 게임 상태 관리 hook
  * Zustand와 useState의 혼합 사용을 제거하고 단일 hook으로 통합
+ * 
+ * KV 동기화:
+ * - 신규 사용자: initialCredit (1000)으로 시작
+ * - 기존 사용자: 지갑 연결 시 KV에서 조회하여 적용
  *
  * @example
  * ```typescript
@@ -23,10 +28,47 @@ export interface GameStateData {
  * ```
  */
 export function useGameState(initialCredit = 1000) {
+  const wallet = useTonWallet();
   const [userCredit, setUserCredit] = useState(initialCredit);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [betAmount, setBetAmount] = useState(100);
   const [lastWinnings, setLastWinnings] = useState(0);
   const [isSpinning, setIsSpinning] = useState(false);
+
+  /**
+   * 지갑 연결 시 KV에서 크레딧 조회
+   * 신규 사용자: initialCredit 유지
+   * 기존 사용자: KV 값 적용
+   */
+  useEffect(() => {
+    if (!wallet?.account?.address) return;
+    if (isInitialized) return; // 중복 조회 방지
+
+    const loadCreditFromKV = async () => {
+      try {
+        const response = await fetch(
+          `/api/get-credit?walletAddress=${encodeURIComponent(wallet.account!.address)}`
+        );
+        
+        if (!response.ok) {
+          console.warn('[useGameState] 크레딧 조회 실패, 기본값 사용');
+          setIsInitialized(true);
+          return;
+        }
+
+        const data = await response.json() as { credit: number };
+        // KV에 저장된 크레딧으로 설정 (0이면 신규 사용자 또는 모두 출금)
+        setUserCredit(Math.max(0, data.credit));
+        console.log('[useGameState] KV 크레딧 로드:', data.credit);
+      } catch (error) {
+        console.error('[useGameState] KV 조회 오류:', error);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    loadCreditFromKV();
+  }, [wallet?.account?.address, isInitialized]);
 
   /**
    * 크레딧 업데이트 (음수 방지)
