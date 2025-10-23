@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
 import { keyPairFromSecretKey } from '@ton/crypto';
-import { WalletContractV5R1 } from '@ton/ton';
+import { WalletContractV5R1, Address } from '@ton/ton';
 
 /**
  * GET /api/debug-withdrawal
@@ -35,7 +35,14 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
   const { env } = context;
 
   try {
-    const privateKeyMasked = maskPrivateKey(env.GAME_WALLET_PRIVATE_KEY || '');
+    // ✅ 주소 정규화 함수 (EQ... ↔ UQ... 변환)
+    const normalizeAddress = (addr: string): string => {
+      try {
+        return Address.parse(addr).toString({ bounceable: false });
+      } catch {
+        return addr; // 파싱 실패 시 원본 반환
+      }
+    };
     // ⚠️ keyPairFromSecretKey는 64바이트(128자 hex) secret key를 요구합니다
     const hasPrivateKey = !!env.GAME_WALLET_PRIVATE_KEY && env.GAME_WALLET_PRIVATE_KEY.length === 128;
 
@@ -66,7 +73,11 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
         });
 
         const calculatedAddress = gameWallet.address.toString();
-        const addressMatch = calculatedAddress === env.GAME_WALLET_ADDRESS;
+        
+        // ✅ 주소 정규화 비교 (EQ... vs UQ... 형식 차이 무시)
+        const normalizedCalculated = normalizeAddress(calculatedAddress);
+        const normalizedEnv = normalizeAddress(env.GAME_WALLET_ADDRESS);
+        const addressMatch = normalizedCalculated === normalizedEnv;
 
         diagnostics.gameWallet = {
           publicKeyMasked: `${keyPair.publicKey.toString('hex').substring(0, 16)}...${keyPair.publicKey.toString('hex').substring(120)}`,
@@ -79,7 +90,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
           envAddress: env.GAME_WALLET_ADDRESS,
           calculatedAddress: calculatedAddress,
           note: addressMatch 
-            ? '✅ 개인키와 주소가 일치합니다' 
+            ? '✅ 개인키와 주소가 일치합니다 (형식 무관)' 
             : '❌ 경고: 개인키와 주소가 불일치! 개인키를 다시 확인하세요'
         };
 
