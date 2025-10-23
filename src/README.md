@@ -1,6 +1,7 @@
-***REMOVED***🎮 Frontend - React Application (src/)
+***REMOVED***📚 React Frontend Source Code
 
-프론트엔드 React 애플리케이션의 소스 코드입니다. UI 컴포넌트, 상태 관리, TON 지갑 통합 등을 포함합니다.
+**최종 업데이트**: 2025-10-24  
+**버전**: 2.1
 
 ---
 
@@ -8,46 +9,317 @@
 
 ```
 src/
-├── App.tsx                  ***REMOVED***메인 애플리케이션 컴포넌트
-├── main.tsx                 ***REMOVED***React 진입점 (Vite)
-├── index.css                ***REMOVED***글로벌 스타일 (Tailwind)
-├── vite-env.d.ts            ***REMOVED***Vite 타입 정의
-├── types.ts                 ***REMOVED***프로젝트 전역 타입
-├── constants.ts             ***REMOVED***상수 (토큰 주소, API 엔드포인트 등)
-├── polyfills.ts             ***REMOVED***브라우저 폴리필 (Buffer 등)
+├─ README.md                    ← 이 파일
+├─ main.tsx                     ← Vite 진입점 + Sentry 초기화
+├─ App.tsx                      ← 메인 컴포넌트
+├─ index.css                    ← 글로벌 스타일
+├─ types.ts                     ← TypeScript 타입 정의
+├─ constants.ts                 ← TON 주소, 토큰 설정
+├─ vite-env.d.ts
+├─ polyfills.ts                 ← 폴리필
 │
-├── 📁 components/           ***REMOVED***UI 컴포넌트 (재사용 가능)
-│   ├── Spinner.tsx          ***REMOVED***슬롯머신 UI
-│   ├── WalletConnect.tsx    ***REMOVED***TonConnect 지갑 연동
-│   ├── DepositForm.tsx      ***REMOVED***입금 폼
-│   ├── WithdrawalForm.tsx   ***REMOVED***인출 폼
-│   └── ...
+├─ components/
+│  ├─ Deposit.tsx              ← 📘 입금 UI (TEP-74, 에러 분류)
+│  ├─ Deposit.test.tsx         ← 테스트 (12/12 통과)
+│  ├─ GameComplete.tsx         ← 게임 완료 UI
+│  ├─ Withdrawal.tsx            ← 인출 UI (v2.1)
+│  └─ ...
 │
-├── 📁 hooks/                ***REMOVED***React 커스텀 훅
-│   ├── useTonWallet.ts      ***REMOVED***TON 지갑 상태 관리
-│   ├── useGameState.ts      ***REMOVED***게임 상태 관리
-│   ├── useBalance.ts        ***REMOVED***CSPIN 잔액 조회
-│   └── ...
+├─ hooks/
+│  └─ ...
 │
-├── 📁 utils/                ***REMOVED***유틸리티 함수
-│   ├── api.ts               ***REMOVED***백엔드 API 호출
-│   ├── ton-utils.ts         ***REMOVED***TON 유틸리티
-│   └── ...
+├─ utils/
+│  └─ ...
 │
-└── 📁 test/                 ***REMOVED***테스트 파일 (선택)
-    └── ...
+└─ test/
+   └─ ...
 ```
 
 ---
 
-#***REMOVED***📝 주요 파일 설명
+#***REMOVED***🎯 핵심 컴포넌트
 
-##***REMOVED***App.tsx
-메인 React 컴포넌트. 애플리케이션의 전체 레이아웃과 라우팅을 관리합니다.
+##***REMOVED***`components/Deposit.tsx`
+
+**역할**: CSPIN 입금 UI 및 로직
+
+**기능**:
+- ✅ TonConnect 지갑 연결
+- ✅ 입금액 입력
+- ✅ Jetton Transfer 생성 (TEP-74)
+- ✅ 에러 분류 (네트워크, 사용자 거절, 계약 오류)
+- ✅ 재시도 로직 (최대 2회)
+- ✅ 거래 확인 (블록체인 검증)
+
+**핵심 함수**:
 
 ```typescript
-// 예시
-export default function App() {
+// TEP-74 Jetton Transfer 페이로드
+function buildJettonTransferPayload(
+  amount: bigint,
+  destination: Address,
+  responseTo: Address
+): string
+
+// 에러 분류
+enum ErrorCategory {
+  Network,
+  Timeout,
+  UserRejection,
+  InvalidInput,
+  SmartContractError,
+  Unknown
+}
+
+function classifyError(error: any): ErrorCategory
+function isRetryableError(category: ErrorCategory): boolean
+function getErrorMessage(category: ErrorCategory): string
+
+// 거래 확인 (블록체인 검증)
+async function confirmTransaction(
+  txHash: string,
+  timeout: number = 30000
+): Promise<boolean>
+```
+
+**특징**:
+- forward_ton_amount = 1 nanoton (CEX/Wallet 자동 감지)
+- 에러 분류로 똑똑한 재시도
+- 블록체인 확인으로 안전성 보장
+
+---
+
+##***REMOVED***`components/Withdrawal.tsx` (v2.1)
+
+**역할**: CSPIN 인출 UI
+
+**기능** (v2.1):
+- ✅ 인출액 입력
+- ✅ 서버 API 호출 (POST /api/initiate-withdrawal)
+- ✅ RPC 직접 통신 (v2.1) ← NEW
+- ✅ seqno 블록체인 동기화 (v2.1) ← NEW
+- ✅ TON 잔액 자동 확인 (v2.1) ← NEW
+
+---
+
+#***REMOVED***📦 설정 파일
+
+##***REMOVED***`constants.ts`
+
+TON 블록체인 주소 및 설정값
+
+```typescript
+export const TON_ADDRESS = {
+  CSPIN_MASTER: 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV',
+  GAME_WALLET: 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd',
+  // ... (더 많은 주소)
+};
+
+export const NETWORK_FEE = {
+  DEPOSIT_TON: '0.05',
+  WITHDRAWAL_TON: '0.03',
+  // ...
+};
+```
+
+---
+
+##***REMOVED***`main.tsx`
+
+Vite 진입점 + Sentry 초기화
+
+```typescript
+import * as Sentry from '@sentry/react';
+import { BrowserTracing } from '@sentry/tracing';
+
+// Sentry 초기화
+Sentry.init({
+  dsn: '...',
+  integrations: [
+    new BrowserTracing({
+      routingInstrumentation: Sentry.reactRouterV6Instrumentation(
+        window.history
+      ),
+    }),
+    new Sentry.Replay(),
+  ],
+  tracesSampleRate: 1.0,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
+
+// React 렌더링
+const root = createRoot(document.getElementById('root')!);
+root.render(<App />);
+```
+
+**모니터링 항목**:
+- ✅ JavaScript 에러
+- ✅ React 컴포넌트 에러
+- ✅ 네트워크 요청 실패
+- ✅ 성능 메트릭
+- ✅ 세션 리플레이
+
+---
+
+#***REMOVED***🔌 API 통신
+
+##***REMOVED***TonConnect 통합
+
+```typescript
+import { TonConnectUI } from '@tonconnect/ui';
+
+const tonConnect = new TonConnectUI({
+  manifestUrl: 'https://aiandyou.me/tonconnect-manifest.json'
+});
+
+// 지갑 연결
+await tonConnect.connectWallet();
+
+// 거래 서명
+const transaction = {
+  validUntil: Math.floor(Date.now() / 1000) + 600,
+  messages: [/* ... */],
+};
+const signed = await tonConnect.sendTransaction(transaction);
+```
+
+---
+
+##***REMOVED***백엔드 API 호출
+
+```typescript
+// 입금 기록
+const depositResponse = await fetch('/api/initiate-deposit', {
+  method: 'POST',
+  body: JSON.stringify({
+    walletAddress: userWallet,
+    depositAmount: 100,
+    txHash: 'ABC123...'
+  })
+});
+
+// 인출 요청 (v2.1)
+const withdrawalResponse = await fetch('/api/initiate-withdrawal', {
+  method: 'POST',
+  body: JSON.stringify({
+    walletAddress: userWallet,
+    withdrawalAmount: 50
+  })
+});
+```
+
+---
+
+#***REMOVED***🧪 테스트
+
+##***REMOVED***`components/Deposit.test.tsx`
+
+12개 테스트 모두 통과 (✅ 12/12)
+
+**테스트 항목**:
+1. ✅ Jetton Transfer Payload 생성 (#1)
+2. ✅ forward_ton_amount = 1 (#1)
+3. ✅ ErrorCategory 열거형 (#2)
+4. ✅ isRetryableError (#3)
+5. ✅ getErrorMessage (#3)
+6. ✅ confirmTransaction (#4)
+7. ✅ DepositApiResponse (#5)
+8. ✅ getUserJettonWallet (#6)
+9. ✅ estimateJettonTransferGas (#7)
+10. ✅ Sentry 모니터링 (✓)
+11. ✅ Address 체크섬 에러 처리 (✓)
+12. ✅ (기타 통합 테스트)
+
+**실행 방법**:
+```bash
+npm run test        ***REMOVED***모든 테스트 실행
+npm run test -- -u  ***REMOVED***스냅샷 업데이트
+```
+
+---
+
+#***REMOVED***🎨 스타일링
+
+##***REMOVED***Tailwind CSS
+
+```typescript
+export default {
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
+  theme: {
+    extend: {
+      colors: {
+        // 커스텀 색상
+      },
+    },
+  },
+  plugins: [],
+};
+```
+
+##***REMOVED***CSS 애니메이션
+
+기본 CSS 애니메이션 사용 (CSS-in-JS 미사용)
+
+```css
+@keyframes spin-animation {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.slot-machine {
+  animation: spin-animation 0.5s linear;
+}
+```
+
+---
+
+#***REMOVED***🔒 보안
+
+##***REMOVED***민감한 정보
+
+✅ **안전한 방식**:
+- 개인키: Cloudflare 환경변수 (서버)
+- API 키: Cloudflare 환경변수 (서버)
+- 주소: 코드에 상수화 (공개 OK)
+
+❌ **위험한 방식**:
+- 개인키를 클라이언트에 저장
+- 환경변수를 .env에 커밋
+- 민감한 정보를 localStorage에 저장
+
+---
+
+#***REMOVED***🚀 빌드 및 배포
+
+##***REMOVED***로컬 빌드
+
+```bash
+npm run build       ***REMOVED***Vite 빌드 (dist/ 생성)
+```
+
+##***REMOVED***Cloudflare Pages 배포
+
+```bash
+git push origin main    ***REMOVED***자동 배포 시작
+                        ***REMOVED***2-3분 대기
+https://aiandyou.me    ***REMOVED***배포 확인
+```
+
+---
+
+#***REMOVED***📚 참고 문서
+
+- [React 공식 문서](https://react.dev)
+- [Vite 가이드](https://vitejs.dev)
+- [Tailwind CSS](https://tailwindcss.com)
+- [TonConnect UI](https://docs.ton.org/develop/dapps/ton-connect/)
+- [Sentry 문서](https://docs.sentry.io)
+
+---
+
+**버전**: 2.1  
+**마지막 업데이트**: 2025-10-24
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <WalletConnect />
