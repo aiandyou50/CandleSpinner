@@ -96,6 +96,39 @@ export function useGameState(initialCredit = 1000) {
   }, [wallet?.account?.address, isInitialized]);
 
   /**
+   * 게임 상태를 KV에 저장하는 함수 (스핀 결과, 더블업, 수령 등)
+   */
+  const saveGameState = useCallback(async (overrideCredit?: number) => {
+    if (!wallet?.account?.address) return;
+
+    try {
+      const creditToSave = overrideCredit !== undefined ? overrideCredit : userCredit;
+      
+      const response = await fetch('/api/save-game-state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: wallet.account!.address,
+          credit: creditToSave,
+          canDoubleUp: false,
+          pendingWinnings: 0
+        })
+      });
+
+      if (!response.ok) {
+        console.warn('[useGameState] 상태 저장 실패');
+        return;
+      }
+
+      const data = await response.json() as { success: boolean };
+      console.log('[useGameState] 💾 게임 상태 저장:', { credit: creditToSave });
+      return data.success;
+    } catch (error) {
+      console.error('[useGameState] 상태 저장 오류:', error);
+    }
+  }, [wallet?.account?.address, userCredit]);
+
+  /**
    * 크레딧 업데이트 (음수 방지)
    * @param amount 변경할 금액 (음수도 가능)
    */
@@ -163,6 +196,7 @@ export function useGameState(initialCredit = 1000) {
     endSpin,
     resetGame,
     refreshCreditFromKV,
+    saveGameState,
 
     // 유도된 상태
     canSpin: userCredit >= betAmount && !isSpinning,

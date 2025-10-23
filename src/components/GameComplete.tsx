@@ -16,7 +16,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   const wallet = useTonWallet();
   
   // 게임 상태
-  const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings, refreshCreditFromKV } = useGameState();
+  const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings, refreshCreditFromKV, saveGameState } = useGameState();
   const { toast, showToast } = useToast();
   
   // 개발자 모드
@@ -653,7 +653,11 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             justifyContent: 'center'
           }}>
             <button
-              onClick={() => setCurrentScreen('main')}
+              onClick={async () => {
+                // 현재 크레딧 상태를 KV에 저장 (스핀 결과가 손실되지 않도록)
+                await saveGameState();
+                setCurrentScreen('main');
+              }}
               style={{
                 flex: 1,
                 padding: '12px',
