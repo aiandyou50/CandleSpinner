@@ -342,14 +342,10 @@ export async function onRequestPost(context: any) {
       );
     }
 
-    // RPC 초기화
-    const ankrJsonRpcUrl = env.ANKR_JSON_RPC_HTTPS_ENDPOINT;
-    if (!ankrJsonRpcUrl) {
-      throw new Error('ANKR_JSON_RPC_HTTPS_ENDPOINT 환경변수 미설정');
-    }
-    
-    const rpc = new AnkrRpc(ankrJsonRpcUrl);
-    console.log(`[인출] 초기화 - 모드: ${withdrawalMode}, 금액: ${withdrawalAmount} CSPIN`);
+    // RPC 초기화 - TON Center 사용 (CORS 제한 없음!)
+    const tonCenterRpcUrl = 'https://toncenter.com/api/v2/jsonRPC';
+    const rpc = new AnkrRpc(tonCenterRpcUrl);
+    console.log(`[인출] 초기화 - TON Center RPC, 모드: ${withdrawalMode}, 금액: ${withdrawalAmount} CSPIN`);
 
     // Step 1: KV에서 사용자 상태 조회
     const stateKey = `state:${walletAddress}`;
