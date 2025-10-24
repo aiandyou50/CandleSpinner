@@ -1,6 +1,6 @@
 // src/components/GameComplete.tsx - MVP 완전 테스트 UI (v3.0)
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useTonWallet } from '@tonconnect/ui-react';
+import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { useGameState } from '../hooks/useGameState';
 import { useToast } from '../hooks/useToast';
 import { useDeveloperMode } from '../hooks/useDeveloperMode';
@@ -12,8 +12,9 @@ interface GameProps {
 type GameScreen = 'main' | 'result' | 'doubleup' | 'collect' | 'withdraw';
 
 const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
-  // TonConnect 지갑
+  // TonConnect 지갑 및 UI
   const wallet = useTonWallet();
+  const [tonConnectUI] = useTonConnectUI();
   
   // 게임 상태
   const { userCredit, betAmount, lastWinnings, isSpinning, updateCredit, setBet, endSpin, setLastWinnings, refreshCreditFromKV, saveGameState } = useGameState();
@@ -1064,6 +1065,14 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
   // ==================== 인출 화면 ====================
   if (currentScreen === 'withdraw') {
+    const [withdrawMode, setWithdrawMode] = useState<'centralized' | 'rpc'>('centralized');
+    const [showDebug, setShowDebug] = useState(false);
+    const [debugLog, setDebugLog] = useState<string[]>([]);
+
+    const addDebugLog = (message: string) => {
+      setDebugLog(prev => [...prev.slice(-9), `[${new Date().toLocaleTimeString()}] ${message}`]);
+    };
+
     return (
       <div style={{
         minHeight: '100vh',
@@ -1077,9 +1086,90 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
       }}>
         <div style={{
           textAlign: 'center',
-          maxWidth: '400px'
+          maxWidth: '500px',
+          width: '100%'
         }}>
           <h2 style={{ fontSize: '28px', marginBottom: '20px' }}>📤 CSPIN 인출</h2>
+
+          {/* 모드 선택 탭 */}
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            marginBottom: '20px',
+            background: 'rgba(255,255,255,0.05)',
+            padding: '8px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}>
+            <button
+              onClick={() => setWithdrawMode('centralized')}
+              style={{
+                flex: 1,
+                padding: '10px',
+                borderRadius: '6px',
+                border: 'none',
+                background: withdrawMode === 'centralized' 
+                  ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                  : 'transparent',
+                color: 'white',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontSize: '12px'
+              }}
+            >
+              👤 중앙화 방식<br/>
+              <span style={{ fontSize: '10px', opacity: 0.8 }}>사용자 서명</span>
+            </button>
+            <button
+              onClick={() => setWithdrawMode('rpc')}
+              style={{
+                flex: 1,
+                padding: '10px',
+                borderRadius: '6px',
+                border: 'none',
+                background: withdrawMode === 'rpc' 
+                  ? 'linear-gradient(135deg, #8b5cf6, #7c3aed)'
+                  : 'transparent',
+                color: 'white',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontSize: '12px'
+              }}
+            >
+              ⚡ RPC 방식<br/>
+              <span style={{ fontSize: '10px', opacity: 0.8 }}>즉시 완료</span>
+            </button>
+          </div>
+
+          {/* 모드 설명 */}
+          <div style={{
+            background: 'rgba(255,255,255,0.05)',
+            padding: '12px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '12px',
+            textAlign: 'left',
+            lineHeight: '1.6'
+          }}>
+            {withdrawMode === 'centralized' ? (
+              <>
+                <strong style={{ color: '#60a5fa' }}>👤 중앙화 방식</strong><br/>
+                ✅ 사용자가 직접 서명<br/>
+                ✅ 완전한 제어권<br/>
+                ℹ️ 추가 서명 단계 필요
+              </>
+            ) : (
+              <>
+                <strong style={{ color: '#a78bfa' }}>⚡ RPC 방식</strong><br/>
+                ✅ 즉시 완료<br/>
+                ✅ 서명 불필요<br/>
+                ℹ️ 게임 지갑 사용
+              </>
+            )}
+          </div>
 
           <div style={{
             background: 'rgba(255,255,255,0.1)',
@@ -1130,6 +1220,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             />
           </div>
 
+          {/* 인출 버튼 (모드별) */}
           <button
             onClick={async () => {
               if (withdrawAmount <= 0) {
@@ -1143,65 +1234,83 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
               }
 
               try {
+                addDebugLog(`인출 시작: ${withdrawAmount} CSPIN (${withdrawMode} 모드)`);
                 showToast('인출 요청 중...', 'info');
 
-                // Step 1: 백엔드에 인출 요청 (중앙화 모드: 사용자 지갑에서 가스비 지불)
                 const response = await fetch('/api/initiate-withdrawal', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     walletAddress: wallet.account.address,
                     withdrawalAmount: withdrawAmount,
-                    mode: 'centralized'  // ✅ 사용자 지갑에서 가스비 지불
+                    mode: withdrawMode
                   })
                 });
 
+                addDebugLog(`API 응답 상태: ${response.status}`);
+
                 if (!response.ok) {
                   const error = await response.json();
+                  addDebugLog(`❌ 오류: ${error.error || error.message}`);
                   showToast(`인출 실패: ${error.error || error.message}`, 'error');
                   return;
                 }
 
                 const result = await response.json();
+                addDebugLog(`✅ API 응답 성공: ${JSON.stringify(result).substring(0, 100)}...`);
 
-                // Step 2: 성공 시 처리
                 if (result.success) {
-                  // ✅ 중앙화 모드: BOC를 받아서 사용자가 서명해야 함
-                  if (result.boc) {
-                    showToast(`트랜잭션 생성 완료. 서명이 필요합니다.`, 'info');
+                  // 중앙화 모드: 사용자 서명 필요
+                  if (withdrawMode === 'centralized' && result.boc) {
+                    addDebugLog('BOC 받음, 사용자 서명 요청 중...');
+                    showToast(`트랜잭션 생성 완료. TON Connect에서 서명해주세요.`, 'info');
                     
-                    // TON Connect를 통해 트랜잭션 서명
                     try {
                       const tx = {
                         validUntil: Math.floor(Date.now() / 1000) + 600,
                         messages: [{
                           address: wallet.account.address,
-                          amount: result.tonAmount || '30000000', // 0.03 TON
+                          amount: result.tonAmount || '30000000',
                           payload: result.boc
                         }]
                       };
                       
+                      addDebugLog('TON Connect 트랜잭션 전송...');
                       const txResult = await tonConnectUI.sendTransaction(tx);
                       
                       if (txResult?.boc) {
+                        addDebugLog(`✅ 트랜잭션 완료: ${txResult.boc.substring(0, 20)}...`);
                         showToast(`✅ ${withdrawAmount} CSPIN 인출 완료!`, 'success');
                         updateCredit(result.newCredit);
                         setCurrentScreen('main');
+                      } else {
+                        addDebugLog(`⚠️ 트랜잭션 응답 없음: ${JSON.stringify(txResult)}`);
                       }
                     } catch (signError) {
+                      addDebugLog(`❌ 서명 오류: ${signError instanceof Error ? signError.message : String(signError)}`);
                       console.error('[서명 오류]:', signError);
                       showToast('트랜잭션 서명에 실패했습니다.', 'error');
                     }
+                  } 
+                  // RPC 모드: 즉시 완료
+                  else if (withdrawMode === 'rpc' && result.txHash) {
+                    addDebugLog(`✅ RPC 완료: ${result.txHash}`);
+                    showToast(`✅ ${withdrawAmount} CSPIN 인출 완료! (TX: ${result.txHash.substring(0, 10)}...)`, 'success');
+                    updateCredit(result.newCredit);
+                    setCurrentScreen('main');
                   } else {
-                    // RPC 모드: 즉시 완료
-                    showToast(`✅ ${withdrawAmount} CSPIN 인출 완료!`, 'success');
+                    addDebugLog(`⚠️ 예상치 못한 응답: ${JSON.stringify(result)}`);
+                    showToast(`인출 완료!`, 'success');
                     updateCredit(result.newCredit);
                     setCurrentScreen('main');
                   }
                 } else {
+                  addDebugLog(`❌ 성공 응답 아님: ${result.error}`);
                   showToast(`인출 실패: ${result.error}`, 'error');
                 }
               } catch (error) {
+                const errorMsg = error instanceof Error ? error.message : String(error);
+                addDebugLog(`❌ 네트워크 오류: ${errorMsg}`);
                 console.error('[인출 오류]:', error);
                 showToast('인출 중 오류 발생', 'error');
               }
@@ -1213,7 +1322,9 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
               fontWeight: 'bold',
               border: 'none',
               borderRadius: '8px',
-              background: 'linear-gradient(135deg, #ef4444, #f87171)',
+              background: withdrawMode === 'centralized' 
+                ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
+                : 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
               color: 'white',
               cursor: 'pointer',
               marginBottom: '12px',
@@ -1226,8 +1337,54 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            ✓ 인출 요청
+            {withdrawMode === 'centralized' ? '✓ 중앙화 방식 인출' : '⚡ RPC 방식 인출'}
           </button>
+
+          {/* 디버그 로그 패널 */}
+          <button
+            onClick={() => setShowDebug(!showDebug)}
+            style={{
+              width: '100%',
+              padding: '8px',
+              fontSize: '11px',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '6px',
+              background: 'rgba(255,255,255,0.05)',
+              color: 'rgba(255,255,255,0.7)',
+              cursor: 'pointer',
+              marginBottom: '12px'
+            }}
+          >
+            {showDebug ? '🔽 디버그 로그 숨기기' : '▶️ 디버그 로그 보기'}
+          </button>
+
+          {showDebug && (
+            <div style={{
+              background: 'rgba(0,0,0,0.5)',
+              border: '1px solid rgba(255,0,0,0.3)',
+              borderRadius: '6px',
+              padding: '10px',
+              marginBottom: '12px',
+              maxHeight: '150px',
+              overflowY: 'auto',
+              fontFamily: 'monospace',
+              fontSize: '10px',
+              textAlign: 'left'
+            }}>
+              {debugLog.length === 0 ? (
+                <div style={{ color: 'rgba(255,255,255,0.5)' }}>로그 없음</div>
+              ) : (
+                debugLog.map((log, i) => (
+                  <div key={i} style={{
+                    color: log.includes('❌') ? '#ff6b6b' : log.includes('✅') ? '#51cf66' : 'rgba(255,255,255,0.7)',
+                    lineHeight: '1.4'
+                  }}>
+                    {log}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
 
           <button
             onClick={() => setCurrentScreen('main')}
