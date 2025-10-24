@@ -72,10 +72,15 @@ async function withdrawViaRpc(
 
   // seqno 조회
   const seqnoManager = new SeqnoManager(rpc, env.CREDIT_KV, gameWallet.address.toString());
+  console.log(`[RPC] seqno 조회 시작...`);
   const seqno = await seqnoManager.getAndIncrementSeqno();
+  console.log(`[RPC] seqno 조회 완료: ${seqno}`);
 
   // TON 잔액 확인
+  console.log(`[RPC] TON 잔액 조회 시작...`);
   const tonBalance = await rpc.getBalance(gameWallet.address.toString());
+  console.log(`[RPC] TON 잔액 조회 완료: ${tonBalance}`);
+  
   const requiredTon = BigInt('50000000'); // 0.05 TON
   
   if (tonBalance < requiredTon) {
@@ -84,37 +89,53 @@ async function withdrawViaRpc(
     );
   }
 
-  console.log(`[RPC] TON 잔액: ${(Number(tonBalance) / 1e9).toFixed(4)} TON`);
+  console.log(`[RPC] TON 잔액 확인 통과: ${(Number(tonBalance) / 1e9).toFixed(4)} TON`);
 
   // Jetton Transfer Payload 생성
+  console.log(`[RPC] Jetton Payload 생성 시작...`);
   const jettonPayload = buildJettonTransferPayload(
     toNano(withdrawalAmount.toString()),
     Address.parse(walletAddress),
     gameWallet.address
   );
+  console.log(`[RPC] Jetton Payload 생성 완료`);
 
   // 내부 메시지 생성
+  console.log(`[RPC] 내부 메시지 생성 시작 (목적지: ${userJettonWalletAddress})`);
   const transferMessage = internal({
     to: Address.parse(userJettonWalletAddress),
     value: toNano('0.03'),
     body: jettonPayload
   });
+  console.log(`[RPC] 내부 메시지 생성 완료`);
 
   // 트랜잭션 생성
+  console.log(`[RPC] 트랜잭션 생성 시작...`);
   const transfer = gameWallet.createTransfer({
     seqno,
     secretKey: keyPair.secretKey,
     messages: [transferMessage],
     sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS
   });
+  console.log(`[RPC] 트랜잭션 생성 완료`);
 
   // BOC 생성 및 RPC로 전송
+  console.log(`[RPC] BOC 생성 시작...`);
   const boc = transfer.toBoc().toString('base64');
+  console.log(`[RPC] BOC 생성 완료 (길이: ${boc.length})`);
+  console.log(`[RPC] 첫 100자: ${boc.substring(0, 100)}`);
   
-  console.log(`[RPC] BOC 길이: ${boc.length}`);
-  console.log(`[RPC] RPC 전송 시작...`);
+  console.log(`[RPC] 📨 RPC 서버로 BOC 전송 시작...`);
+  console.log(`[RPC] RPC 엔드포인트: ${rpc['rpcUrl']?.substring(0, 50)}...`);
 
-  const txHash = await rpc.sendBoc(boc);
+  let txHash: string;
+  try {
+    txHash = await rpc.sendBoc(boc);
+    console.log(`[RPC] ✅ BOC 전송 성공: ${txHash}`);
+  } catch (rpcError) {
+    console.error(`[RPC] ❌ BOC 전송 실패:`, rpcError);
+    throw new Error(`RPC BOC 전송 오류: ${rpcError instanceof Error ? rpcError.message : String(rpcError)}`);
+  }
 
   console.log(`[RPC] ✅ 완료: ${txHash}`);
 
