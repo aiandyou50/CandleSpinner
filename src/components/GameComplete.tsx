@@ -1102,7 +1102,12 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             fontSize: '11px'
           }}>
             <p style={{ margin: '0 0 8px 0', color: '#ffa500', fontWeight: 'bold' }}>
-              ⚠️ 임시: 사용자 Jetton 지갑 주소 입력
+              ⚠️ 임시: 사용자 Jetton 지갑 주소 입력 (현재 테스트용)
+            </p>
+            <p style={{ margin: '0 0 8px 0', color: 'rgba(255,255,255,0.6)', fontSize: '10px' }}>
+              💡 프로덕션: CSPIN 토큰의 사용자 Jetton 지갑 주소<br/>
+              현재: 테스트용 고정 주소 또는 사용자 입력<br/>
+              입력: EQ로 시작하는 주소
             </p>
             <input
               type="text"
