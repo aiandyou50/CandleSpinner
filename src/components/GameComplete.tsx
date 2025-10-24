@@ -1238,14 +1238,21 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
                 addDebugLog(`인출 시작: ${withdrawAmount} CSPIN (${withdrawMode} 모드)`);
                 showToast('인출 요청 중...', 'info');
 
+                // ✅ API 요청 페이로드 구성
+                const payload = {
+                  walletAddress: wallet.account.address,
+                  withdrawalAmount: withdrawAmount,
+                  mode: withdrawMode,
+                  // 임시: 하드코딩된 Jetton 지갑 주소 (실제로는 프론트에서 계산)
+                  // userJettonWalletAddress: '...' (나중에 추가 가능)
+                };
+
+                addDebugLog(`📤 요청 페이로드: ${JSON.stringify(payload).substring(0, 80)}...`);
+
                 const response = await fetch('/api/initiate-withdrawal', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    walletAddress: wallet.account.address,
-                    withdrawalAmount: withdrawAmount,
-                    mode: withdrawMode
-                  })
+                  body: JSON.stringify(payload)
                 });
 
                 addDebugLog(`API 응답 상태: ${response.status}`);
