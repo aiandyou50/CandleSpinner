@@ -35,41 +35,56 @@ export class AnkrRpc {
   private async call<T>(method: string, params: any[]): Promise<T> {
     const id = Math.floor(Math.random() * 1e9);
     
-    const response = await fetch(this.rpcUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'accept': 'application/json'
-      },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id,
-        method,
-        params
-      } as RpcRequest)
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`RPC HTTP ${response.status}: ${text.substring(0, 100)}`);
-    }
-
-    let data: RpcResponse<T>;
+    console.log(`[RPC] 호출 시작: method=${method}, id=${id}`);
+    console.log(`[RPC] RPC URL: ${this.rpcUrl.substring(0, 50)}...`);
+    
     try {
-      data = (await response.json()) as RpcResponse<T>;
-    } catch (e) {
-      throw new Error(`RPC Response parse error: ${e}`);
-    }
+      const response = await fetch(this.rpcUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json'
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id,
+          method,
+          params
+        } as RpcRequest)
+      });
 
-    if (data.error) {
-      throw new Error(`RPC Error ${data.error.code}: ${data.error.message}`);
-    }
+      console.log(`[RPC] HTTP 응답: ${response.status}`);
 
-    if (data.result === undefined) {
-      throw new Error(`RPC no result for method: ${method}`);
-    }
+      if (!response.ok) {
+        const text = await response.text();
+        console.error(`[RPC] ❌ HTTP 오류 (${response.status}): ${text.substring(0, 200)}`);
+        throw new Error(`RPC HTTP ${response.status}: ${text.substring(0, 100)}`);
+      }
 
-    return data.result;
+      let data: RpcResponse<T>;
+      try {
+        data = (await response.json()) as RpcResponse<T>;
+      } catch (e) {
+        console.error(`[RPC] ❌ JSON 파싱 오류: ${e}`);
+        throw new Error(`RPC Response parse error: ${e}`);
+      }
+
+      if (data.error) {
+        console.error(`[RPC] ❌ RPC 오류 (${data.error.code}): ${data.error.message}`);
+        throw new Error(`RPC Error ${data.error.code}: ${data.error.message}`);
+      }
+
+      if (data.result === undefined) {
+        console.warn(`[RPC] ⚠️ result 없음 for method: ${method}`);
+        throw new Error(`RPC no result for method: ${method}`);
+      }
+
+      console.log(`[RPC] ✅ 호출 성공: method=${method}`);
+      return data.result;
+    } catch (error) {
+      console.error(`[RPC] ❌ 호출 실패: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
   }
 
   /**
