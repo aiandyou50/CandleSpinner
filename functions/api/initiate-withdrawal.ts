@@ -166,18 +166,25 @@ async function withdrawViaCentralized(
   }
 
   // Jetton Transfer Payload 생성
+  // ✅ 수정: destination = walletAddress (CSPIN을 받을 사용자)
+  //         responseDestination = gameWalletAddress (응답받을 게임 지갑)
+  console.log(`[중앙화] Jetton Payload 생성: ${walletAddress} ← ${withdrawalAmount} CSPIN`);
   const jettonPayload = buildJettonTransferPayload(
     toNano(withdrawalAmount.toString()),
-    Address.parse(gameWalletAddress),
-    Address.parse(walletAddress)
+    Address.parse(walletAddress),           // ✅ CSPIN을 받을 사용자 주소
+    Address.parse(gameWalletAddress)        // ✅ 응답받을 게임 지갑
   );
+  console.log(`[중앙화] Jetton Payload 생성 완료`);
 
   // 내부 메시지 생성
+  // 이 메시지: "사용자의 Jetton 지갑에게 위의 Jetton Payload 실행해줘"
+  console.log(`[중앙화] 내부 메시지 생성: ${userJettonWalletAddress}로 전송`);
   const transferMessage = internal({
-    to: Address.parse(userJettonWalletAddress),
-    value: toNano('0.03'),
-    body: jettonPayload
+    to: Address.parse(userJettonWalletAddress),  // 사용자의 Jetton 중간 지갑
+    value: toNano('0.03'),                       // 가스비 0.03 TON
+    body: jettonPayload                          // 위의 Jetton 페이로드 포함
   });
+  console.log(`[중앙화] 내부 메시지 생성 완료`);
 
   // ✅ 여기서 BOC를 생성하지만, seqno는 프론트엔드에서 조회하여 사용해야 함
   // 프론트엔드에서 WalletContractV5R1를 생성하고 서명할 때:
