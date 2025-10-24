@@ -43,6 +43,38 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   const [showDebug, setShowDebug] = useState(false);
   const [debugLog, setDebugLog] = useState<string[]>([]);
 
+  // 히스토리 API (뒤로/앞으로 기능)
+  const handleBack = useCallback(() => {
+    if (currentScreen !== 'main') {
+      setCurrentScreen('main');
+      // 브라우저 뒤로가기와 동기화
+      window.history.back();
+    }
+  }, [currentScreen]);
+
+  const handleScreenChange = useCallback((screen: GameScreen) => {
+    setCurrentScreen(screen);
+    // 브라우저 히스토리에 현재 화면 상태 저장
+    window.history.pushState({ screen }, '', window.location.href);
+  }, []);
+
+  // 브라우저 뒤로가기/앞으로가기 이벤트 처리
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (state?.screen) {
+        setCurrentScreen(state.screen);
+      } else {
+        setCurrentScreen('main');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   // 스핀 핸들러 (useCallback 최적화)
   const handleSpin = useCallback(() => {
     if (userCredit < betAmount) {
@@ -364,7 +396,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
           }}>
             {lastWinnings > 0 && (
               <button
-                onClick={() => setCurrentScreen('doubleup')}
+                onClick={() => handleScreenChange('doubleup')}
                 style={{
                   flex: '1',
                   minWidth: '90px',
@@ -391,7 +423,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
             {lastWinnings > 0 && (
               <button
-                onClick={() => setCurrentScreen('collect')}
+                onClick={() => handleScreenChange('collect')}
                 style={{
                   flex: '1',
                   minWidth: '90px',
@@ -417,7 +449,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
             )}
 
             <button
-              onClick={() => setCurrentScreen('withdraw')}
+              onClick={() => handleScreenChange('withdraw')}
               style={{
                 flex: '1',
                 minWidth: '90px',
@@ -1023,7 +1055,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
               updateCredit(spinResult.winnings);
               showToast(`${spinResult.winnings} CSPIN을 수령했습니다!`, 'success');
               setLastWinnings(0);
-              setCurrentScreen('main');
+              handleScreenChange('main');
             }}
             style={{
               width: '100%',
@@ -1049,7 +1081,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
           </button>
 
           <button
-            onClick={() => setCurrentScreen('main')}
+            onClick={handleBack}
             style={{
               width: '100%',
               padding: '10px',
@@ -1467,7 +1499,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
           )}
 
           <button
-            onClick={() => setCurrentScreen('main')}
+            onClick={handleBack}
             style={{
               width: '100%',
               padding: '10px',
