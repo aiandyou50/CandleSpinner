@@ -1301,8 +1301,20 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
                 if (!response.ok) {
                   const error = await response.json();
-                  addDebugLog(`❌ 오류: ${error.error || error.message}`);
-                  showToast(`인출 실패: ${error.error || error.message}`, 'error');
+                  const errorMsg = error.error || error.message || '알 수 없는 오류';
+                  addDebugLog(`❌ 오류: ${errorMsg}`);
+                  
+                  // RPC CORS 오류 처리
+                  if (errorMsg.includes('Origin not allowed') || errorMsg.includes('-32079')) {
+                    addDebugLog('💡 팁: RPC 엔드포인트가 현재 Origin을 허용하지 않습니다');
+                    addDebugLog('해결책: 환경 변수 ANKR_JSON_RPC_HTTPS_ENDPOINT 확인');
+                    showToast(
+                      'RPC 설정 오류: 관리자에게 문의하세요',
+                      'error'
+                    );
+                  } else {
+                    showToast(`인출 실패: ${errorMsg}`, 'error');
+                  }
                   return;
                 }
 
@@ -1316,16 +1328,29 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
                     showToast(`트랜잭션 생성 완료. TON Connect에서 서명해주세요.`, 'info');
                     
                     try {
+                      // ✅ address를 User-Friendly 형식으로 변환
+                      // 0:... 형식 → EQ... 형식
+                      let userFriendlyAddress = wallet.account.address;
+                      try {
+                        if (wallet.account.address.includes(':')) {
+                          const { Address } = await import('@ton/ton');
+                          userFriendlyAddress = Address.parse(wallet.account.address).toString();
+                          addDebugLog(`📍 주소 변환: ${wallet.account.address.substring(0, 20)}... → ${userFriendlyAddress.substring(0, 20)}...`);
+                        }
+                      } catch (addrErr) {
+                        addDebugLog(`⚠️ 주소 변환 경고: ${addrErr instanceof Error ? addrErr.message : String(addrErr)}`);
+                      }
+                      
                       const tx = {
                         validUntil: Math.floor(Date.now() / 1000) + 600,
                         messages: [{
-                          address: wallet.account.address,
+                          address: userFriendlyAddress,  // ← User-Friendly 형식 사용
                           amount: result.tonAmount || '30000000',
                           payload: result.boc
                         }]
                       };
                       
-                      addDebugLog('TON Connect 트랜잭션 전송...');
+                      addDebugLog(`📨 TON Connect 트랜잭션 전송 (주소: ${userFriendlyAddress.substring(0, 20)}...)`);
                       const txResult = await tonConnectUI.sendTransaction(tx);
                       
                       if (txResult?.boc) {
