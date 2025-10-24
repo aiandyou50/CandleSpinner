@@ -1092,6 +1092,38 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
         }}>
           <h2 style={{ fontSize: '28px', marginBottom: '20px' }}>📤 CSPIN 인출</h2>
 
+          {/* ⚠️ 임시: Jetton 지갑 주소 입력 필드 */}
+          <div style={{
+            background: 'rgba(255,165,0,0.1)',
+            border: '1px solid #ffa500',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '20px',
+            fontSize: '11px'
+          }}>
+            <p style={{ margin: '0 0 8px 0', color: '#ffa500', fontWeight: 'bold' }}>
+              ⚠️ 임시: 사용자 Jetton 지갑 주소 입력
+            </p>
+            <input
+              type="text"
+              placeholder="EQB... (사용자 Jetton 지갑 주소)"
+              defaultValue="EQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
+              onBlur={(e) => {
+                sessionStorage.setItem('jettonWalletAddress', e.target.value);
+              }}
+              style={{
+                width: '100%',
+                padding: '6px 8px',
+                fontSize: '10px',
+                border: '1px solid #ffa500',
+                borderRadius: '4px',
+                background: 'rgba(0,0,0,0.5)',
+                color: 'white',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
           {/* 모드 선택 탭 */}
           <div style={{
             display: 'flex',
@@ -1238,13 +1270,23 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
                 addDebugLog(`인출 시작: ${withdrawAmount} CSPIN (${withdrawMode} 모드)`);
                 showToast('인출 요청 중...', 'info');
 
+                // ✅ sessionStorage에서 Jetton 주소 읽기
+                const jettonWalletAddress = sessionStorage.getItem('jettonWalletAddress') || '';
+                
+                if (!jettonWalletAddress) {
+                  addDebugLog('❌ 오류: Jetton 지갑 주소 필요');
+                  showToast('Jetton 지갑 주소를 입력해주세요.', 'error');
+                  return;
+                }
+
+                addDebugLog(`Jetton 주소: ${jettonWalletAddress.substring(0, 20)}...`);
+
                 // ✅ API 요청 페이로드 구성
                 const payload = {
                   walletAddress: wallet.account.address,
                   withdrawalAmount: withdrawAmount,
                   mode: withdrawMode,
-                  // 임시: 하드코딩된 Jetton 지갑 주소 (실제로는 프론트에서 계산)
-                  // userJettonWalletAddress: '...' (나중에 추가 가능)
+                  userJettonWalletAddress: jettonWalletAddress  // ← 추가!
                 };
 
                 addDebugLog(`📤 요청 페이로드: ${JSON.stringify(payload).substring(0, 80)}...`);
