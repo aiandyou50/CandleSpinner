@@ -38,6 +38,11 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   const [doubleupChoice, setDoubleupChoice] = useState<'red' | 'blue' | null>(null);
   const [doubleupResult, setDoubleupResult] = useState<'win' | 'lose' | null>(null);
 
+  // 인출 화면 상태 (컴포넌트 top-level에 선언 - React hooks 규칙)
+  const [withdrawMode, setWithdrawMode] = useState<'centralized' | 'rpc'>('centralized');
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
   // 스핀 핸들러 (useCallback 최적화)
   const handleSpin = useCallback(() => {
     if (userCredit < betAmount) {
@@ -1065,10 +1070,6 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
   // ==================== 인출 화면 ====================
   if (currentScreen === 'withdraw') {
-    const [withdrawMode, setWithdrawMode] = useState<'centralized' | 'rpc'>('centralized');
-    const [showDebug, setShowDebug] = useState(false);
-    const [debugLog, setDebugLog] = useState<string[]>([]);
-
     const addDebugLog = (message: string) => {
       setDebugLog(prev => [...prev.slice(-9), `[${new Date().toLocaleTimeString()}] ${message}`]);
     };
