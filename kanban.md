@@ -1,9 +1,21 @@
-***REMOVED***CandleSpinner 칸반 보드 (Kanban Board)
+***REMOVED***CandleSpinner 칸반 보드 (Kanban Board) v3.2
 
 이 파일은 프로젝트의 모든 작업 상태를 관리합니다.
-작업은 [To Do], [In Progress], [Done] 상태로 분류됩니다.
+작업은 [To Do], [In Progress], [Done] 상태로 분류되며, **Priority (A/B/C)** 기반 워크플로우를 따릅니다.
 
-**마지막 업데이트:** 2025년 10월 23일
+**마지막 업데이트:** 2025년 10월 24일
+
+---
+
+#***REMOVED***📋 Priority 정의 (v3.2)
+
+| Priority | 대상 | Step | 시간 | 빈도 |
+|----------|------|------|------|------|
+| **A** | 아키텍처/API 변경 | 1-6 (Full) | 2-4h | 1-2주 |
+| **B** | 기능/버그 수정 | 3,4,6 (Mid) | 30-60m | 수시 |
+| **C** | 문서/리팩토링 | 6 (Light) | 5-15m | 수시 |
+
+자세한 정보: `docs/workflows/AI-워크플로우-지침서-v3.2.md`
 
 ---
 
