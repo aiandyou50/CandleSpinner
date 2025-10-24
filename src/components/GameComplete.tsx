@@ -1365,29 +1365,31 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
                     showToast(`트랜잭션 생성 완료. TON Connect에서 서명해주세요.`, 'info');
                     
                     try {
-                      // ✅ address를 User-Friendly 형식으로 변환
+                      // ✅ Jetton 중간 지갑 주소 User-Friendly 형식으로 변환 (입금과 동일하게!)
                       // 0:... 형식 → EQ... 형식
-                      let userFriendlyAddress = wallet.account.address;
+                      const jettonWalletAddress = sessionStorage.getItem('jettonWalletAddress') || '';
+                      let userFriendlyJettonAddress = jettonWalletAddress;
                       try {
-                        if (wallet.account.address.includes(':')) {
+                        if (jettonWalletAddress && jettonWalletAddress.includes(':')) {
                           const { Address } = await import('@ton/ton');
-                          userFriendlyAddress = Address.parse(wallet.account.address).toString();
-                          addDebugLog(`📍 주소 변환: ${wallet.account.address.substring(0, 20)}... → ${userFriendlyAddress.substring(0, 20)}...`);
+                          userFriendlyJettonAddress = Address.parse(jettonWalletAddress).toString();
+                          addDebugLog(`📍 Jetton 주소 변환: ${jettonWalletAddress.substring(0, 20)}... → ${userFriendlyJettonAddress.substring(0, 20)}...`);
                         }
                       } catch (addrErr) {
-                        addDebugLog(`⚠️ 주소 변환 경고: ${addrErr instanceof Error ? addrErr.message : String(addrErr)}`);
+                        addDebugLog(`⚠️ Jetton 주소 변환 경고: ${addrErr instanceof Error ? addrErr.message : String(addrErr)}`);
+                        userFriendlyJettonAddress = jettonWalletAddress;
                       }
                       
                       const tx = {
                         validUntil: Math.floor(Date.now() / 1000) + 600,
                         messages: [{
-                          address: userFriendlyAddress,  // ← User-Friendly 형식 사용
+                          address: userFriendlyJettonAddress,  // ✅ Jetton 중간 지갑 주소 (입금과 동일!)
                           amount: result.tonAmount || '30000000',
                           payload: result.boc
                         }]
                       };
                       
-                      addDebugLog(`📨 TON Connect 트랜잭션 전송 (주소: ${userFriendlyAddress.substring(0, 20)}...)`);
+                      addDebugLog(`📨 TON Connect 트랜잭션 전송 (Jetton 주소: ${userFriendlyJettonAddress.substring(0, 20)}...)`);
                       const txResult = await tonConnectUI.sendTransaction(tx);
                       
                       if (txResult?.boc) {
