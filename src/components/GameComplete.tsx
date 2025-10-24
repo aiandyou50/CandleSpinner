@@ -1145,13 +1145,14 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
               try {
                 showToast('인출 요청 중...', 'info');
 
-                // Step 1: 백엔드에 인출 요청
+                // Step 1: 백엔드에 인출 요청 (중앙화 모드: 사용자 지갑에서 가스비 지불)
                 const response = await fetch('/api/initiate-withdrawal', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     walletAddress: wallet.account.address,
-                    withdrawalAmount: withdrawAmount
+                    withdrawalAmount: withdrawAmount,
+                    mode: 'centralized'  // ✅ 사용자 지갑에서 가스비 지불
                   })
                 });
 
@@ -1163,11 +1164,40 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
                 const result = await response.json();
 
-                // Step 2: 성공 시 UI 업데이트
+                // Step 2: 성공 시 처리
                 if (result.success) {
-                  updateCredit(userCredit - withdrawAmount);
-                  showToast(`✅ ${withdrawAmount} CSPIN 인출 완료!`, 'success');
-                  setCurrentScreen('main');
+                  // ✅ 중앙화 모드: BOC를 받아서 사용자가 서명해야 함
+                  if (result.boc) {
+                    showToast(`트랜잭션 생성 완료. 서명이 필요합니다.`, 'info');
+                    
+                    // TON Connect를 통해 트랜잭션 서명
+                    try {
+                      const tx = {
+                        validUntil: Math.floor(Date.now() / 1000) + 600,
+                        messages: [{
+                          address: wallet.account.address,
+                          amount: result.tonAmount || '30000000', // 0.03 TON
+                          payload: result.boc
+                        }]
+                      };
+                      
+                      const txResult = await tonConnectUI.sendTransaction(tx);
+                      
+                      if (txResult?.boc) {
+                        showToast(`✅ ${withdrawAmount} CSPIN 인출 완료!`, 'success');
+                        updateCredit(result.newCredit);
+                        setCurrentScreen('main');
+                      }
+                    } catch (signError) {
+                      console.error('[서명 오류]:', signError);
+                      showToast('트랜잭션 서명에 실패했습니다.', 'error');
+                    }
+                  } else {
+                    // RPC 모드: 즉시 완료
+                    showToast(`✅ ${withdrawAmount} CSPIN 인출 완료!`, 'success');
+                    updateCredit(result.newCredit);
+                    setCurrentScreen('main');
+                  }
                 } else {
                   showToast(`인출 실패: ${result.error}`, 'error');
                 }
