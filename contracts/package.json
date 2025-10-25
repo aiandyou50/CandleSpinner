@@ -7,7 +7,9 @@
     "build": "tact build.tact",
     "test": "echo 'Test cases defined in tests/WithdrawalManager.spec.ts - Ready for execution'",
     "check-env": "ts-node scripts/checkEnv.ts",
-    "deploy": "blueprint run deployWithdrawalManager"
+    "generate-private-key": "ts-node scripts/generatePrivateKey.ts",
+    "deploy": "blueprint run deployWithdrawalManager",
+    "deploy:direct": "ts-node scripts/deployWithPrivateKey.ts"
   },
   "keywords": [
     "ton",
