@@ -1,136 +1,58 @@
-import { Address, toNano } from '@ton/core';
-import { WithdrawalManager } from '../wrappers/WithdrawalManager';
-import { TonClient } from '@ton/ton';
+import { Address } from '@ton/core';
+import * as path from 'path';
+import * as fs from 'fs';
 
-/**
- * 스마트컨트랙트 배포 스크립트
- * 
- * 사용 방법:
- * 테스트넷: npx ts-node scripts/deployWithdrawalManager.ts --testnet
- * 메인넷: npx ts-node scripts/deployWithdrawalManager.ts --mainnet
- */
-
-async function run() {
-    console.log('🚀 WithdrawalManager 배포 시작\n');
-
-    // ===== 1️⃣ 환경 설정 =====
-    
-    const args = process.argv.slice(2);
-    const isTestnet = args.includes('--testnet');
-    const isMainnet = args.includes('--mainnet');
-    
-    const network = isTestnet ? 'testnet' : isMainnet ? 'mainnet' : 'testnet';
-    
-    const endpoint = network === 'mainnet'
-        ? 'https://toncenter.com/api/v2/jsonRPC'
-        : 'https://testnet.toncenter.com/api/v2/jsonRPC';
-    
-    console.log(`📡 네트워크: ${network.toUpperCase()}`);
-    console.log(`🔗 RPC 엔드포인트: ${endpoint}\n`);
-    
-    // ===== 2️⃣ 환경 변수 읽기 =====
-    
-    // CSPIN Jetton 주소
-    const CSPIN_JETTON = process.env.CSPIN_JETTON
-        ? Address.parse(process.env.CSPIN_JETTON)
-        : null;
-    
-    // 게임 Jetton 지갑 주소
-    const GAME_JETTON_WALLET = process.env.GAME_JETTON_WALLET
-        ? Address.parse(process.env.GAME_JETTON_WALLET)
-        : null;
-    
-    // 배포자 프라이빗 키
-    const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
-    
-    // 배포자 지갑 주소
-    const deployerWalletAddress = network === 'testnet'
-        ? process.env.DEPLOYER_WALLET_ADDRESS_TESTNET
-        : process.env.DEPLOYER_WALLET_ADDRESS_MAINNET;
-    
-    if (!CSPIN_JETTON || !GAME_JETTON_WALLET) {
-        console.error('❌ 환경 변수 부족:');
-        console.error('   CSPIN_JETTON:', CSPIN_JETTON ? '✅' : '❌');
-        console.error('   GAME_JETTON_WALLET:', GAME_JETTON_WALLET ? '✅' : '❌');
-        console.error('\n설정 방법:');
-        console.error('   export CSPIN_JETTON="0QB..."');
-        console.error('   export GAME_JETTON_WALLET="0QA..."');
-        process.exit(1);
-    }
-    
-    if (!deployerPrivateKey || !deployerWalletAddress) {
-        console.error('❌ 배포자 정보 부족:');
-        console.error('   DEPLOYER_PRIVATE_KEY:', deployerPrivateKey ? '✅' : '❌');
-        console.error(`   DEPLOYER_WALLET_ADDRESS_${network.toUpperCase()}:`, deployerWalletAddress ? '✅' : '❌');
-        process.exit(1);
-    }
-    
-    console.log('✅ 환경 변수 확인:');
-    console.log(`   CSPIN_JETTON: ${CSPIN_JETTON.toString()}`);
-    console.log(`   GAME_JETTON_WALLET: ${GAME_JETTON_WALLET.toString()}`);
-    console.log(`   배포자 지갑: ${deployerWalletAddress}\n`);
-    
-    // ===== 3️⃣ 배포자 지갑 설정 =====
-    
-    const deployerAddress = Address.parse(deployerWalletAddress);
-    console.log(`✅ 배포자 지갑 설정 완료: ${deployerAddress.toString()}\n`);
-    
-    // ===== 4️⃣ TonClient 초기화 =====
-    
-    const client = new TonClient({ endpoint });
-    console.log('🔌 RPC 클라이언트 초기화 완료\n');
-    
-    // ===== 5️⃣ 컨트랙트 인스턴스 생성 =====
-    
-    console.log('📝 컨트랙트 생성 중...\n');
-    
-    // TODO: Tact 컴파일러에서 코드 받기
-    // const code = await compile('WithdrawalManager');
-    
-    const withdrawal = WithdrawalManager.createFromConfig({
-        jettonMaster: CSPIN_JETTON,
-        gameJettonWallet: GAME_JETTON_WALLET,
-        owner: deployerAddress,  // 배포자를 컨트랙트 소유자로 설정
-    }, { hash: () => Buffer.from('') });
-    
-    console.log(`📍 컨트랙트 주소: ${withdrawal.address.toString()}`);
-    
-    // ===== 6️⃣ 배포 확인 =====
-    
-    try {
-        const isDeployed = await client.isContractDeployed(withdrawal.address);
-        
-        if (isDeployed) {
-            console.log('✅ 컨트랙트가 이미 배포됨\n');
-            
-            // 통계 조회
-            const stats = await withdrawal.getStats(client.open(withdrawal) as any);
-            console.log('📊 현재 통계:');
-            console.log(`   처리된 요청: ${stats.processedRequests}`);
-            console.log(`   총 출금액: ${stats.totalWithdrawn}`);
-            console.log(`   징수한 가스비: ${stats.totalGasCollected}`);
-            console.log(`   정지 상태: ${stats.isPaused}`);
-        } else {
-            console.log('📤 배포 중...\n');
-            console.log('⚠️  실제 배포는 Blueprint CLI를 사용하세요:');
-            console.log('   npm run deploy\n');
-        }
-    } catch (error) {
-        console.error('❌ 배포 오류:', error);
-    }
-    
-    // ===== 7️⃣ 배포 완료 =====
-    
-    console.log('\n' + '='.repeat(60));
-    console.log('✅ 배포 작업 완료!');
-    console.log('='.repeat(60));
-    console.log('\n📋 다음 단계:');
-    console.log(`   1. wrangler.toml에 컨트랙트 주소 저장:`);
-    console.log(`      WITHDRAWAL_MANAGER = "${withdrawal.address.toString()}"`);
-    console.log(`\n   2. 게임 Jetton 지갑에 CSPIN 토큰 예치`);
-    console.log(`\n   3. 백엔드에서 스마트컨트랙트 호출 시작`);
+// .env.local 파일 로드
+const dotenvPath = path.join(__dirname, '..', '.env.local');
+if (fs.existsSync(dotenvPath)) {
+    require('dotenv').config({ path: dotenvPath });
 }
 
-run().catch(console.error);
+/**
+ * 배포 정보 검증 스크립트
+ */
 
-export { run };
+export async function run() {
+    console.log('🚀 WithdrawalManager 배포 정보 검증\n');
+
+    // 환경 변수 읽기
+    const CSPIN_JETTON = Address.parse(process.env.CSPIN_JETTON!);
+    const GAME_JETTON_WALLET = Address.parse(process.env.GAME_JETTON_WALLET!);
+    const deployerWalletAddress = Address.parse(process.env.DEPLOYER_WALLET_ADDRESS_TESTNET!);
+
+    console.log('✅ 환경 변수 확인:');
+    console.log(`   CSPIN Jetton: ${CSPIN_JETTON.toString()}`);
+    console.log(`   게임 지갑: ${GAME_JETTON_WALLET.toString()}`);
+    console.log(`   배포자 지갑: ${deployerWalletAddress.toString()}\n`);
+
+    // 빌드 결과 확인
+    const codeFile = path.join(__dirname, '..', 'build', 'build.tact_WithdrawalManager.code.boc');
+    const tsFile = path.join(__dirname, '..', 'build', 'build.tact_WithdrawalManager.ts');
+    const abiFile = path.join(__dirname, '..', 'build', 'build.tact_WithdrawalManager.abi');
+
+    if (!fs.existsSync(codeFile)) {
+        console.error('❌ 코드 파일 없음:', codeFile);
+        console.error('\n먼저 컴파일을 진행하세요: npm run build');
+        process.exit(1);
+    }
+
+    console.log('✅ 스마트컨트랙트 빌드 완료:');
+    console.log(`   코드 파일: ${path.basename(codeFile)}`);
+    console.log(`   TypeScript 래퍼: ${path.basename(tsFile)}`);
+    console.log(`   ABI 파일: ${path.basename(abiFile)}\n`);
+
+    // 파일 크기 확인
+    const codeSize = fs.statSync(codeFile).size;
+    console.log('📊 빌드 정보:');
+    console.log(`   코드 크기: ${codeSize} bytes\n`);
+
+    console.log('📋 배포 준비 완료!\n');
+    console.log('다음 단계:');
+    console.log('   1. 🪙 Testnet TON을 배포자 지갑으로 전송');
+    console.log(`      주소: ${deployerWalletAddress.toString()}`);
+    console.log('      최소 0.05 TON 필요');
+    console.log(`\n   2. 📤 배포 트랜잭션 전송`);
+    console.log('      npm run deploy\n');
+    console.log('   3. 🔍 배포 완료 확인');
+    console.log('      wrangler.toml에 컨트랙트 주소 저장\n');
+}

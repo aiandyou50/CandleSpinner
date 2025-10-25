@@ -1,11 +1,31 @@
-***REMOVED***🚀 테스트넷 배포 준비 가이드
+#***REMOVED***� 배포자 지갑 정보
 
-#***REMOVED***개요
-`npm run deploy -- --testnet` 실행을 위한 필수 준비사항
+##***REMOVED***니모닉 (24단어)
+```
+bamboo release expand income shiver gift bounce cargo course kiss goat cram 
+pledge relax rib furnace squirrel sugar find daughter load proof please speed
+```
+
+##***REMOVED***지갑 주소
+```
+메인넷: UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
+테스트넷: 0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+```
+
+##***REMOVED***Wallet.ton.org 정보
+```
+비밀번호: pfqEVQ06rKlEY9sX
+```
 
 ---
 
-#***REMOVED***1단계: 테스트넷 CSPIN 토큰 확인
+##***REMOVED***1️⃣ 지갑 정보 ✅
+```
+테스트넷 주소: 0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+메인넷 주소: UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
+프라이빗 키: 저장됨 (.env.local)
+공개 키: 생성됨
+```
 
 ##***REMOVED***필요 정보
 - **CSPIN Jetton Master Address** (테스트넷)
@@ -81,17 +101,21 @@ console.log(key.secretKey.toString('hex'));
 ```bash
 ***REMOVED***contracts/.env.local
 
-***REMOVED***CSPIN Jetton 마스터 주소 (테스트넷)
-CSPIN_JETTON=0QBynBO23TS0KSnWvEJ_vgbLiVpXnyy3jVMD-2gQbRAe0-7J
+***REMOVED***CSPIN Jetton 마스터 주소 (메인넷 실제 주소)
+CSPIN_JETTON=EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV
 
-***REMOVED***게임이 관리하는 Jetton 지갑 (테스트넷)
-GAME_JETTON_WALLET=0QA_rjh0mNQVT2hA-wlJKhNrqLmhTHShMBY3T0Dba2b_0_-J
+***REMOVED***게임 Jetton 지갑 주소
+GAME_JETTON_WALLET=UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd
 
-***REMOVED***배포자 프라이빗 키 (테스트넷)
-DEPLOYER_PRIVATE_KEY=your_testnet_private_key_here
+***REMOVED***배포자 프라이빗 키
+DEPLOYER_PRIVATE_KEY=14ebd4df03b4ec8b15ad46008cc2102ea9fc83b6561c5e263f8822fd58ced5c64f917eef0fdd86900619af6183bb2e9bfc063f6ea082d00c86f046d7d434765b
+
+***REMOVED***배포자 지갑 주소
+DEPLOYER_WALLET_ADDRESS_TESTNET=0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+DEPLOYER_WALLET_ADDRESS_MAINNET=UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
 
 ***REMOVED***RPC 엔드포인트 (자동으로 설정되지만 명시 가능)
-TON_RPC_ENDPOINT=https://testnet.toncenter.com/api/v2/jsonRPC
+TON_RPC_ENDPOINT=https://toncenter.com/api/v2/jsonRPC
 ```
 
 ##***REMOVED***PowerShell에서 환경 변수 설정

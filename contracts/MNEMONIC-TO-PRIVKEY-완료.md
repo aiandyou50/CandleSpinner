@@ -25,10 +25,17 @@ Public Key (Hex):
 
 ```
 메인넷 주소 (Mainnet):
-UQAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h825K
+UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
 
 테스트넷 주소 (Testnet):
-0QAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h89XA
+0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+```
+
+##***REMOVED***3️⃣ Wallet.ton.org 정보
+
+```
+Wallet.ton.org 비밀번호:
+pfqEVQ06rKlEY9sX
 ```
 
 ---
@@ -41,19 +48,20 @@ UQAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h825K
 
 **내용**:
 ```bash
-***REMOVED***배포 설정 (테스트넷)
-DEPLOYER_WALLET_ADDRESS_TESTNET=0QAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h89XA
-DEPLOYER_WALLET_ADDRESS_MAINNET=UQAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h825K
+***REMOVED***배포 설정 (테스트넷/메인넷)
+***REMOVED***✅ 배포자 지갑 (사용자 제공 니모닉에서 생성됨)
+DEPLOYER_WALLET_ADDRESS_TESTNET=0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+DEPLOYER_WALLET_ADDRESS_MAINNET=UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
 DEPLOYER_PRIVATE_KEY=14ebd4df03b4ec8b15ad46008cc2102ea9fc83b6561c5e263f8822fd58ced5c64f917eef0fdd86900619af6183bb2e9bfc063f6ea082d00c86f046d7d434765b
 
-***REMOVED***CSPIN Jetton 마스터 주소 (테스트넷)
-CSPIN_JETTON=0QBynBO23TS0KSnWvEJ_vgbLiVpXnyy3jVMD-2gQbRAe0-7J
+***REMOVED***CSPIN Jetton 마스터 주소 (메인넷 실제 주소)
+CSPIN_JETTON=EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV
 
-***REMOVED***게임이 관리하는 Jetton 지갑 (테스트넷)
-GAME_JETTON_WALLET=0QA_rjh0mNQVT2hA-wlJKhNrqLmhTHShMBY3T0Dba2b_0_-J
+***REMOVED***게임 지갑 주소
+GAME_JETTON_WALLET=UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd
 
-***REMOVED***RPC 엔드포인트
-TON_RPC_ENDPOINT=https://testnet.toncenter.com/api/v2/jsonRPC
+***REMOVED***RPC 엔드포인트 (메인넷)
+TON_RPC_ENDPOINT=https://toncenter.com/api/v2/jsonRPC
 ```
 
 ##***REMOVED***✅ `.gitignore`에 등록됨
@@ -164,11 +172,13 @@ cd contracts
 npm run check-env
 ```
 
-##***REMOVED***Step 2: 테스트넷에 테스트 토큰 요청 (선택사항)
+##***REMOVED***Step 2: 테스트넷에 테스트 토큰 요청
 ```
-1. https://testnet.ton.org/docs 접속
-2. Faucet 섹션에서 테스트 TON 요청
-3. 지갑 주소: 0QAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h89XA
+1. https://testnet-faucet.ton.org/ 접속
+2. 지갑 주소 입력:
+   0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+3. "Request" 클릭
+4. 테스트 TON 수령 (최소 0.05 TON)
 ```
 
 ##***REMOVED***Step 3: 배포 시작
