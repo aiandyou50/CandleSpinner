@@ -30,7 +30,7 @@ async function run() {
     
     // ===== 2️⃣ 환경 변수 읽기 =====
     
-    // CSPIN Jetton 주소 (환경 변수 또는 기본값)
+    // CSPIN Jetton 주소
     const CSPIN_JETTON = process.env.CSPIN_JETTON
         ? Address.parse(process.env.CSPIN_JETTON)
         : null;
@@ -40,31 +40,40 @@ async function run() {
         ? Address.parse(process.env.GAME_JETTON_WALLET)
         : null;
     
+    // 배포자 프라이빗 키
+    const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
+    
+    // 배포자 지갑 주소
+    const deployerWalletAddress = network === 'testnet'
+        ? process.env.DEPLOYER_WALLET_ADDRESS_TESTNET
+        : process.env.DEPLOYER_WALLET_ADDRESS_MAINNET;
+    
     if (!CSPIN_JETTON || !GAME_JETTON_WALLET) {
         console.error('❌ 환경 변수 부족:');
         console.error('   CSPIN_JETTON:', CSPIN_JETTON ? '✅' : '❌');
         console.error('   GAME_JETTON_WALLET:', GAME_JETTON_WALLET ? '✅' : '❌');
         console.error('\n설정 방법:');
-        console.error('   export CSPIN_JETTON="EQB..."');
-        console.error('   export GAME_JETTON_WALLET="EQC..."');
+        console.error('   export CSPIN_JETTON="0QB..."');
+        console.error('   export GAME_JETTON_WALLET="0QA..."');
+        process.exit(1);
+    }
+    
+    if (!deployerPrivateKey || !deployerWalletAddress) {
+        console.error('❌ 배포자 정보 부족:');
+        console.error('   DEPLOYER_PRIVATE_KEY:', deployerPrivateKey ? '✅' : '❌');
+        console.error(`   DEPLOYER_WALLET_ADDRESS_${network.toUpperCase()}:`, deployerWalletAddress ? '✅' : '❌');
         process.exit(1);
     }
     
     console.log('✅ 환경 변수 확인:');
     console.log(`   CSPIN_JETTON: ${CSPIN_JETTON.toString()}`);
-    console.log(`   GAME_JETTON_WALLET: ${GAME_JETTON_WALLET.toString()}\n`);
+    console.log(`   GAME_JETTON_WALLET: ${GAME_JETTON_WALLET.toString()}`);
+    console.log(`   배포자 지갑: ${deployerWalletAddress}\n`);
     
     // ===== 3️⃣ 배포자 지갑 설정 =====
     
-    // 프로덕션에서는 실제 프라이빗 키 사용
-    const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
-    
-    if (!deployerPrivateKey) {
-        console.warn('⚠️  DEPLOYER_PRIVATE_KEY 환경 변수 없음');
-        console.warn('   배포를 위해 프라이빗 키가 필요합니다.');
-        console.error('   export DEPLOYER_PRIVATE_KEY="..."');
-        process.exit(1);
-    }
+    const deployerAddress = Address.parse(deployerWalletAddress);
+    console.log(`✅ 배포자 지갑 설정 완료: ${deployerAddress.toString()}\n`);
     
     // ===== 4️⃣ TonClient 초기화 =====
     
@@ -81,7 +90,7 @@ async function run() {
     const withdrawal = WithdrawalManager.createFromConfig({
         jettonMaster: CSPIN_JETTON,
         gameJettonWallet: GAME_JETTON_WALLET,
-        owner: Address.parse('YOUR_WALLET_ADDRESS'),  // 임시값
+        owner: deployerAddress,  // 배포자를 컨트랙트 소유자로 설정
     }, { hash: () => Buffer.from('') });
     
     console.log(`📍 컨트랙트 주소: ${withdrawal.address.toString()}`);
