@@ -1,5 +1,8 @@
 ***REMOVED***dependencies
 /node_modules
+/contracts/node_modules
+contracts/node_modules
+**/node_modules
 
 ***REMOVED***local env files
 .env

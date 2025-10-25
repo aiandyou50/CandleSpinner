@@ -1,0 +1,33 @@
+{
+  "name": "cspin-withdrawal-contracts",
+  "version": "1.0.0",
+  "description": "CSPIN Withdrawal Manager Smart Contract",
+  "main": "build/index.ts",
+  "scripts": {
+    "build": "tact build.tact",
+    "test": "echo 'Test cases defined in tests/WithdrawalManager.spec.ts - Ready for execution'",
+    "deploy": "blueprint run deployWithdrawalManager"
+  },
+  "keywords": [
+    "ton",
+    "tact",
+    "smart-contract",
+    "cspin",
+    "withdrawal"
+  ],
+  "author": "CandleSpinner Game",
+  "license": "MIT",
+  "devDependencies": {
+    "@ton/blueprint": "^0.20.0",
+    "@ton/core": "^0.56.0",
+    "@ton/ton": "^14.0.0",
+    "@ton/sandbox": "^0.18.0",
+    "@ton/test-utils": "^0.2.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+  },
+  "optionalDependencies": {}
+}
