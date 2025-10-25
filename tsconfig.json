@@ -53,6 +53,7 @@
     "jetton-contract/**",
     "token-contract/**",
     "sdk/**",
-    "temp_telegram_tt/**"
+    "temp_telegram_tt/**",
+    "contracts/**"
   ]
 }
