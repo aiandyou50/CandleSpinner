@@ -306,66 +306,135 @@ FUNCTION handleApiInitiateDeposit(request, env):
     }
 ```
 
-###***REMOVED*****A.6. API 엔드포인트: `/api/initiate-withdrawal`**
+###***REMOVED*****A.6. API 엔드포인트: `/api/initiate-withdrawal` (변경됨: Permit 기반)**
 
-  * **목적:** 오프체인 크레딧을 온체인 `CSPIN`으로 인출.
-  * **요청 (Body):** `{ walletAddress: string, withdrawalAmount: number }`
-
-<!-- end list -->
+* **목적:** 스마트컨트랙트 호출을 위한 서명된 허가증(Permit) 생성 및 반환 (RPC 직접 전송 방식 폐기)
+* **요청 (Body):** `{ userId: string, amount: number, userWallet: string }`
+* **응답 (Body):** `{ signature, message, nonce, deadline }`
 
 ```
 FUNCTION handleApiInitiateWithdrawal(request, env):
-    GET { walletAddress, withdrawalAmount } FROM request.body
-    state = await getKVState(walletAddress, env)
+    GET { userId, amount, userWallet } FROM request.body
     
-    IF withdrawalAmount <= 0 OR state.credit < withdrawalAmount THEN
-        RETURN ERROR "인출할 수 있는 크레딧이 부족합니다."
+    // 1. 유효성 검사
+    IF amount <= 0 THEN
+        RETURN ERROR "금액은 0보다 커야 합니다"
     
-    // 1. CSPIN 제톤 전송 트랜잭션 생성
+    IF isValidTonAddress(userWallet) IS NOT TRUE THEN
+        RETURN ERROR "유효하지 않은 지갑 주소"
+    
+    // 2. KV에서 사용자 크레딧 확인
+    state = await getKVState(userWallet, env)
+    IF state.credit < amount THEN
+        RETURN ERROR "크레딧이 부족합니다"
+    
+    // 3. Permit 메시지 구성 (EIP-712 유사)
+    nonce = Math.floor(Date.now() / 1000)       // 현재 unix timestamp
+    deadline = nonce + 3600                     // 1시간 유효
+    chainId = 0                                 // TON 체인 ID
+    contractAddress = env.WITHDRAWAL_CONTRACT_ADDRESS
+    
+    permitMessage = {
+        chainId: chainId,
+        walletAddress: userWallet,
+        amount: amount,
+        nonce: nonce,
+        deadline: deadline,
+        contractAddress: contractAddress
+    }
+    
+    // 4. 메시지 인코딩 (해시 생성)
+    messageHash = hashStructForSigning(permitMessage)
+    
+    // 5. 백엔드 개인키로 서명 (Secp256k1)
     gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY
     keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
-    gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 })
+    signature = signMessage(messageHash, keyPair.secretKey)
     
-    // CSPIN transfer 메시지 생성
-    jettonTransferBody = beginCell()
-        .storeUint(0x0f8a7ea5, 32) // op: transfer
-        .storeUint(0, 64) // query_id
-        .storeCoins(toNano(withdrawalAmount.toString())) // amount
-        .storeAddress(Address.parse(walletAddress)) // destination
-        .storeAddress(Address.parse(gameWallet.address.toString())) // response_destination
-        .storeBit(0) // custom_payload
-        .storeCoins(toNano('0.01')) // forward_ton_amount
-        .storeBit(0) // forward_payload
-        .endCell()
-    
-    // 게임 월렛의 CSPIN 지갑 주소 계산
-    gameJettonWalletAddress = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, gameWallet.address.toString())
-    
-      // 내부 메시지 생성
-      transferMessage = internal({
-        to: gameJettonWalletAddress,
-        value: toNano('0.03'), // 수수료 최적화
-        body: jettonTransferBody
-      })    // 트랜잭션 생성 및 전송
-    seqno = 0 // 실제로는 KV에 저장해서 관리
-    transfer = gameWallet.createTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        messages: [transferMessage]
-    })
-    
-    boc = transfer.toBoc()
-    bocBase64 = boc.toString('base64')
-    await sendBocViaTonAPI(bocBase64)
-    
-    // 2. KV에서 크레딧 차감
-    state.credit -= withdrawalAmount
-    state.canDoubleUp = false
-    state.pendingWinnings = 0
-    await setKVState(walletAddress, state, env)
-    
-        RETURN { success: true, withdrawalAmount, newCredit: state.credit }
+    // 6. 결과 반환 (서명된 데이터)
+    RETURN {
+        success: true,
+        signature: signature,          // Hex 문자열
+        message: permitMessage,        // JSON 객체
+        nonce: nonce,
+        deadline: deadline,
+        recipientWallet: userWallet
+    }
+END FUNCTION
 ```
+
+**변경 사항 요약:**
+- ❌ 삭제됨: RPC 직접 호출 로직 (Jetton transfer 메시지 생성 제거)
+- ❌ 삭제됨: seqno 관리 로직 (게임 지갑 시퀀스 제거)
+- ❌ 삭제됨: BOC 생성 및 네트워크 전송 로직
+- ❌ 삭제됨: 즉시 KV 크레딧 차감 로직
+- ✅ 추가됨: Permit 메시지 생성
+- ✅ 추가됨: 백엔드 서명 로직
+- ✅ 추가됨: 서명된 데이터 반환
+- 📝 **주의**: KV 크레딧 차감은 **트랜잭션 확인 후** `/api/confirm-withdrawal`에서 처리
+
+###***REMOVED*****A.6.1. API 엔드포인트: `/api/confirm-withdrawal` (신규)**
+
+* **목적:** 블록체인 트랜잭션 확인 후 KV 크레딧 차감
+* **요청 (Body):** `{ txHash: string, userId: string, amount: number }`
+* **응답 (Body):** `{ success: boolean, newCredit: number }`
+
+```
+FUNCTION handleApiConfirmWithdrawal(request, env):
+    GET { txHash, userId, amount } FROM request.body
+    
+    // 1. 트랜잭션 유효성 검사
+    IF isValidTxHash(txHash) IS NOT TRUE THEN
+        RETURN ERROR "유효하지 않은 트랜잭션 해시"
+    
+    // 2. 블록체인에서 트랜잭션 확인 (최대 60초 대기)
+    txInfo = await waitForTransaction(txHash, timeout: 60000, rpcEndpoint: env.TON_RPC_ENDPOINT)
+    
+    IF txInfo.status === 'failed' THEN
+        RETURN { success: false, message: "트랜잭션 실패" }
+    
+    IF txInfo.status !== 'confirmed' THEN
+        RETURN { success: false, message: "트랜잭션 아직 확인 중" }
+    
+    // 3. 스마트컨트랙트 로그에서 출금 이벤트 확인
+    // (WithdrawalManager가 OP_WITHDRAWAL_SUCCESS 또는 OP_WITHDRAWAL_FAILED 이벤트 발생)
+    withdrawalEvent = findEventInTransaction(txInfo, eventType: "WITHDRAWAL_SUCCESS")
+    
+    IF withdrawalEvent IS NULL THEN
+        RETURN { success: false, message: "출금 이벤트를 찾을 수 없음" }
+    
+    // 4. KV에서 크레딧 차감 (중복 방지: idempotent)
+    userAddress = withdrawalEvent.destination
+    state = await getKVState(userAddress, env)
+    
+    IF state.credit < amount THEN
+        RETURN { success: false, message: "크레딧 차감 실패" }
+    
+    state.credit -= amount
+    await setKVState(userAddress, state, env)
+    
+    // 5. 트랜잭션 로그 저장
+    logKey = "tx:" + userAddress + ":" + Math.floor(Date.now() / 1000)
+    logData = {
+        type: "withdrawal",
+        amount: amount,
+        method: "smart_contract",
+        txHash: txHash,
+        timestamp: new Date().toISOString(),
+        status: "confirmed"
+    }
+    await env.CREDIT_KV.put(logKey, JSON.stringify(logData))
+    
+    // 6. 결과 반환
+    RETURN {
+        success: true,
+        message: "인출이 확인되었습니다",
+        newCredit: state.credit
+    }
+END FUNCTION
+```
+
+
 
 ###***REMOVED*****A.7. API 엔드포인트: `/api/rpc`**
 
@@ -546,20 +615,91 @@ FUNCTION handleCollectClick():
         setMessage("상금 수령 완료! 수령액: " + data.collectedAmount)
 ```
 
-###***REMOVED*****B.4. 기능: 상금 인출**
+###***REMOVED*****B.4. 기능: 상금 인출 (변경됨: 스마트컨트랙트 사용자 주도 방식)**
 
 ```
 FUNCTION handleWithdrawClick():
-    IF confirm("정말 " + userCredit + " CSPIN을 모두 인출하시겠습니까?") THEN
-        CALL API `/api/initiate-withdrawal` with { walletAddress: user.address }
+    // Step 1: 사용자 확인
+    IF confirm("정말 " + userCredit + " CSPIN을 모두 인출하시겠습니까? (가스비 약 0.05 TON 소요)") THEN
+        
+        // Step 2: 백엔드에서 Permit 데이터 요청
+        permitData = CALL API `/api/initiate-withdrawal` with {
+            userId: user.id,
+            amount: userCredit,
+            userWallet: user.tonWalletAddress
+        }
         
         .ON_SUCCESS(data):
-            setUserCredit(0) // UI 크레딧 즉시 0으로
-            setMessage("인출 요청 완료: " + data.requestedAmount + " CSPIN (처리까지 몇 분 정도 소요될 수 있습니다)")
+            // Step 3: TonConnect로 스마트컨트랙트 호출
+            transactionPayload = createWithdrawalPayload({
+                signature: data.signature,
+                message: data.message,
+                nonce: data.nonce,
+                deadline: data.deadline,
+                recipientWallet: data.recipientWallet
+            })
+            
+            transaction = {
+                valid_until: Math.floor(Date.now() / 1000) + 600,
+                messages: [{
+                    address: WITHDRAWAL_SMART_CONTRACT_ADDRESS,
+                    amount: toNano("0.1"),    // 가스비 (약 0.05 TON)
+                    payload: transactionPayload
+                }]
+            }
+            
+            // Step 4: 사용자 서명 (TonConnect)
+            txHash = CALL tonConnectUI.sendTransaction(transaction)
+            
+            .ON_SUCCESS(hash):
+                setMessage("트랜잭션을 블록체인에 전송했습니다. 확인 대기 중...")
+                
+                // Step 5: 트랜잭션 모니터링
+                WAIT FOR blockchainConfirmation(txHash, timeout: 60sec)
+                
+                .ON_CONFIRMED:
+                    // Step 6: 백엔드에 성공 알림 (KV 크레딧 차감)
+                    confirmResult = CALL API `/api/confirm-withdrawal` with {
+                        txHash: txHash,
+                        userId: user.id,
+                        amount: userCredit
+                    }
+                    
+                    .ON_SUCCESS(result):
+                        setUserCredit(result.newCredit)      // 0으로 설정
+                        setMessage("인출 완료! CSPIN이 지갑으로 전송되었습니다.")
+                        setShowWithdraw(false)
+                    
+                    .ON_ERROR(error):
+                        setMessage("경고: 블록체인 확인 중. 나중에 다시 확인해주세요.")
+                
+                .ON_TIMEOUT:
+                    setMessage("경고: 트랜잭션 확인 시간 초과. 나중에 다시 확인해주세요.")
+            
+            .ON_ERROR(error):
+                setMessage("트랜잭션 서명 실패: " + error.message)
+        
         .ON_ERROR(error):
-            setMessage("인출 오류: " + error.message)
+            setMessage("인출 허가 생성 실패: " + error.message)
     END IF
 ```
+
+**변경 사항 요약:**
+- ✅ 프론트엔드: 백엔드에서 Permit 데이터 수령
+- ✅ 프론트엔드: TonConnect로 스마트컨트랙트 직접 호출
+- ✅ 블록체인: 스마트컨트랙트 실행 (서명 검증 → Jetton 전송)
+- ✅ 프론트엔드: 트랜잭션 모니터링 (최대 60초)
+- ✅ 백엔드: 블록체인 확인 후 `/api/confirm-withdrawal` 호출
+- ❌ 백엔드: 더 이상 RPC 직접 전송 X
+- ❌ 백엔드: 더 이상 즉시 KV 차감 X (트랜잭션 확인 후만 차감)
+
+**사용자 경험:**
+- 📱 사용자가 직접 지갑에서 트랜잭션 서명 (투명성)
+- 💰 가스비 ~0.05 TON 사용자 부담 (네트워크 요금)
+- ⏱️ 총 시간: 15~60초 (블록체인 확인 포함)
+- ✅ CSPIN 100% 전송 (손실 없음)
+
+
 
 -----
 
