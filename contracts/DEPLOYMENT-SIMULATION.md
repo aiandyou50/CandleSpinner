@@ -28,9 +28,11 @@
 
 ### 1. 지갑 정보 ✅
 ```
-테스트넷 주소: 0QAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h89XA
+테스트넷 주소: 0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+메인넷 주소: UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
 프라이빗 키: 저장됨 (.env.local)
 공개 키: 생성됨
+Wallet.ton.org: pfqEVQ06rKlEY9sX
 ```
 
 ### 2. 환경 변수 ✅
@@ -89,11 +91,11 @@ npm run deploy -- --testnet
 🔗 RPC 엔드포인트: https://testnet.toncenter.com/api/v2/jsonRPC
 
 ✅ 환경 변수 확인:
-   CSPIN_JETTON: 0QBynBO...
-   GAME_JETTON_WALLET: 0QA_rjh...
-   배포자 지갑: 0QAGRIZPt...
+   CSPIN_JETTON: EQBZ6nHf...
+   GAME_JETTON_WALLET: UQBFPDdS...
+   배포자 지갑: 0QB_yGkO...
 
-✅ 배포자 지갑 설정 완료: 0QAGRIZPt...
+✅ 배포자 지갑 설정 완료: 0QB_yGkO...
 
 🔌 RPC 클라이언트 초기화 완료
 
@@ -214,11 +216,11 @@ Required: ~0.05 TON
 
 **해결책**:
 ```bash
-# 1. https://testnet.ton.org/docs 접속
-# 2. "Faucet" 섹션 찾기
-# 3. 지갑 주소 입력:
-#    0QAGRIZPtyLweOXMya_lkisdEENVZsaFeFpKbIy9zF7h89XA
-# 4. 요청 클릭 → 테스트 TON 수령
+# 1. https://testnet-faucet.ton.org/ 접속
+# 2. 지갑 주소 입력:
+#    0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+# 3. "Request" 버튼 클릭
+# 4. 테스트 TON 수령 (최소 0.05 TON)
 # 5. 배포 재시도
 npm run deploy -- --testnet
 ```
