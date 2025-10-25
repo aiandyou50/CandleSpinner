@@ -101,20 +101,21 @@ Sentry (에러 추적, 성능 모니터링)
 
 #***REMOVED***3. 핵심 아키텍처
 
-##***REMOVED***3.1 시스템 다이어그램
+##***REMOVED***3.1 시스템 다이어그램 (변경됨: 스마트컨트랙트 기반 인출)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                   사용자 브라우저                        │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │  React UI (Telegram Mini App)                    │  │
-│  │  ├─ 입금/인출 화면                              │  │
-│  │  ├─ 게임 플레이 화면                            │  │
+│  │  ├─ 입금 화면 (TonConnect)                      │  │
+│  │  ├─ 게임 플레이 화면 (스핀/더블업)             │  │
+│  │  ├─ 인출 화면 (사용자 주도)                    │  │
 │  │  └─ 지갑 상태 표시                              │  │
 │  └──────────────────────────────────────────────────┘  │
 │                        ↓                                 │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │  TonConnect (지갑 연결)                          │  │
+│  │  TonConnect (지갑 연결 & 서명)                   │  │
 │  └──────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
                         ↓
@@ -127,20 +128,36 @@ Sentry (에러 추적, 성능 모니터링)
                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │        Cloudflare Workers (엣지 함수)                    │
-│  ├─ POST /api/deposit-rpc (입금 기록)                  │
-│  └─ POST /api/withdraw (인출 기록)                     │
+│  ├─ POST /api/spin (스핀 로직)                         │
+│  ├─ POST /api/double-up (더블업)                       │
+│  ├─ POST /api/deposit (입금 기록)                      │
+│  ├─ POST /api/initiate-withdrawal (Permit 생성)       │
+│  └─ POST /api/confirm-withdrawal (인출 확인)          │
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │           TON Blockchain (L1)                           │
-│  ├─ CSPIN Jetton Master                                │
-│  ├─ Game Wallet (GAME_WALLET_ADDRESS)                  │
-│  ├─ User Wallets (연결된 사용자 지갑)                  │
+│  ├─ CSPIN Jetton Master (입금 대상)                   │
+│  ├─ Withdrawal Smart Contract (인출 계약)             │
+│  │   └─ receive(WithdrawWithPermit)                   │
+│  ├─ Game Wallet (수익 수신처)                         │
+│  ├─ User Wallets (사용자 자산 수령처)                 │
 │  └─ TonCenter API (RPC 쿼리)                          │
 └─────────────────────────────────────────────────────────┘
 ```
 
-##***REMOVED***3.2 데이터 흐름
+##***REMOVED***3.2 인출 흐름 (신규: 스마트컨트랙트 방식)
+
+| 단계 | 주체 | 작업 | 상세 |
+|------|------|------|------|
+| 1 | 프론트엔드 | 인출 요청 | 사용자가 [인출] 버튼 클릭 |
+| 2 | 백엔드 | Permit 생성 | `/api/initiate-withdrawal` → 서명된 데이터 반환 |
+| 3 | 프론트엔드 | TonConnect 호출 | 사용자가 스마트컨트랙트 트랜잭션 서명 |
+| 4 | 블록체인 | 계약 실행 | 서명 검증 → Jetton 전송 |
+| 5 | 프론트엔드 | 모니터링 | txHash로 트랜잭션 확인 (최대 60초) |
+| 6 | 백엔드 | 확인 & 차감 | 블록체인 확인 후 KV 크레딧 차감 |
+
+##***REMOVED***3.3 데이터 흐름
 
 ```
 사용자 → TonConnect 지갑 연결
@@ -281,7 +298,148 @@ const payload = beginCell()
 
 **핵심**: `forward_ton_amount = 1 nanoton` - TEP-74 표준 준수로 CEX/Wallet 자동 감지 가능
 
-##***REMOVED***6.2 Error Classification (에러 분류)
+##***REMOVED***6.2 CSPIN 인출 (변경됨: 스마트컨트랙트 방식)
+
+###***REMOVED***아키텍처
+**방식**: 스마트컨트랙트 기반 사용자 주도 인출
+
+**프로세스**:
+1. **프론트엔드**: 사용자가 [인출] 버튼 클릭
+2. **백엔드**: `/api/initiate-withdrawal` → 서명된 Permit 데이터 생성
+3. **프론트엔드**: TonConnect로 Withdrawal Smart Contract 호출
+   - 함수: `receive(WithdrawWithPermit {...})`
+4. **블록체인**: 스마트컨트랙트가 서명 검증 → CSPIN 토큰 사용자 지갑으로 전송
+5. **백엔드**: 트랜잭션 확인 후 KV 크레딧 차감
+
+**특징**:
+- ✅ **사용자 주도**: 사용자가 트랜잭션 직접 제어
+- ✅ **투명성**: 블록체인에서 모든 거래 확인 가능
+- ✅ **보안**: 백엔드 서명만으로 권한 위임 (프라이빗 키 노출 X)
+- ⚠️ **비용**: 사용자가 가스비 부담 (~0.05 TON ≈ $0.00015)
+
+###***REMOVED***스마트컨트랙트
+- **언어**: Tact v4.0
+- **표준**: TEP-74 (Jetton 호환)
+- **배포**: 테스트넷 (2025-10-26 예정) / 메인넷 (이후)
+- **핵심 메시지**:
+  ```tact
+  message WithdrawWithPermit {
+    signature: Slice;      // 백엔드 서명 (Secp256k1)
+    message: Cell;         // 허가증 메시지
+    nonce: Int;            // 중복 방지
+    deadline: Int;         // 유효 기한
+    destination: Address;  // 수신자 지갑
+  }
+  ```
+
+###***REMOVED***백엔드 API
+- **`/api/initiate-withdrawal`**: Permit 데이터 생성 & 서명
+- **`/api/confirm-withdrawal`**: 블록체인 확인 후 KV 크레딧 차감
+
+**사용자 비용**:
+- 가스비: ~0.05 TON (약 $0.00015) - 사용자 부담
+- CSPIN: 100% 전송 (손실 없음)
+
+##***REMOVED***6.3 Error Classification (에러 분류)
+
+###***REMOVED***구현 위치
+`src/components/Deposit.tsx` - `classifyError()`, `isRetryableError()`, `getErrorMessage()`
+
+###***REMOVED***에러 분류 체계
+
+```typescript
+enum ErrorCategory {
+  Network = 'network',           // 네트워크 오류 (재시도 가능)
+  Timeout = 'timeout',           // 타임아웃 (재시도 가능)
+  UserRejection = 'user_rejection',     // 사용자 거절 (재시도 불가)
+  InvalidInput = 'invalid_input',       // 잘못된 입력 (재시도 불가)
+  SmartContractError = 'smart_contract', // 계약 오류 (재시도 불가)
+  Unknown = 'unknown'            // 알 수 없는 오류
+}
+```
+
+###***REMOVED***재시도 로직
+
+```
+Network/Timeout → 재시도 O (최대 2회)
+User Rejection → 재시도 X (사용자 의사 존중)
+Invalid Input → 재시도 X (입력 수정 필요)
+Smart Contract → 재시도 X (계약 문제)
+```
+
+##***REMOVED***6.4 Transaction Confirmation (트랜잭션 확인)
+
+###***REMOVED***구현 위치
+`src/components/Deposit.tsx` - `confirmTransaction()`
+
+###***REMOVED***확인 메커니즘
+
+```typescript
+async function confirmTransaction(address: string, timeout: number): Promise<boolean> {
+  // TonClient로 사용자의 최근 트랜잭션 폴링
+  // 최대 timeout 시간 동안 2초 간격으로 확인
+  // 발견 시 true 반환, 시간초과 시 false 반환
+}
+```
+
+**중요**: TON은 3초 이내 블록체인 확인 보장 → 안정적인 상태 체크
+
+##***REMOVED***6.5 Backend Response Structuring (응답 구조화)
+
+###***REMOVED***구현 위치
+`src/components/Deposit.tsx` - `recordDepositOnBackend()`, `DepositApiResponse`
+
+###***REMOVED***응답 구조
+
+```typescript
+interface DepositApiResponse {
+  success: boolean;              // 성공 여부
+  message: string;               // 사용자 메시지
+  recordId?: string | undefined; // 기록 ID (성공 시)
+  transactionHash?: string;      // 트랜잭션 해시
+  error?: string;                // 에러 메시지 (실패 시)
+  retryable?: boolean;           // 재시도 가능 여부
+}
+```
+
+###***REMOVED***에러 분류
+
+```
+HTTP 400-499 → 클라이언트 오류 (재시도 불가)
+HTTP 500-599 → 서버 오류 (재시도 가능)
+네트워크 오류 → 재시도 가능
+```
+
+##***REMOVED***6.6 Jetton Wallet Dynamic Query (동적 조회)
+
+###***REMOVED***구현 위치
+`src/components/Deposit.tsx` - `getUserJettonWallet()`, `initializeGameJettonWallet()`
+
+###***REMOVED***동작 원리
+
+```typescript
+// 사용자의 Jetton Wallet 주소 동적 계산
+const userJettonWallet = await getUserJettonWallet(
+  userAddress,
+  client,
+  jettonMasterAddress
+);
+
+// 게임 지갑의 Jetton Wallet 초기화 (캐싱)
+await initializeGameJettonWallet(client);
+const gameJettonWallet = getGameJettonWallet();
+```
+
+**특징**: 한 번 계산 후 캐싱 → 반복 호출 시 빠른 응답
+
+##***REMOVED***6.7 Gas Fee Dynamic Calculation (가스비 동적 계산)
+
+###***REMOVED***구현 위치
+`src/components/Deposit.tsx` - `estimateJettonTransferGas()`, `calculateJettonTransferFee()`
+
+###***REMOVED***가스비 모드
+
+```typescript
 
 ###***REMOVED***구현 위치
 `src/components/Deposit.tsx` - `classifyError()`, `isRetryableError()`, `getErrorMessage()`
@@ -612,7 +770,53 @@ class SeqnoManager {
    - 2초 후 자동으로 게임 화면으로 전환
 ```
 
-##***REMOVED***7.2 에러 처리 플로우
+##***REMOVED***7.2 사용자 인출 플로우 (변경됨: 스마트컨트랙트 방식)
+
+```
+1. 사용자가 "1000 CSPIN 인출" 버튼 클릭
+   (가스비 약 0.05 TON 소요 안내)
+   ↓
+2. 백엔드에서 Permit 데이터 요청
+   POST /api/initiate-withdrawal
+   ├─ 요청: { userId, amount, userWallet }
+   └─ 응답: { signature, message, nonce, deadline }
+   ↓
+3. TonConnect로 스마트컨트랙트 호출
+   ├─ 주소: WITHDRAWAL_SMART_CONTRACT_ADDRESS
+   ├─ 함수: receive(WithdrawWithPermit)
+   └─ 가스비: ~0.1 TON (안전 마진)
+   ↓
+4. 사용자가 지갑에서 트랜잭션 서명
+   - TonConnect 대화상자 표시
+   - 사용자가 [승인] 클릭
+   ↓
+5. 블록체인 트랜잭션 실행
+   ├─ 스마트컨트랙트: 서명 검증
+   ├─ Jetton: CSPIN을 사용자 지갑으로 전송
+   └─ 완료: txHash 반환
+   ↓
+6. 프론트엔드: 트랜잭션 모니터링
+   - TonClient로 txHash 폴링
+   - 최대 60초 대기
+   - 확인됨 또는 실패
+   ↓
+7. 백엔드: 트랜잭션 확인 & KV 차감
+   POST /api/confirm-withdrawal
+   ├─ 요청: { txHash, userId, amount }
+   ├─ 작업: 블록체인 확인 후 KV 크레딧 차감
+   └─ 응답: { success, newCredit }
+   ↓
+8. 사용자에게 성공 알림
+   - "✅ 인출 완료! 1000 CSPIN이 지갑으로 전송되었습니다"
+   - 새로운 크레딧 잔액 표시
+```
+
+**예상 시간**:
+- 트랜잭션 서명: 10~30초
+- 블록체인 확인: 5~30초 (네트워크 상황에 따라)
+- **총 시간: 15~60초**
+
+##***REMOVED***7.3 에러 처리 플로우
 
 ```
 에러 발생
@@ -636,7 +840,7 @@ Sentry에 에러 전송
 사용자에게 에러 알림
 ```
 
-##***REMOVED***7.3 Address 체크섬 에러 처리
+##***REMOVED***7.4 Address 체크섬 에러 처리
 
 ```
 Address.parse(CSPIN_JETTON_WALLET) 호출
