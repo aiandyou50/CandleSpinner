@@ -31,10 +31,10 @@ export class WithdrawalManager implements Contract {
             .storeAddress(config.owner)
             .storeAddress(config.jettonMaster)
             .storeAddress(config.gameJettonWallet)
-            .storeInt(0, 257)  // processedRequests
-            .storeInt(0, 257)  // totalWithdrawn
-            .storeInt(0, 257)  // totalGasCollected
-            .storeBit(0)       // paused
+            .storeUint(0, 64)   // processedRequests (64비트)
+            .storeCoins(0)      // totalWithdrawn (coins type)
+            .storeCoins(0)      // totalGasCollected (coins type)
+            .storeBit(0)        // paused (1비트)
             .endCell();
 
         return new WithdrawalManager(

@@ -6,7 +6,28 @@
 
 **상태**: ✅ 개발 완료 | 테스트 준비 중
 
-#***REMOVED***📂 프로젝트 구조
+---
+
+#***REMOVED***� **배포자 지갑 정보** (DO NOT LOSE)
+
+⚠️ **중요**: 다음 정보는 절대 분실하면 안 됩니다!
+
+##***REMOVED***니모닉 시드 (24단어)
+```
+bamboo release expand income shiver gift bounce cargo course kiss goat cram 
+pledge relax rib furnace squirrel sugar find daughter load proof please speed
+```
+
+##***REMOVED***생성된 주소
+- **테스트넷**: `0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g`
+- **메인넷**: `UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC`
+
+##***REMOVED***프라이빗 키
+- `.env.local`의 `DEPLOYER_PRIVATE_KEY`로 자동 관리됨 ✅
+
+---
+
+#***REMOVED***📋 개요
 
 ```
 contracts/

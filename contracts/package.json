@@ -21,14 +21,14 @@
   "devDependencies": {
     "@ton/blueprint": "^0.20.0",
     "@ton/core": "^0.56.0",
-    "@ton/ton": "^14.0.0",
     "@ton/sandbox": "^0.18.0",
     "@ton/test-utils": "^0.2.0",
-    "typescript": "^5.0.0",
+    "@ton/ton": "^14.0.0",
     "ts-node": "^10.9.0",
+    "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   },
   "dependencies": {
-  },
-  "optionalDependencies": {}
+    "dotenv": "^17.2.3"
+  }
 }

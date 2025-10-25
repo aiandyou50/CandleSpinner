@@ -7,6 +7,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+// .env.local 파일 로드
+const dotenvPath = path.join(process.cwd(), '.env.local');
+if (fs.existsSync(dotenvPath)) {
+    const dotenv = require('dotenv');
+    dotenv.config({ path: dotenvPath });
+}
+
 function checkEnv() {
     console.log('\n🔍 배포 환경 확인 중...\n');
     
