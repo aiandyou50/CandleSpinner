@@ -50,14 +50,44 @@ node scripts/parse_boc.mjs "te6cckECWAEAA/..."
 
 ---
 
-##***REMOVED***test-v3-account.mjs
-**V3 계정 테스트**
+##***REMOVED***create-w5-wallet.mjs
+**W5 (WalletContractV5R1) 지갑 생성 유틸리티**
 
-TON V3 지갑 계정 생성 및 테스트 (레거시)
+TON 블록체인의 최신 V5R1 버전 지갑을 생성합니다.
+니모닉, 프라이빗 키, 또는 공개 키에서 지갑을 파생할 수 있습니다.
+
+**사용법:**
+
+1. 니모닉에서 생성
+```bash
+node scripts/create-w5-wallet.mjs --mnemonic "bamboo release expand income shiver gift bounce cargo course kiss goat cram pledge relax rib furnace squirrel sugar find daughter load proof please speed"
+```
+
+2. 프라이빗 키에서 생성
+```bash
+node scripts/create-w5-wallet.mjs --privatekey "14ebd4df03b4ec8b15ad46008cc2102ea9fc83b6561c5e263f8822fd58ced5c64f917eef0fdd86900619af6183bb2e9bfc063f6ea082d00c86f046d7d434765b"
+```
+
+3. 공개 키에서 생성
+```bash
+node scripts/create-w5-wallet.mjs --publickey "f917eef0fdd86900619af6183bb2e9bfc063f6ea082d00c86f046d7d434765b"
+```
+
+**출력 예시:**
+```
+✅ 지갑 생성 완료!
+
+📍 지갑 주소:
+   테스트넷:   0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
+   메인넷:     UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
+   User-friendly: UQC2DJ8...
+
+📊 최종 정보:
+   버전:      WalletContractV5R1
+   Workchain: 0
+```
 
 ---
-
-#***REMOVED***🔧 빌드 스크립트 (package.json)
 
 ##***REMOVED***npm run dev
 로컬 개발 서버 시작

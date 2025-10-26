@@ -1,0 +1,10 @@
+{
+  "network": "testnet",
+  "timestamp": "2025-10-26T11:46:27.871Z",
+  "deployer": "EQB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vicyiv",
+  "cspinJetton": "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV",
+  "gameWallet": "EQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8JaY",
+  "codeHash": "8a58ff6afb91eac7251b088db71d56df550dcebb8d3113688e20fdec59b3a49e",
+  "status": "ready_for_deployment",
+  "nextStep": "프라이빗 키로 배포할 준비 완료. 실제 배포는 Tonkeeper 또는 지갑 서명 필요"
+}
