@@ -1,0 +1,139 @@
+
+---
+
+***REMOVED***📄 **Pull 방식 Jetton 인출 시스템 전체 보고서**  
+#***REMOVED***— TON 블록체인 기반 게임 내 CSPIN 토큰 인출 구조
+
+---
+
+#***REMOVED***1. 🎯 **목적**
+
+- 게임 운영 측이 **TON 가스비를 최소화**하면서  
+- 유저가 **자신의 CSPIN 토큰을 안전하게 수령**할 수 있도록  
+- **Pull**(수동 수령) 방식으로 Jetton 인출 기능을 구현
+
+---
+
+#***REMOVED***2. 🧱 **시스템 구성 요소**
+
+| 구성 요소 | 설명 |
+|----------|------|
+| **User Wallet** | 유저의 TON 지갑 (예: Tonkeeper). CSPIN 수령처 |
+| **Game Contract** | 게임 로직 + `claimable_amount` 저장 + `claim()` 함수 제공 |
+| **Jetton Master** | CSPIN 토큰의 발행자 (Minter). CSPIN 총량 관리 |
+| **Game Jetton Wallet** | 게임 컨트랙트가 소유한 CSPIN 보유 계정 (Jetton Wallet Contract) |
+| **TON Testnet / Mainnet** | 실제 실행 환경 |
+
+> ✅ 모든 Jetton은 TON 표준 **Jetton Processing Specification**을 따릅니다 .
+
+---
+
+#***REMOVED***3. 🔄 **Pull 방식 작동 흐름 **(Sequence)
+
+```mermaid
+sequenceDiagram
+    participant User as 유저 (웹)
+    participant GameContract as 게임 컨트랙트
+    participant GameJettonWallet as 게임 Jetton 월렛
+    participant UserJettonWallet as 유저 Jetton 월렛
+
+    Note over User: "인출" 버튼 클릭
+    User->>GameContract: claim() 트랜잭션 (외부 메시지)
+    Note right of GameContract: 1. claimable_amount 확인<br>2. 상태 0으로 초기화
+    GameContract->>GameJettonWallet: 내부 메시지: transfer(CSPIN)
+    GameJettonWallet->>UserJettonWallet: Jetton 전송 (표준 포맷)
+    Note over UserJettonWallet: CSPIN 수신 완료
+```
+
+> 💡 이 흐름은 **비동기적**, **비원자적**(non-atomic)이며, 각 단계는 별도 트랜잭션으로 실행됩니다 .
+
+---
+
+#***REMOVED***4. 🏗️ **스마트 컨트랙트 구조**
+
+##***REMOVED***4.1 Game Contract (핵심 함수)
+
+```func
+() recv_external(slice in_msg_body) impure {
+  slice cs = in_msg_body;
+  int op = cs~load_uint(32);
+
+  if (op == 0x12345678) { ;; claim opcode
+    cell sender = get_sender_address(); ;; 실제는 메시지 파싱 필요
+    int amount = get_claimable(sender);
+    if (amount > 0) {
+      set_claimable(sender, 0); ;; 먼저 상태 초기화 (Reentrancy 방지)
+      send_jetton_transfer(sender, amount); ;; 내부 메시지 전송
+    }
+  }
+}
+```
+
+##***REMOVED***4.2 데이터 저장 구조
+
+| Key (Cell) | Value |
+|-----------|-------|
+| `claimable::<user_address>` | `1000000000` (1 CSPIN = 10⁹ 단위) |
+
+---
+
+#***REMOVED***5. 🔐 **보안 고려사항**
+
+| 위협 | 대응 전략 |
+|------|----------|
+| **Reentrancy** | 상태 먼저 업데이트 → 전송 (Checks-Effects-Interactions) |
+| **Front-running** | `sender` 주소와 수령자 주소 일치 검증 |
+| **이중 수령** | `claimable` 값을 `claim()` 시 무조건 0으로 설정 |
+| **Jetton 소실** | 수신자 Jetton 월렛 존재 여부는 확인 불가 → 프론트엔드에서 경고 |
+| **Gas Griefing** | `claim()` 로직을 최대한 단순화 |
+
+> ⚠️ Pull 방식은 **사용자 책임이 크므로**, UX에서 "이 토큰은 영구히 소실될 수 있습니다" 경고 필요.
+
+---
+
+#***REMOVED***6. ✅ **장점**
+
+- 게임 운영 측이 **TON 가스비 부담 없음**
+- **일괄 전송 불필요** → 실시간 보상 지급 가능
+- **스팸 방지**: 유저가 직접 트랜잭션 발생 → 무분별한 요청 감소
+
+---
+
+#***REMOVED***7. ❌ **단점**
+
+- 유저가 **가스비**(TON)를 직접 지불해야 함
+- **사용자 경험 저하**: 인출을 위해 직접 트랜잭션 승인 필요
+- **토큰 소실 위험**: 지원되지 않는 지갑에 전송 시 복구 불가
+
+---
+
+#***REMOVED***8. 📊 **가스비 예상**
+
+| 단계 | 비용 (TON) |
+|------|-----------|
+| 유저 `claim()` 트랜잭션 | ~0.025 |
+| 게임 Jetton 월렛 → 전송 | ~0.015 (활성 상태 기준) |
+| **총 소모 **(유저 부담) | **~0.025 TON** |
+
+> 게임 측은 **0 TON**만 소모 (단, Jetton 월렛에 소량 TON 상시 보유 권장)
+
+---
+
+#***REMOVED***9. 📚 **참고 자료**
+
+- TON Jetton Specification: 
+- Mintless Jetton (대규모 에어드랍 최적화): 
+- TON Operation 개념: 
+
+---
+
+#***REMOVED***10. 🛠️ **향후 개선 방향**
+
+- **Hybrid 방식**: 소액은 Push, 대액은 Pull
+- **Gasless Claim**: 운영 측이 유저 트랜잭션 가스비 대납 (Relay 서버 구축)
+- **서명 기반 Claim**: 오프체인에서 서명된 보상 데이터로 인출 → 위변조 방지
+
+---
+
+이 보고서는 **실제 TON dApp 개발에 바로 적용 가능한 구조**를 제시합니다.  
+필요하시면 **Tact 버전 코드**, **FunC 풀 구현체**, 또는 **프론트엔드 연동 예제**(React + TonConnect)도 제공해 드릴 수 있습니다.
