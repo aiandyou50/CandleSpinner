@@ -1,0 +1,15 @@
+{
+  "status": "deployed",
+  "network": "testnet",
+  "timestamp": "2025-10-26T12:02:07.808Z",
+  "deployer": "0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g",
+  "contractType": "WithdrawalManager",
+  "codeSize": 769,
+  "rpc": "https://testnet.toncenter.com/api/v2/jsonRPC",
+  "message": "프라이빗 키 기반 배포 - Tonscan에서 거래 확인 필요",
+  "instructions": [
+    "1. 배포자 지갑에 0.05 TON 이상 있는지 확인",
+    "2. Tonscan (https://testnet.tonscan.org)에서 거래 확인",
+    "3. 스마트컨트랙트 주소 기록"
+  ]
+}
