@@ -9,7 +9,8 @@
     "check-env": "ts-node scripts/checkEnv.ts",
     "generate-private-key": "ts-node scripts/generatePrivateKey.ts",
     "deploy": "blueprint run deployWithdrawalManager",
-    "deploy:direct": "ts-node scripts/deployWithPrivateKey.ts"
+    "deploy:direct": "ts-node scripts/deployWithPrivateKey.ts",
+    "deploy:tonconnect": "ts-node scripts/deployWithTonConnect.ts"
   },
   "keywords": [
     "ton",
@@ -22,7 +23,7 @@
   "license": "MIT",
   "devDependencies": {
     "@ton/blueprint": "^0.20.0",
-    "@ton/core": "^0.56.0",
+    "@ton/core": "^0.56.3",
     "@ton/sandbox": "^0.18.0",
     "@ton/test-utils": "^0.2.0",
     "@ton/ton": "^14.0.0",
@@ -31,6 +32,7 @@
     "vitest": "^1.0.0"
   },
   "dependencies": {
+    "@ton/crypto": "^3.3.0",
     "dotenv": "^17.2.3"
   }
 }

@@ -1,0 +1,11 @@
+{
+  "network": "testnet",
+  "contractAddress": "kQB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic5Ml",
+  "deployerAddress": "0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g",
+  "cspinJetton": "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV",
+  "gameWallet": "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd",
+  "timestamp": "2025-10-26T11:59:44.384Z",
+  "status": "ready",
+  "privateKeyProvided": true,
+  "notes": "프라이빗 키 기반 배포 - Tonscan에서 거래 확인 필요"
+}
