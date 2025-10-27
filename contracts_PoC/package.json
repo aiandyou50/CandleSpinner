@@ -1,0 +1,43 @@
+{
+  "name": "cspin-withdrawal-contracts",
+  "version": "1.0.0",
+  "description": "CSPIN Withdrawal System - User-initiated Jetton withdrawal with user-paid fees",
+  "main": "build/index.ts",
+  "scripts": {
+    "build": "echo 'Smart contract sources are ready in /sources directory'",
+    "test": "echo 'Test cases ready for execution'",
+    "check-env": "ts-node scripts/checkEnv.ts",
+    "generate-private-key": "ts-node scripts/generatePrivateKey.ts",
+    "deploy": "ts-node scripts/deploy.ts",
+    "deploy:testnet": "ts-node scripts/deploy.ts --testnet",
+    "deploy:mainnet": "ts-node scripts/deploy.ts --mainnet"
+  },
+  "keywords": [
+    "ton",
+    "tact",
+    "smart-contract",
+    "cspin",
+    "withdrawal",
+    "jetton"
+  ],
+  "author": "CandleSpinner Game",
+  "license": "MIT",
+  "devDependencies": {
+    "@ton/blueprint": "latest",
+    "@ton/core": "latest",
+    "@ton/crypto": "latest",
+    "@ton/sandbox": "latest",
+    "@ton/test-utils": "latest",
+    "@ton/ton": "latest",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "tact": "latest",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.3"
+  },
+  "dependencies": {
+    "@ton/crypto": "^3.3.0",
+    "dotenv": "^17.2.3"
+  }
+}
