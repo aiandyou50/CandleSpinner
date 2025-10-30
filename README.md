@@ -4,11 +4,11 @@
 
 | 항목 | 내용 |
 |------|------|
-| **상태** | 🟢 Phase 2 완료 (MVP 배포) + 🔧 Phase 3 진행 (RPC 최적화) |
-| **버전** | v2.1.0 ([CHANGELOG.md](CHANGELOG.md) 참조) |
+| **상태** | 🟢 Phase 2 완료 (MVP 배포) + 🔧 Phase 3 진행 (TON Center v3 API 마이그레이션) |
+| **버전** | v2.5.0 ([CHANGELOG.md](CHANGELOG.md) 참조) |
 | **배포** | Cloudflare Pages (https://aiandyou.me) |
-| **기술** | React + TypeScript + Vite + Cloudflare Workers + Ankr RPC |
-| **블록체인** | TON Mainnet (실제 자산 거래) + v2.1 Ankr 직접 RPC 연동 |
+| **기술** | React + TypeScript + Vite + Cloudflare Workers + TON Center v3 API |
+| **블록체인** | TON Mainnet (실제 자산 거래) + v2.5 TON Center v3 직접 연동 |
 
 ---
 
@@ -24,9 +24,9 @@ CandleSpinner/
 │
 ├── 📁 functions/                 # Cloudflare Workers (백엔드)
 │   └── api/
-│       ├── rpc-utils.ts          # 🆕 v2.1: Ankr RPC 직접 연동 + SeqnoManager
+│       ├── rpc-utils.ts          # 🆕 v2.5: TON Center v3 API 직접 연동 + SeqnoManager
 │       ├── initiate-deposit.ts   # CSPIN 토큰 입금 API
-│       ├── initiate-withdrawal.ts # v2.1: 개선된 토큰 인출 API (RPC 기반)
+│       ├── initiate-withdrawal.ts # v2.5: 개선된 토큰 인출 API (TON Center v3 기반)
 │       ├── debug-withdrawal.ts   # 디버그/진단 API
 │       ├── generate-wallet.ts    # 지갑 생성 API (테스트)
 │       └── debug-private-key.ts  # 개인키 검증 API (테스트)
@@ -100,7 +100,8 @@ npm install
 
 # 환경 변수 설정
 # .env.local 파일 생성 (절대 Git에 커밋하지 마세요)
-VITE_TON_RPC_URL=https://toncenter.com/api/v2/jsonRPC
+VITE_TON_CENTER_BASE_URL=https://toncenter.com/api/v3
+VITE_TON_CENTER_API_KEY=your_api_key_here
 ```
 
 ### 2. 로컬 개발 서버 시작
@@ -124,20 +125,27 @@ wrangler deploy
 
 ---
 
-## ⚠️ **중요: v2.1 아키텍처 변경 (RPC 직접 연동)**
+## ⚠️ **중요: v2.5 아키텍처 변경 (TON Center v3 API 마이그레이션)**
 
-이 프로젝트는 **v2.1부터 Ankr JSON-RPC를 직접 사용**합니다:
+이 프로젝트는 **v2.5부터 TON Center v3 API를 직접 사용**합니다:
 
-**v2.0 → v2.1 변경사항:**
-- ❌ TonAPI REST 호출 제거 (불안정성: 30% 성공률)
-- ✅ Ankr JSON-RPC 직접 연동 (안정성: 95% 성공률)
-- ✅ SeqnoManager로 블록체인 동기화 (시퀀스 번호)
-- ✅ 처리 시간: 5-10초 → 2-3초 (3배 빠름)
+**v2.1 → v2.5 변경사항:**
+- ❌ Ankr JSON-RPC 제거
+- ✅ TON Center v3 REST API 직접 연동 (공식 API)
+- ✅ SeqnoManager로 블록체인 동기화 유지
+- ✅ API Key 인증으로 Rate Limit 향상
+- ✅ RESTful 엔드포인트로 더 나은 안정성
 
 **필수 환경변수:**
 ```
-ANKR_JSON_RPC_HTTPS_ENDPOINT = https://rpc.ankr.com/ton_testnet (예시)
+TONCENTER_API_KEY = your_api_key (Telegram @tonapibot으로 등록)
 ```
+
+**API Key 등록 방법:**
+1. Telegram에서 @tonapibot 검색
+2. `/start` 명령어 실행
+3. API Key 발급 받기
+4. Cloudflare Pages 환경변수에 `TONCENTER_API_KEY` 설정
 
 **상세 정보:** [`docs/ssot/README.md` 섹션 6.7](docs/ssot/README.md)
 
@@ -188,10 +196,10 @@ ANKR_JSON_RPC_HTTPS_ENDPOINT = https://rpc.ankr.com/ton_testnet (예시)
 
 ### ✅ 현재 구현 (Phase 2)
 - **입금 (Deposit)**: TonConnect 지갑으로 CSPIN 토큰 입금
-- **인출 (Withdrawal)**: v2.1 RPC 기반 출금 (높은 안정성)
+- **인출 (Withdrawal)**: v2.5 TON Center v3 기반 출금 (공식 API)
 - **게임 로직**: 오프체인 스핀 결과 계산 (비용 절감)
 - **토큰 표준**: CSPIN 토큰 (Jetton 표준 준수)
-- **🆕 RPC 최적화**: Ankr 직접 연동 + SeqnoManager + 블록체인 동기화
+- **🆕 RPC 최적화**: TON Center v3 직접 연동 + SeqnoManager + 블록체인 동기화
 
 ### ⏳ 계획 (Phase 3+)
 - **UI 개선**: 3-reel 애니메이션 추가
@@ -224,7 +232,7 @@ ANKR_JSON_RPC_HTTPS_ENDPOINT = https://rpc.ankr.com/ton_testnet (예시)
 **Cloudflare Pages 환경변수:**
 ```
 GAME_WALLET_PRIVATE_KEY = [Cloudflare에서 설정]
-ANKR_JSON_RPC_HTTPS_ENDPOINT = https://rpc.ankr.com/ton_testnet (또는 mainnet)
+TONCENTER_API_KEY = [Telegram @tonapibot으로 등록]
 ```
 
 ---
@@ -277,9 +285,9 @@ MIT License - 자세히는 [LICENSE](LICENSE) 참조
 
 ---
 
-**마지막 업데이트**: 2025-10-24  
-**현재 버전**: v2.1.0  
-**상태**: 🟢 프로덕션 배포 중 (v2.1 RPC 최적화 적용)
+**마지막 업데이트**: 2025-10-30  
+**현재 버전**: v2.5.0  
+**상태**: 🟢 프로덕션 배포 중 (v2.5 TON Center v3 API 마이그레이션 완료)
 
 **🔐 보안 정책을 반드시 숙지하세요:** [`[보안-정책]_보안-워크플로우-강제.md`](docs/workflows/[보안-정책]_보안-워크플로우-강제.md)
 

@@ -57,31 +57,50 @@ export const TON_CONNECT_MANIFEST_URL =
   "https://aiandyou.me/tonconnect-manifest.json";
 
 // ============================================
-// ============================================
 // TON RPC 설정 (RPC Configuration)
 // ============================================
 
 /**
- * TON RPC Endpoint URL
+ * TON Center API v3 Base URL
  * 메인넷/테스트넷 구분
  *
- * 기본값: https://toncenter.com/api/v2/jsonRPC (메인넷)
+ * 기본값: https://toncenter.com/api/v3 (메인넷)
  * @example
  * ```
  * // 테스트넷
- * VITE_TON_RPC_URL=https://testnet.toncenter.com/api/v2/jsonRPC
+ * VITE_TON_CENTER_BASE_URL=https://testnet.toncenter.com/api/v3
  * ```
+ */
+export const TON_CENTER_BASE_URL =
+  import.meta.env.VITE_TON_CENTER_BASE_URL ||
+  "https://toncenter.com/api/v3";
+
+/**
+ * TON Center API Key (선택사항)
+ * toncenter.com API 사용 시 필요 (Rate limit 증가)
+ * 
+ * @see https://toncenter.com/ - @tonapibot on Telegram으로 등록
+ */
+export const TON_CENTER_API_KEY =
+  import.meta.env.VITE_TON_CENTER_API_KEY || "";
+
+/**
+ * @deprecated Legacy RPC URL - TON Center v3로 마이그레이션됨
+ * 하위 호환성을 위해 유지
  */
 export const TON_RPC_URL =
   import.meta.env.VITE_TON_RPC_URL ||
-  "https://toncenter.com/api/v2/jsonRPC";
+  import.meta.env.VITE_TON_CENTER_BASE_URL ||
+  "https://toncenter.com/api/v3";
 
 /**
- * TON API Key (선택사항)
- * toncenter.com API 사용 시 필요 (Rate limit 증가)
+ * @deprecated Legacy API Key - VITE_TON_CENTER_API_KEY 사용 권장
+ * 하위 호환성을 위해 유지
  */
 export const TON_API_KEY =
-  import.meta.env.VITE_TON_API_KEY || "";
+  import.meta.env.VITE_TON_API_KEY ||
+  import.meta.env.VITE_TON_CENTER_API_KEY ||
+  "";
 
 // ============================================
 // 게임 설정 (Game Configuration)

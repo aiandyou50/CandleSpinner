@@ -1344,7 +1344,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
                   // RPC CORS 오류 처리
                   if (errorMsg.includes('Origin not allowed') || errorMsg.includes('-32079')) {
                     addDebugLog('💡 팁: RPC 엔드포인트가 현재 Origin을 허용하지 않습니다');
-                    addDebugLog('해결책: 환경 변수 ANKR_JSON_RPC_HTTPS_ENDPOINT 확인');
+                    addDebugLog('해결책: 환경 변수 TONCENTER_API_KEY 확인');
                     showToast(
                       'RPC 설정 오류: 관리자에게 문의하세요',
                       'error'

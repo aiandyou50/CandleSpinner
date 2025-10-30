@@ -263,10 +263,12 @@ export async function onRequestPost(context: any) {
       );
     }
 
-    // RPC 초기화 - TON Center 사용 (CORS 제한 없음!)
-    const tonCenterRpcUrl = 'https://toncenter.com/api/v2/jsonRPC';
-    const rpc = new AnkrRpc(tonCenterRpcUrl);
-    console.log(`[인출-v3] RPC 초기화 완료 (TON Center)`);
+    // RPC 초기화 - TON Center v3 API 사용
+    const tonCenterApiKey = env.TONCENTER_API_KEY || '';
+    const tonCenterBaseUrl = 'https://toncenter.com/api/v3';
+    const rpc = new AnkrRpc(tonCenterBaseUrl, tonCenterApiKey);
+    console.log(`[인출-v3] RPC 초기화 완료 (TON Center v3)`);
+    console.log(`[인출-v3] API Key 사용: ${tonCenterApiKey ? 'Yes' : 'No (rate limited)'}`);
 
     // KV에서 사용자 상태 조회
     const stateKey = `state:${walletAddress}`;

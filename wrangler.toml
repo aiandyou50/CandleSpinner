@@ -13,8 +13,9 @@ id = "e573c59cb09b4d58b5f38a56ef65dd6f"
 binding = "CREDIT_KV"
 
 [vars]
-# ⚠️ RPC 환경변수: Cloudflare Pages에서 설정
-# ANKR_JSON_RPC_HTTPS_ENDPOINT: TON JSON-RPC 엔드포인트 (Cloudflare 환경변수)
+# ⚠️ TON Center API 환경변수: Cloudflare Pages에서 설정
+# TONCENTER_API_KEY: TON Center v3 API Key (Cloudflare 환경변수)
+# @tonapibot on Telegram으로 등록: https://t.me/tonapibot
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
@@ -23,8 +24,9 @@ CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
 [env.production]
 
 [env.production.vars]
-# ⚠️ RPC 환경변수: Cloudflare Pages에서 설정
-# ANKR_JSON_RPC_HTTPS_ENDPOINT: TON JSON-RPC 엔드포인트 (Cloudflare 환경변수)
+# ⚠️ TON Center API 환경변수: Cloudflare Pages에서 설정
+# TONCENTER_API_KEY: TON Center v3 API Key (Cloudflare 환경변수)
+# @tonapibot on Telegram으로 등록: https://t.me/tonapibot
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"

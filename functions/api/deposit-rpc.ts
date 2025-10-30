@@ -36,7 +36,7 @@ export async function onRequestPost(context: any) {
 
     // ⚠️ RPC 직접 호출은 실제 TON 트랜잭션을 생성하지 않음 (테스트용)
     // 실제 구현에서는:
-    // 1. ANKR_JSON_RPC_HTTPS_ENDPOINT 사용
+    // 1. TON Center v3 API 사용 (TONCENTER_API_KEY 필요)
     // 2. 게임 지갑의 프라이빗 키로 서명
     // 3. 트랜잭션 전송 후 확인 대기
     // 4. 블록체인 검증 후 크레딧 추가
