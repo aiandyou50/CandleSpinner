@@ -5,6 +5,117 @@
 
 ---
 
+## [2.5.0] - 2025-10-30 (Phase 3: TON Center v3 API 마이그레이션)
+
+### 🔄 변경됨 (Changed)
+
+#### 1. RPC 인프라 마이그레이션: Ankr → TON Center v3 API
+
+##### 1-1. AnkrRpc 클래스 완전 리팩토링
+```typescript
+// Before (v2.1): Ankr JSON-RPC 2.0
+class AnkrRpc {
+  private async call<T>(method: string, params: any[]): Promise<T> {
+    // JSON-RPC 2.0 포맷
+    body: JSON.stringify({ jsonrpc: '2.0', method, params })
+  }
+}
+
+// After (v2.5): TON Center v3 RESTful API
+class AnkrRpc {
+  constructor(baseUrl: string, apiKey?: string)
+  private async call<T>(endpoint: string, method: 'GET' | 'POST', body?: any): Promise<T> {
+    // RESTful 엔드포인트
+    headers: { 'X-API-Key': apiKey }
+  }
+}
+```
+
+**주요 변경사항:**
+- ❌ Ankr JSON-RPC 2.0 제거
+- ✅ TON Center v3 RESTful API 적용
+- ✅ API Key 인증 추가 (X-API-Key 헤더)
+- ✅ 엔드포인트별 HTTP 메서드 지원 (GET, POST)
+
+##### 1-2. RPC 메서드 엔드포인트 업데이트
+
+| 메서드 | Before (v2.1) | After (v2.5) |
+|--------|---------------|--------------|
+| sendBoc | `POST JSON-RPC method: "sendBoc"` | `POST /api/v3/sendBoc` |
+| getAccountState | `POST JSON-RPC method: "getAccountState"` | `GET /api/v3/accounts/{address}` |
+| getBalance | `POST JSON-RPC method: "getAccountState"` | `GET /api/v3/accounts/{address}` |
+| runGetMethod | `POST JSON-RPC method: "runGetMethod"` | `POST /api/v3/runGetMethod` |
+| getTransactionStatus | `POST JSON-RPC method: "getTransactionStatus"` | `GET /api/v3/transactions/{hash}` |
+
+##### 1-3. 환경변수 마이그레이션
+
+**Cloudflare Pages 환경변수:**
+```bash
+# Before (v2.1)
+ANKR_JSON_RPC_HTTPS_ENDPOINT=https://rpc.ankr.com/ton
+
+# After (v2.5)
+TONCENTER_API_KEY=your_api_key_from_@tonapibot
+```
+
+**Frontend 환경변수 (.env.local):**
+```bash
+# Before (v2.1)
+VITE_TON_RPC_URL=https://toncenter.com/api/v2/jsonRPC
+VITE_TON_API_KEY=
+
+# After (v2.5)
+VITE_TON_CENTER_BASE_URL=https://toncenter.com/api/v3
+VITE_TON_CENTER_API_KEY=your_api_key
+
+# Legacy (deprecated but supported)
+VITE_TON_RPC_URL=https://toncenter.com/api/v3
+VITE_TON_API_KEY=
+```
+
+##### 1-4. 파일 변경 내역
+
+**Updated Files:**
+- `functions/api/rpc-utils.ts` - TON Center v3 API 완전 리팩토링
+- `functions/api/initiate-withdrawal.ts` - RPC 초기화 로직 업데이트
+- `src/constants.ts` - 환경변수 추가 및 레거시 지원
+- `wrangler.toml` - 환경변수 주석 업데이트
+- `.env.example` - 새로운 환경변수 추가
+- `README.md` - v2.5 업데이트 및 API Key 등록 가이드
+- `functions/api/deposit-rpc.ts` - 주석 업데이트
+- `src/components/GameComplete.tsx` - 에러 메시지 업데이트
+
+### 📝 문서 업데이트
+
+#### 2. README.md 주요 변경사항
+- ✅ v2.5 TON Center v3 마이그레이션 섹션 추가
+- ✅ API Key 등록 가이드 (@tonapibot)
+- ✅ 환경변수 설정 가이드 업데이트
+- ✅ 기술 스택 업데이트 (Ankr → TON Center v3)
+
+### 🔧 기술 개선사항
+
+#### 3. 안정성 및 성능
+- ✅ 공식 TON Center API 사용 (커뮤니티 신뢰성 ↑)
+- ✅ RESTful 아키텍처로 더 명확한 API 구조
+- ✅ API Key 인증으로 Rate Limit 완화
+- ✅ GET/POST 메서드 분리로 캐싱 최적화 가능
+
+### ⚠️ Breaking Changes
+
+**환경변수 변경 필요:**
+- Cloudflare Pages에서 `ANKR_JSON_RPC_HTTPS_ENDPOINT` 삭제
+- Cloudflare Pages에서 `TONCENTER_API_KEY` 추가 필요
+- API Key 없으면 Rate Limit 적용 (공개 API: 1 req/sec)
+
+**API Key 등록 방법:**
+1. Telegram에서 [@tonapibot](https://t.me/tonapibot) 검색
+2. `/start` 명령어 실행
+3. API Key 발급
+4. Cloudflare Pages 환경변수에 `TONCENTER_API_KEY` 설정
+
+---
+
 ## [2.5.0] - 2025-10-21 (Phase 2-5 성능 최적화: React 렌더링)
 
 ### ✨ 추가됨 (Added)
