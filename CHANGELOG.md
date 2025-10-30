@@ -15,18 +15,31 @@
 ```typescript
 // Before (v2.1): Ankr JSON-RPC 2.0
 class AnkrRpc {
+  constructor(private rpcUrl: string) {}
+  
   private async call<T>(method: string, params: any[]): Promise<T> {
-    // JSON-RPC 2.0 포맷
-    body: JSON.stringify({ jsonrpc: '2.0', method, params })
+    const body = JSON.stringify({ 
+      jsonrpc: '2.0', 
+      method, 
+      params 
+    });
+    // ... fetch implementation
   }
 }
 
 // After (v2.5): TON Center v3 RESTful API
 class AnkrRpc {
-  constructor(baseUrl: string, apiKey?: string)
+  constructor(baseUrl: string, apiKey?: string) {
+    this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
+  }
+  
   private async call<T>(endpoint: string, method: 'GET' | 'POST', body?: any): Promise<T> {
-    // RESTful 엔드포인트
-    headers: { 'X-API-Key': apiKey }
+    const headers = {
+      'Content-Type': 'application/json',
+      'X-API-Key': this.apiKey
+    };
+    // ... fetch implementation with RESTful endpoint
   }
 }
 ```
@@ -41,11 +54,14 @@ class AnkrRpc {
 
 | 메서드 | Before (v2.1) | After (v2.5) |
 |--------|---------------|--------------|
-| sendBoc | `POST JSON-RPC method: "sendBoc"` | `POST /api/v3/sendBoc` |
-| getAccountState | `POST JSON-RPC method: "getAccountState"` | `GET /api/v3/accounts/{address}` |
-| getBalance | `POST JSON-RPC method: "getAccountState"` | `GET /api/v3/accounts/{address}` |
-| runGetMethod | `POST JSON-RPC method: "runGetMethod"` | `POST /api/v3/runGetMethod` |
-| getTransactionStatus | `POST JSON-RPC method: "getTransactionStatus"` | `GET /api/v3/transactions/{hash}` |
+| sendBoc | `POST JSON-RPC method: "sendBoc"` | `POST /sendBoc` |
+| getAccountState | `POST JSON-RPC method: "getAccountState"` | `GET /accounts/{address}` |
+| getBalance | `POST JSON-RPC method: "getAccountState"` | `GET /accounts/{address}` |
+| runGetMethod | `POST JSON-RPC method: "runGetMethod"` | `POST /runGetMethod` |
+| getTransactionStatus | `POST JSON-RPC method: "getTransactionStatus"` | `GET /transactions/{hash}` |
+
+**참고:** 실제 요청 URL은 `baseUrl + endpoint` 형식입니다.  
+예: `https://toncenter.com/api/v3` + `/sendBoc` = `https://toncenter.com/api/v3/sendBoc`
 
 ##### 1-3. 환경변수 마이그레이션
 
