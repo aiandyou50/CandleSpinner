@@ -1,0 +1,14 @@
+{
+  "projects": [
+    {
+      "name": "CSPINWithdrawalSecure",
+      "path": "./sources/CSPINWithdrawalSecure.tact",
+      "output": "./build/CSPINWithdrawalSecure"
+    },
+    {
+      "name": "CSPINWithdrawalVoucher",
+      "path": "./sources/CSPINWithdrawalVoucher.tact",
+      "output": "./build/CSPINWithdrawalVoucher"
+    }
+  ]
+}

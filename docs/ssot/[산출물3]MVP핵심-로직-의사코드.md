@@ -306,15 +306,15 @@ FUNCTION handleApiInitiateDeposit(request, env):
     }
 ```
 
-###***REMOVED*****A.6. API 엔드포인트: `/api/initiate-withdrawal` (변경됨: Permit 기반)**
+###***REMOVED*****A.6. API 엔드포인트: `/api/initiate-withdrawal` (v2.3.0 - RPC 방식)**
 
-* **목적:** 스마트컨트랙트 호출을 위한 서명된 허가증(Permit) 생성 및 반환 (RPC 직접 전송 방식 폐기)
-* **요청 (Body):** `{ userId: string, amount: number, userWallet: string }`
-* **응답 (Body):** `{ signature, message, nonce, deadline }`
+* **목적:** 게임 지갑에서 사용자 지갑으로 CSPIN 토큰 RPC 직접 인출
+* **요청 (Body):** `{ userId: string, amount: number, userWallet: string, userJettonWalletAddress: string }`
+* **응답 (Body):** `{ success: boolean, txHash: string, message: string, newCredit: number }`
 
 ```
 FUNCTION handleApiInitiateWithdrawal(request, env):
-    GET { userId, amount, userWallet } FROM request.body
+    GET { userId, amount, userWallet, userJettonWalletAddress } FROM request.body
     
     // 1. 유효성 검사
     IF amount <= 0 THEN
@@ -323,55 +323,79 @@ FUNCTION handleApiInitiateWithdrawal(request, env):
     IF isValidTonAddress(userWallet) IS NOT TRUE THEN
         RETURN ERROR "유효하지 않은 지갑 주소"
     
-    // 2. KV에서 사용자 크레딧 확인
+    // 2. KV에서 사용자 크레딧 확인 및 즉시 차감
     state = await getKVState(userWallet, env)
     IF state.credit < amount THEN
         RETURN ERROR "크레딧이 부족합니다"
     
-    // 3. Permit 메시지 구성 (EIP-712 유사)
-    nonce = Math.floor(Date.now() / 1000)       // 현재 unix timestamp
-    deadline = nonce + 3600                     // 1시간 유효
-    chainId = 0                                 // TON 체인 ID
-    contractAddress = env.WITHDRAWAL_CONTRACT_ADDRESS
+    state.credit = state.credit - amount
+    await setKVState(userWallet, state, env)
     
-    permitMessage = {
-        chainId: chainId,
-        walletAddress: userWallet,
-        amount: amount,
-        nonce: nonce,
-        deadline: deadline,
-        contractAddress: contractAddress
-    }
-    
-    // 4. 메시지 인코딩 (해시 생성)
-    messageHash = hashStructForSigning(permitMessage)
-    
-    // 5. 백엔드 개인키로 서명 (Secp256k1)
+    // 3. 게임 지갑 준비
     gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY
     keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
-    signature = signMessage(messageHash, keyPair.secretKey)
+    gameWallet = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 })
     
-    // 6. 결과 반환 (서명된 데이터)
+    // 4. TonCenter v3 RPC 클라이언트 생성
+    tonCenterApiKey = env.TONCENTER_API_KEY
+    rpc = new TonCenterV3Rpc(tonCenterApiKey)
+    
+    // 5. seqno 조회 및 증가
+    seqnoManager = new SeqnoManager(rpc, env.CREDIT_KV, gameWallet.address.toString())
+    seqno = await seqnoManager.getAndIncrementSeqno()
+    
+    // 6. TON 잔액 확인 (가스비 확보)
+    tonBalance = await rpc.getBalance(gameWallet.address.toString())
+    IF tonBalance < toNano('0.05') THEN
+        RETURN ERROR "게임 지갑 TON 부족"
+    
+    // 7. Jetton Transfer Payload 생성 (TEP-74)
+    jettonPayload = beginCell()
+        .storeUint(0xf8a7ea5, 32)              // op: transfer
+        .storeUint(0, 64)                       // query_id
+        .storeCoins(toNano(amount.toString()))  // amount
+        .storeAddress(Address.parse(userWallet)) // destination
+        .storeAddress(gameWallet.address)       // response_destination
+        .storeBit(0)                            // custom_payload
+        .storeCoins(toNano('0.001'))            // forward_ton_amount
+        .storeBit(0)                            // forward_payload
+        .endCell()
+    
+    // 8. 내부 메시지 생성
+    transferMessage = internal({
+        to: Address.parse(userJettonWalletAddress),  // 게임 지갑의 Jetton 중간 지갑
+        value: toNano('0.03'),                        // 가스비
+        body: jettonPayload
+    })
+    
+    // 9. 트랜잭션 생성 및 서명
+    transfer = gameWallet.createTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [transferMessage],
+        sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS
+    })
+    
+    // 10. BOC 생성 및 TonCenter v3 RPC로 전송
+    boc = transfer.toBoc().toString('base64')
+    txHash = await rpc.sendBoc(boc)
+    
+    // 11. 결과 반환
     RETURN {
         success: true,
-        signature: signature,          // Hex 문자열
-        message: permitMessage,        // JSON 객체
-        nonce: nonce,
-        deadline: deadline,
-        recipientWallet: userWallet
+        txHash: txHash,
+        message: `RPC 방식 인출 완료: ${amount} CSPIN`,
+        newCredit: state.credit
     }
 END FUNCTION
 ```
 
-**변경 사항 요약:**
-- ❌ 삭제됨: RPC 직접 호출 로직 (Jetton transfer 메시지 생성 제거)
-- ❌ 삭제됨: seqno 관리 로직 (게임 지갑 시퀀스 제거)
-- ❌ 삭제됨: BOC 생성 및 네트워크 전송 로직
-- ❌ 삭제됨: 즉시 KV 크레딧 차감 로직
-- ✅ 추가됨: Permit 메시지 생성
-- ✅ 추가됨: 백엔드 서명 로직
-- ✅ 추가됨: 서명된 데이터 반환
-- 📝 **주의**: KV 크레딧 차감은 **트랜잭션 확인 후** `/api/confirm-withdrawal`에서 처리
+**주요 특징:**
+- ✅ TonCenter v3 API 사용 (`https://toncenter.com/api/v3/`)
+- ✅ KV 크레딧 즉시 차감 (트랜잭션 전송 전)
+- ✅ 게임 지갑이 가스비 부담 (~0.05 TON)
+- ✅ seqno 관리로 트랜잭션 충돌 방지
+- ✅ Jetton TEP-74 표준 준수
 
 ###***REMOVED*****A.6.1. API 엔드포인트: `/api/confirm-withdrawal` (신규)**
 
@@ -423,17 +447,6 @@ FUNCTION handleApiConfirmWithdrawal(request, env):
         timestamp: new Date().toISOString(),
         status: "confirmed"
     }
-    await env.CREDIT_KV.put(logKey, JSON.stringify(logData))
-    
-    // 6. 결과 반환
-    RETURN {
-        success: true,
-        message: "인출이 확인되었습니다",
-        newCredit: state.credit
-    }
-END FUNCTION
-```
-
 
 
 ###***REMOVED*****A.7. API 엔드포인트: `/api/rpc`**

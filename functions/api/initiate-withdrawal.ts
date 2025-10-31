@@ -1,15 +1,15 @@
 import '../_bufferPolyfill';
 import { keyPairFromSecretKey } from '@ton/crypto';
 import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode, Cell } from '@ton/ton';
-import { AnkrRpc, SeqnoManager } from './rpc-utils';
+import { TonCenterV3Rpc, SeqnoManager } from './rpc-utils';
 
 /**
- * POST /api/initiate-withdrawal (v3 - 단순화 버전)
+ * POST /api/initiate-withdrawal (v2.3.0 - TonCenter v3)
  * 
- * ✅ v3 개선사항:
- * 1. Jetton 지갑 주소 조회 제거 (TonAPI 의존성 제거)
- * 2. 간단한 테스트 모드 추가
- * 3. 프론트엔드에서 주소를 받도록 변경 (선택적)
+ * ✅ v2.3.0 변경사항:
+ * 1. Ankr RPC → TonCenter v3 API로 교체
+ * 2. 환경 변수 TONCENTER_API_KEY 사용
+ * 3. RPC 직접 전송 방식 유지 (게임 지갑 서명)
  * 4. 오류 메시지 명확화
  */
 
@@ -41,10 +41,10 @@ function buildJettonTransferPayload(
 }
 
 // ============================================================================
-// 2. RPC 방식 인출 (게임 지갑에서 서명)
+// 2. RPC 방식 인출 (게임 지갑에서 서명) - TonCenter v3
 // ============================================================================
 async function withdrawViaRpc(
-  rpc: AnkrRpc,
+  rpc: TonCenterV3Rpc,
   env: any,
   walletAddress: string,
   withdrawalAmount: number,
@@ -125,8 +125,7 @@ async function withdrawViaRpc(
   console.log(`[RPC] BOC 생성 완료 (길이: ${boc.length})`);
   console.log(`[RPC] 첫 100자: ${boc.substring(0, 100)}`);
   
-  console.log(`[RPC] 📨 RPC 서버로 BOC 전송 시작...`);
-  console.log(`[RPC] RPC 엔드포인트: ${rpc['rpcUrl']?.substring(0, 50)}...`);
+  console.log(`[RPC] 📨 TonCenter v3로 BOC 전송 시작...`);
 
   let txHash: string;
   try {
@@ -147,10 +146,11 @@ async function withdrawViaRpc(
 }
 
 // ============================================================================
-// 3. 중앙화 방식 인출 (사용자 지갑에서 직접 서명)
+// 3. 중앙화 방식 인출 (사용 안함 - 주석 처리)
 // ============================================================================
+/*
 async function withdrawViaCentralized(
-  rpc: AnkrRpc,
+  rpc: any,
   env: any,
   walletAddress: string,
   withdrawalAmount: number,
@@ -207,6 +207,7 @@ async function withdrawViaCentralized(
     message: `중앙화 방식 트랜잭션 생성 완료 (사용자 서명 필요): ${withdrawalAmount} CSPIN`
   };
 }
+*/
 
 // ============================================================================
 // 4. 메인 핸들러
@@ -215,7 +216,6 @@ export async function onRequestPost(context: any) {
   let env: any;
   let walletAddress: string | undefined;
   let withdrawalAmount: number | undefined;
-  let withdrawalMode: 'rpc' | 'centralized' = 'centralized';
   
   try {
     const { request } = context;
@@ -225,13 +225,11 @@ export async function onRequestPost(context: any) {
     const body = await request.json() as {
       walletAddress?: string;
       withdrawalAmount?: number;
-      mode?: 'rpc' | 'centralized';
-      userJettonWalletAddress?: string; // 프론트엔드에서 계산하여 전달 (선택적)
+      userJettonWalletAddress?: string; // 프론트엔드에서 계산하여 전달
     };
 
     walletAddress = body.walletAddress;
     withdrawalAmount = body.withdrawalAmount;
-    withdrawalMode = body.mode || 'centralized';
 
     // 입력 검증
     if (!walletAddress) {
@@ -248,7 +246,7 @@ export async function onRequestPost(context: any) {
       );
     }
 
-    console.log(`[인출-v3] 요청: ${walletAddress}, ${withdrawalAmount} CSPIN, ${withdrawalMode} 모드`);
+    console.log(`[인출-v2.3.0] 요청: ${walletAddress}, ${withdrawalAmount} CSPIN, RPC 모드`);
 
     // ✅ 변경: userJettonWalletAddress를 직접 사용 또는 고정값 사용
     // 임시: 고정값 사용 (실제로는 프론트에서 계산하여 전달해야 함)
@@ -263,10 +261,17 @@ export async function onRequestPost(context: any) {
       );
     }
 
-    // RPC 초기화 - TON Center 사용 (CORS 제한 없음!)
-    const tonCenterRpcUrl = 'https://toncenter.com/api/v2/jsonRPC';
-    const rpc = new AnkrRpc(tonCenterRpcUrl);
-    console.log(`[인출-v3] RPC 초기화 완료 (TON Center)`);
+    // TonCenter v3 RPC 초기화
+    const tonCenterApiKey = env.TONCENTER_API_KEY;
+    if (!tonCenterApiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'TonCenter API 키가 설정되지 않았습니다.' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const rpc = new TonCenterV3Rpc(tonCenterApiKey);
+    console.log(`[인출-v2.3.0] TonCenter v3 RPC 초기화 완료`);
 
     // KV에서 사용자 상태 조회
     const stateKey = `state:${walletAddress}`;
@@ -290,14 +295,8 @@ export async function onRequestPost(context: any) {
       );
     }
 
-    // 모드별 인출 실행
-    let result: any;
-
-    if (withdrawalMode === 'rpc') {
-      result = await withdrawViaRpc(rpc, env, walletAddress, withdrawalAmount, userJettonWalletAddress);
-    } else {
-      result = await withdrawViaCentralized(rpc, env, walletAddress, withdrawalAmount, userJettonWalletAddress);
-    }
+    // RPC 방식 인출 실행
+    const result = await withdrawViaRpc(rpc, env, walletAddress, withdrawalAmount, userJettonWalletAddress);
 
     // 크레딧 차감
     userState.credit -= withdrawalAmount;
@@ -313,26 +312,24 @@ export async function onRequestPost(context: any) {
       JSON.stringify({
         type: 'withdrawal',
         amount: withdrawalAmount,
-        mode: withdrawalMode,
-        txHash: result.txHash || 'pending',
+        mode: 'rpc',
+        txHash: result.txHash,
         timestamp: new Date().toISOString(),
-        status: withdrawalMode === 'rpc' ? 'confirmed' : 'pending_user_signature'
+        status: 'confirmed'
       }),
       { expirationTtl: 86400 * 7 }
     );
 
-    console.log(`[인출-v3] ✅ 완료: ${walletAddress} -${withdrawalAmount} CSPIN`);
+    console.log(`[인출-v2.3.0] ✅ 완료: ${walletAddress} -${withdrawalAmount} CSPIN`);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: result.message,
         txHash: result.txHash,
-        boc: result.boc,
-        tonAmount: result.tonAmount,
         newCredit: userState.credit,
         withdrawalAmount,
-        mode: withdrawalMode
+        mode: 'rpc'
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
@@ -340,8 +337,8 @@ export async function onRequestPost(context: any) {
     const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
     const errorStack = error instanceof Error ? error.stack : 'No stack trace';
     
-    console.error('[인출-v3] ❌ 오류:', errorMessage);
-    console.error('[인출-v3] 스택:', errorStack);
+    console.error('[인출-v2.3.0] ❌ 오류:', errorMessage);
+    console.error('[인출-v2.3.0] 스택:', errorStack);
 
     return new Response(
       JSON.stringify({
@@ -349,8 +346,7 @@ export async function onRequestPost(context: any) {
         error: errorMessage,
         details: {
           walletAddress,
-          withdrawalAmount,
-          mode: withdrawalMode
+          withdrawalAmount
         }
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }

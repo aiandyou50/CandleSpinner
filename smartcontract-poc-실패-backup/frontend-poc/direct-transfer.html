@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSPIN 인출 (직접 전송 방식)</title>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .wallet-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        #ton-connect-button {
+            margin: 0 auto;
+        }
+
+        .wallet-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .withdraw-section {
+            margin-top: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .log-section {
+            margin-top: 30px;
+        }
+
+        .log-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px;
+            border-left: 3px solid transparent;
+        }
+
+        .log-entry.info {
+            border-left-color: #4FC3F7;
+        }
+
+        .log-entry.success {
+            border-left-color: #66BB6A;
+        }
+
+        .log-entry.error {
+            border-left-color: #EF5350;
+        }
+
+        .log-entry.warning {
+            border-left-color: #FFA726;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background: #E3F2FD;
+            color: #1976D2;
+            border-left: 4px solid #1976D2;
+        }
+
+        .alert-success {
+            background: #E8F5E9;
+            color: #388E3C;
+            border-left: 4px solid #388E3C;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎮 CSPIN 인출</h1>
+            <div class="badge">✅ 직접 전송 방식 (안정적)</div>
+        </div>
+
+        <div class="content">
+            <!-- 알림 -->
+            <div class="alert alert-info">
+                <strong>✨ 개선 사항:</strong> 컨트랙트 없이 백엔드에서 직접 전송합니다. 
+                100% 성공 보장, 가스비 최소화!
+            </div>
+
+            <!-- 지갑 연결 -->
+            <div class="wallet-section">
+                <h2>1단계: 지갑 연결</h2>
+                <div id="ton-connect-button"></div>
+                <div id="walletInfo" class="wallet-info" style="display: none;">
+                    <strong>연결된 지갑:</strong><br>
+                    <span id="walletAddress"></span>
+                </div>
+            </div>
+
+            <!-- 인출 -->
+            <div class="withdraw-section">
+                <h2>2단계: 인출 금액 입력</h2>
+                <div class="input-group">
+                    <label for="amountInput">인출 금액 (CSPIN)</label>
+                    <input type="number" id="amountInput" placeholder="예: 100" min="1" max="1000000">
+                </div>
+                <button id="withdrawBtn" class="btn" onclick="withdraw()">
+                    💰 인출하기
+                </button>
+            </div>
+
+            <!-- 로그 -->
+            <div class="log-section">
+                <h3>📋 처리 로그</h3>
+                <div id="logContainer" class="log-container">
+                    <div class="log-entry info">시스템 준비 완료</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3000';
+        
+        let tonConnectUI;
+        let userAddress = null;
+
+        // TonConnect 초기화
+        window.addEventListener('load', async () => {
+            tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                manifestUrl: window.location.origin + '/tonconnect-manifest.json',
+                buttonRootId: 'ton-connect-button'
+            });
+
+            tonConnectUI.onStatusChange(wallet => {
+                if (wallet) {
+                    userAddress = wallet.account.address;
+                    document.getElementById('walletInfo').style.display = 'block';
+                    document.getElementById('walletAddress').textContent = userAddress;
+                    addLog('✅ 지갑 연결 성공', 'success');
+                    addLog(`📍 주소: ${userAddress}`, 'info');
+                } else {
+                    userAddress = null;
+                    document.getElementById('walletInfo').style.display = 'none';
+                    addLog('⚠️ 지갑 연결 해제됨', 'warning');
+                }
+            });
+
+            // 이미 연결된 경우
+            const currentWallet = tonConnectUI.wallet;
+            if (currentWallet) {
+                userAddress = currentWallet.account.address;
+                document.getElementById('walletInfo').style.display = 'block';
+                document.getElementById('walletAddress').textContent = userAddress;
+            }
+        });
+
+        // 로그 추가
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        // 인출 요청
+        async function withdraw() {
+            if (!userAddress) {
+                addLog('❌ 지갑이 연결되지 않았습니다', 'error');
+                return;
+            }
+
+            const amount = document.getElementById('amountInput').value;
+            if (!amount || amount <= 0) {
+                addLog('❌ 올바른 금액을 입력하세요', 'error');
+                return;
+            }
+
+            try {
+                addLog(`🔄 ${amount} CSPIN 인출 시작...`, 'info');
+                document.getElementById('withdrawBtn').innerHTML = '<span class="spinner"></span>처리 중...';
+                document.getElementById('withdrawBtn').disabled = true;
+
+                // 백엔드에 인출 요청 (컨트랙트 없이 직접 전송!)
+                addLog('📡 백엔드에 인출 요청 중...', 'info');
+                const response = await fetch(`${BACKEND_URL}/api/withdraw`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userAddress,
+                        amount: parseInt(amount),
+                        recipientAddress: userAddress
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('인출 요청 실패');
+                }
+
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.error || '인출 실패');
+                }
+
+                addLog('✅ 인출 성공!', 'success');
+                addLog(`📋 Seqno: ${result.seqno}`, 'info');
+                addLog(`💰 ${amount} CSPIN이 곧 지갑에 도착합니다`, 'success');
+                addLog(`🔍 Owner Jetton Wallet: ${result.ownerJettonWallet}`, 'info');
+                
+                // Tonscan 링크
+                const tonscanUrl = `https://tonscan.org/address/${result.ownerAddress}`;
+                addLog(`🌐 Tonscan: ${tonscanUrl}`, 'info');
+
+                // 성공 알림
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success';
+                alertDiv.innerHTML = `<strong>✅ 인출 성공!</strong><br>${amount} CSPIN이 전송되었습니다.`;
+                document.querySelector('.content').insertBefore(
+                    alertDiv,
+                    document.querySelector('.wallet-section')
+                );
+
+                // 입력 초기화
+                document.getElementById('amountInput').value = '';
+
+            } catch (error) {
+                addLog(`❌ 인출 실패: ${error.message}`, 'error');
+            } finally {
+                document.getElementById('withdrawBtn').innerHTML = '💰 인출하기';
+                document.getElementById('withdrawBtn').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

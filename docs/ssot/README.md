@@ -1,8 +1,8 @@
 ***REMOVED***📘 CandleSpinner SSOT (Single Source of Truth) 
 
-**최종 업데이트**: 2025-10-24  
-**버전**: 2.1 (Phase 2 완료 & RPC 아키텍처 개선)  
-**상태**: ✅ 메인넷 프로덕션 운영 중 (RPC 개선 배포됨)
+**최종 업데이트**: 2025-10-31  
+**버전**: 2.3 (TonCenter v3 RPC 인출)  
+**상태**: ✅ 메인넷 프로덕션 운영 중 (TonCenter v3 적용)
 
 ⚠️ **중요: 메인넷 환경**
 - 모든 거래는 실제 자산(TON, CSPIN) 이동
@@ -101,7 +101,7 @@ Sentry (에러 추적, 성능 모니터링)
 
 #***REMOVED***3. 핵심 아키텍처
 
-##***REMOVED***3.1 시스템 다이어그램 (변경됨: 스마트컨트랙트 기반 인출)
+##***REMOVED***3.1 시스템 다이어그램 (RPC 직접 인출 방식)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -110,7 +110,7 @@ Sentry (에러 추적, 성능 모니터링)
 │  │  React UI (Telegram Mini App)                    │  │
 │  │  ├─ 입금 화면 (TonConnect)                      │  │
 │  │  ├─ 게임 플레이 화면 (스핀/더블업)             │  │
-│  │  ├─ 인출 화면 (사용자 주도)                    │  │
+│  │  ├─ 인출 화면 (백엔드 RPC 처리)                │  │
 │  │  └─ 지갑 상태 표시                              │  │
 │  └──────────────────────────────────────────────────┘  │
 │                        ↓                                 │
@@ -131,31 +131,29 @@ Sentry (에러 추적, 성능 모니터링)
 │  ├─ POST /api/spin (스핀 로직)                         │
 │  ├─ POST /api/double-up (더블업)                       │
 │  ├─ POST /api/deposit (입금 기록)                      │
-│  ├─ POST /api/initiate-withdrawal (Permit 생성)       │
-│  └─ POST /api/confirm-withdrawal (인출 확인)          │
+│  └─ POST /api/initiate-withdrawal (RPC 직접 전송)     │
 └─────────────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │           TON Blockchain (L1)                           │
 │  ├─ CSPIN Jetton Master (입금 대상)                   │
-│  ├─ Withdrawal Smart Contract (인출 계약)             │
-│  │   └─ receive(WithdrawWithPermit)                   │
-│  ├─ Game Wallet (수익 수신처)                         │
-│  ├─ User Wallets (사용자 자산 수령처)                 │
-│  └─ TonCenter API (RPC 쿼리)                          │
+│  ├─ TonCenter v3 API (RPC 엔드포인트)                 │
+│  │   └─ sendBoc / getBalance / runGetMethod          │
+│  ├─ Game Wallet (수익 수신처 & 인출 서명자)          │
+│  └─ User Wallets (사용자 자산 수령처)                 │
 └─────────────────────────────────────────────────────────┘
 ```
 
-##***REMOVED***3.2 인출 흐름 (신규: 스마트컨트랙트 방식)
+##***REMOVED***3.2 인출 흐름 (RPC 직접 전송 방식)
 
 | 단계 | 주체 | 작업 | 상세 |
 |------|------|------|------|
 | 1 | 프론트엔드 | 인출 요청 | 사용자가 [인출] 버튼 클릭 |
-| 2 | 백엔드 | Permit 생성 | `/api/initiate-withdrawal` → 서명된 데이터 반환 |
-| 3 | 프론트엔드 | TonConnect 호출 | 사용자가 스마트컨트랙트 트랜잭션 서명 |
-| 4 | 블록체인 | 계약 실행 | 서명 검증 → Jetton 전송 |
-| 5 | 프론트엔드 | 모니터링 | txHash로 트랜잭션 확인 (최대 60초) |
-| 6 | 백엔드 | 확인 & 차감 | 블록체인 확인 후 KV 크레딧 차감 |
+| 2 | 백엔드 | KV 차감 | KV에서 크레딧 확인 및 즉시 차감 |
+| 3 | 백엔드 | 트랜잭션 생성 | 게임 지갑 프라이빗 키로 Jetton Transfer 서명 |
+| 4 | 백엔드 | RPC 전송 | TonCenter v3 API로 BOC 전송 |
+| 5 | 블록체인 | 거래 처리 | Jetton Master → 사용자 지갑으로 CSPIN 전송 |
+| 6 | 프론트엔드 | 결과 표시 | txHash와 새 크레딧 표시 |
 
 ##***REMOVED***3.3 데이터 흐름
 

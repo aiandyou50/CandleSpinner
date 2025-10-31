@@ -1,0 +1,4 @@
+name: CSPINWithdrawalVoucher
+type: tact-contract
+sources:
+  - sources/CSPINWithdrawalVoucher.tact
