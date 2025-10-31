@@ -1,0 +1,12 @@
+name = "cspin-voucher-api"
+main = "api.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+***REMOVED***환경변수 (민감한 정보는 wrangler secret으로 설정)
+CONTRACT_ADDRESS = "EQAOLUHmaA1J_LCHjJ2UjFrB5-AYKCw1Grw586WVkVGxrNIc"
+MAX_SINGLE_WITHDRAW = "1000000"
+
+***REMOVED***민감한 정보는 wrangler secret put OWNER_MNEMONIC로 설정
+***REMOVED***wrangler secret put OWNER_MNEMONIC
+***REMOVED***입력: word1 word2 word3 ... word24

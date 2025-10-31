@@ -1,0 +1,754 @@
+// automatically generated from `@stdlib/std/stdlib.fc` `C:/Users/x0051/Desktop/DEV/contracts/build/CSPINWithdrawalVoucher/CSPINWithdrawalVoucher_CSPINWithdrawalVoucher.fc` 
+PROGRAM{
+  DECLPROC __tact_context_get
+  DECLPROC __tact_context_get_sender
+  DECLPROC __tact_dict_get_int_int
+  DECLPROC __tact_dict_set_int_int
+  DECLPROC $DeployOk$_store
+  DECLPROC $DeployOk$_store_cell
+  DECLPROC $CSPINWithdrawalVoucher$_store
+  DECLPROC $CSPINWithdrawalVoucher$_load
+  DECLPROC $Context$_get_value
+  DECLPROC $ContractInfo$_to_external
+  DECLPROC $Stats$_to_external
+  DECLPROC $CSPINWithdrawalVoucher$init$_load
+  DECLPROC $CSPINWithdrawalVoucher$_contract_init
+  DECLPROC $CSPINWithdrawalVoucher$_contract_load
+  DECLPROC $CSPINWithdrawalVoucher$_contract_store
+  DECLPROC $CSPINWithdrawalVoucher$_fun_requireOwner
+  DECLPROC $CSPINWithdrawalVoucher$_fun_balance
+  DECLPROC $ContractInfo$_constructor_owner_jettonMaster_gameJettonWallet_contractJettonWallet_paused_maxSingleWithdraw_totalWithdrawn_withdrawCount
+  DECLPROC $CSPINWithdrawalVoucher$_fun_contractInfo
+  DECLPROC $Stats$_constructor_totalWithdrawn_withdrawCount
+  DECLPROC $CSPINWithdrawalVoucher$_fun_stats
+  DECLPROC $CSPINWithdrawalVoucher$_fun_isNonceUsed
+  DECLPROC $MessageParameters$_constructor_bounce_to_value_mode_body
+  DECLPROC $CSPINWithdrawalVoucher$_fun_notify
+  DECLPROC $SendParameters$_constructor_to_value_mode_body
+  DECLPROC $SendParameters$_constructor_to_value_mode
+  DECLPROC $DeployOk$_constructor_queryId
+  104128 DECLMETHOD %balance
+  100057 DECLMETHOD %contractInfo
+  89570 DECLMETHOD %stats
+  80072 DECLMETHOD %isNonceUsed
+  DECLPROC recv_internal
+  DECLGLOBVAR __tact_context
+  DECLGLOBVAR __tact_context_sender
+  DECLGLOBVAR __tact_child_contract_codes
+  DECLGLOBVAR __tact_randomized
+  __tact_context_get PROCINLINE:<{
+    __tact_context GETGLOB
+    4 UNTUPLE
+  }>
+  __tact_context_get_sender PROCINLINE:<{
+    __tact_context_sender GETGLOB
+  }>
+  __tact_dict_get_int_int PROCINLINE:<{
+    s1 s3 s3 XCHG3
+    DICTIGET
+    NULLSWAPIFNOT
+    IF:<{
+      SWAP
+      LDIX
+      DROP
+    }>ELSE<{
+      2DROP
+      PUSHNULL
+    }>
+  }>
+  __tact_dict_set_int_int PROCINLINE:<{
+    OVER
+    ISNULL
+    IF:<{
+      2DROP
+      -ROT
+      DICTIDEL
+      DROP
+    }>ELSE<{
+      NEWC
+      SWAP
+      STIX
+      s1 s3 s3 XCHG3
+      DICTISETB
+    }>
+  }>
+  $DeployOk$_store PROCINLINE:<{
+    2952335191 PUSHINT
+    ROT
+    32 STU
+    64 STU
+  }>
+  $DeployOk$_store_cell PROCINLINE:<{
+    SWAP
+    $DeployOk$_store INLINECALLDICT
+    ENDC
+  }>
+  $CSPINWithdrawalVoucher$_store PROCINLINE:<{
+    s9 s10 XCHG2
+    STSLICE
+    s1 s7 XCHG
+    256 STU
+    s1 s5 XCHG
+    STSLICE
+    s0 s3 XCHG
+    NEWC
+    STSLICE
+    s1 s2 XCHG
+    STSLICE
+    1 STI
+    s1 s2 XCHG
+    257 PUSHINT
+    STIX
+    s0 s2 XCHG
+    NEWC
+    257 PUSHINT
+    STIX
+    s1 s3 XCHG
+    257 PUSHINT
+    STIX
+    s1 s3 XCHG
+    STDICT
+    s1 s2 XCHG
+    STBREFR
+    STBREFR
+  }>
+  $CSPINWithdrawalVoucher$_load PROCINLINE:<{
+    LDMSGADDR
+    256 LDU
+    LDMSGADDR
+    LDREF
+    SWAP
+    CTOS
+    LDMSGADDR
+    LDMSGADDR
+    1 LDI
+    257 PUSHINT
+    LDIX
+    LDREF
+    DROP
+    CTOS
+    257 PUSHINT
+    LDIX
+    257 PUSHINT
+    LDIX
+    LDDICT
+    DROP
+    s7 s10 XCHG
+    s7 s9 XCHG
+    s7 s8 XCHG
+  }>
+  $Context$_get_value PROCINLINE:<{
+    s1 s3 XCHG
+    3 BLKDROP
+  }>
+  $ContractInfo$_to_external PROCINLINE:<{
+  }>
+  $Stats$_to_external PROCINLINE:<{
+  }>
+  $CSPINWithdrawalVoucher$init$_load PROCINLINE:<{
+    LDMSGADDR
+    257 PUSHINT
+    LDIX
+    LDMSGADDR
+    LDREF
+    SWAP
+    CTOS
+    LDMSGADDR
+    257 PUSHINT
+    LDIX
+    DROP
+    s2 s5 XCHG
+    s2 s4 XCHG
+    s2 s3 XCHG
+  }>
+  $CSPINWithdrawalVoucher$_contract_init PROCINLINE:<{
+    PUSHNULL
+        B{b5ee9c72410101010024000043800000000000000000000000000000000000000000000000000000000000000000104aec829d} B>boc <s PUSHSLICE
+    FALSE
+    0 PUSHINT
+    DUP
+    s3 s5 XCHG
+    s0 s1 s4 XCHG3
+  }>
+  $CSPINWithdrawalVoucher$_contract_load PROCINLINE:<{
+    c4 PUSH
+    CTOS
+    1 LDI
+    SWAP
+    IF:<{
+      $CSPINWithdrawalVoucher$_load INLINECALLDICT
+      1 10 BLKDROP2
+    }>ELSE<{
+      $CSPINWithdrawalVoucher$init$_load INLINECALLDICT
+      s0 s5 XCHG
+      ENDS
+      4 ROLL
+      $CSPINWithdrawalVoucher$_contract_init INLINECALLDICT
+    }>
+  }>
+  $CSPINWithdrawalVoucher$_contract_store PROCINLINE:<{
+    NEWC
+    TRUE
+    SWAP
+    1 STI
+    10 -ROLL
+    $CSPINWithdrawalVoucher$_store INLINECALLDICT
+    ENDC
+    c4 POP
+  }>
+  $CSPINWithdrawalVoucher$_fun_requireOwner PROCREF:<{
+    59802 PUSHINT
+    __tact_context_get_sender INLINECALLDICT
+    s11 PUSH
+    SDEQ
+    THROWANYIFNOT
+  }>
+  $CSPINWithdrawalVoucher$_fun_balance PROCREF:<{
+        BALANCE FIRST
+  }>
+  $ContractInfo$_constructor_owner_jettonMaster_gameJettonWallet_contractJettonWallet_paused_maxSingleWithdraw_totalWithdrawn_withdrawCount PROCINLINE:<{
+  }>
+  $CSPINWithdrawalVoucher$_fun_contractInfo PROCREF:<{
+    s9 s7 s6 PUSH3
+    s8 s7 s6 PUSH3
+    s8 s7 PUSH2
+    $ContractInfo$_constructor_owner_jettonMaster_gameJettonWallet_contractJettonWallet_paused_maxSingleWithdraw_totalWithdrawn_withdrawCount INLINECALLDICT
+  }>
+  $Stats$_constructor_totalWithdrawn_withdrawCount PROCINLINE:<{
+  }>
+  $CSPINWithdrawalVoucher$_fun_stats PROCREF:<{
+    s2 s1 PUSH2
+    $Stats$_constructor_totalWithdrawn_withdrawCount INLINECALLDICT
+  }>
+  $CSPINWithdrawalVoucher$_fun_isNonceUsed PROCREF:<{
+    257 PUSHINT
+    s2 PUSH
+    s0 s2 XCHG
+    1 PUSHINT
+    __tact_dict_get_int_int INLINECALLDICT
+    ISNULL
+    NOT
+  }>
+  $MessageParameters$_constructor_bounce_to_value_mode_body PROCINLINE:<{
+    s3 s3 XCHG2
+    s0 s4 XCHG
+  }>
+  $CSPINWithdrawalVoucher$_fun_notify PROCINLINE:<{
+    __tact_context_get_sender INLINECALLDICT
+    FALSE
+    0 PUSHINT
+    s0 s3 XCHG2
+    66 PUSHINT
+    SWAP
+    $MessageParameters$_constructor_bounce_to_value_mode_body INLINECALLDICT
+        NEWC
+        b{01} STSLICECONST  // store tag = $0 and ihr_disabled = true
+        1 STI               // store `bounce`
+        b{000} STSLICECONST // store bounced = false and src = addr_none
+        STSLICE             // store `to`
+        SWAP
+        STGRAMS             // store `value`
+        106 PUSHINT         // 1 + 4 + 4 + 64 + 32 + 1
+        STZEROES
+        // → Stack state
+        // s0: Builder
+        // s1: `body`
+        // s2: `mode`
+        STDICT
+        ENDC
+        SWAP
+        SENDRAWMSG
+  }>
+  $SendParameters$_constructor_to_value_mode_body PROCINLINE:<{
+    2SWAP
+    PUSHNULL
+    PUSHNULL
+    s0 s0 s3 XCHG3
+    TRUE
+  }>
+  $SendParameters$_constructor_to_value_mode PROCINLINE:<{
+    PUSHNULL
+    2SWAP
+    PUSHNULL
+    PUSHNULL
+    s0 s0 s3 XCHG3
+    TRUE
+  }>
+  $DeployOk$_constructor_queryId PROCINLINE:<{
+  }>
+  %balance PROC:<{
+    $CSPINWithdrawalVoucher$_contract_load INLINECALLDICT
+    $CSPINWithdrawalVoucher$_fun_balance INLINECALLDICT
+    10 1 BLKDROP2
+  }>
+  %contractInfo PROC:<{
+    $CSPINWithdrawalVoucher$_contract_load INLINECALLDICT
+    $CSPINWithdrawalVoucher$_fun_contractInfo INLINECALLDICT
+    10 8 BLKDROP2
+    $ContractInfo$_to_external INLINECALLDICT
+  }>
+  %stats PROC:<{
+    $CSPINWithdrawalVoucher$_contract_load INLINECALLDICT
+    $CSPINWithdrawalVoucher$_fun_stats INLINECALLDICT
+    10 2 BLKDROP2
+    $Stats$_to_external INLINECALLDICT
+  }>
+  %isNonceUsed PROC:<{
+    $CSPINWithdrawalVoucher$_contract_load INLINECALLDICT
+    10 ROLL
+    $CSPINWithdrawalVoucher$_fun_isNonceUsed INLINECALLDICT
+    10 1 BLKDROP2
+  }>
+  recv_internal PROC:<{
+    SWAP
+    CTOS
+    2 PUSHINT
+    SDSKIPFIRST
+    1 LDI
+    1 LDI
+    LDMSGADDR
+    OVER
+    s3 s4 XCHG
+    s6 s6 XCHG2
+    4 TUPLE
+    __tact_context SETGLOB
+    s0 s2 XCHG
+    __tact_context_sender SETGLOB
+    $CSPINWithdrawalVoucher$_contract_load INLINECALLDICT
+    s0 s11 XCHG
+    IFJMP:<{
+      11 BLKDROP
+    }>
+    s0 s9 XCHG
+    32 LDUQ 130 THROWIFNOT
+    OVER
+    3489514392 PUSHINT
+    EQUAL
+    IFJMP:<{
+      NIP
+      LDVARUINT16
+      LDMSGADDR
+      64 LDU
+      DROP
+      19792 PUSHINT
+      s6 PUSH
+      NOT
+      THROWANYIFNOT
+      61135 PUSHINT
+      s3 PUSH
+      0 GTINT
+      THROWANYIFNOT
+      58403 PUSHINT
+      s3 s5 PUSH2
+      LEQ
+      THROWANYIFNOT
+      17091 PUSHINT
+      s13 PUSH
+      257 PUSHINT
+      s3 PUSH
+      1 PUSHINT
+      __tact_dict_get_int_int INLINECALLDICT
+      ISNULL
+      THROWANYIFNOT
+      s1 s12 XCHG
+      257 PUSHINT
+      SWAP
+      TRUE
+      1 PUSHINT
+      __tact_dict_set_int_int INLINECALLDICT
+      s2 s1 XCPU
+      ADD
+      s0 s10 XCHG
+      INC
+      FALSE
+      FALSE
+          NEWC
+      260734629 PUSHINT
+      SWAP
+      32 STU
+      0 PUSHINT
+      SWAP
+      64 STU
+      s0 s4 XCHG2
+          STVARUINT16
+      s0 s13 XCHG2
+          STSLICER
+      s10 PUSH
+          STSLICER
+      s1 s2 XCHG
+          1 STI
+      10000000 PUSHINT
+          STVARUINT16
+      s1 s11 XCHG
+          1 STI
+          ENDC
+      100000000 PUSHINT
+      1 PUSHINT
+      s6 PUSH
+      s0 s3 XCHG
+      $SendParameters$_constructor_to_value_mode_body INLINECALLDICT
+          NEWC
+          b{01} STSLICECONST  // store tag = $0 and ihr_disabled = true
+          1 STI               // store `bounce`
+          b{000} STSLICECONST // store bounced = false and src = addr_none
+          STSLICE             // store `to`
+          SWAP
+          STGRAMS             // store `value`
+          105 PUSHINT         // 1 + 4 + 4 + 64 + 32
+          STZEROES            // store currency_collection, ihr_fee, fwd_fee, created_lt and created_at
+          // → Stack state
+          // s0: Builder
+          // s1: `data`
+          // s2: `code`
+          // s3: `body`
+          // s4: `mode`
+          // Group 2: Placing the Builder after code and data, then checking those for nullability
+          s2 XCHG0
+          DUP2
+          ISNULL
+          SWAP
+          ISNULL
+          AND
+          // → Stack state
+          // s0: -1 (true) if `data` and `code` are both null, 0 (false) otherwise
+          // s1: `code`
+          // s2: `data`
+          // s3: Builder
+          // s4: `body`
+          // s5: `mode`
+          // Group 3: Left branch of the IFELSE, executed if s0 is -1 (true)
+          <{
+              DROP2 // drop `data` and `code`, since either of those is null
+              b{0} STSLICECONST
+          }> PUSHCONT
+          // Group 3: Right branch of the IFELSE, executed if s0 is 0 (false)
+          <{
+              // _ split_depth:(Maybe (#***REMOVED***5))
+              //   special:(Maybe TickTock)
+              //   code:(Maybe ^Cell)
+              //   data:(Maybe ^Cell)
+              //   library:(Maybe ^Cell)
+              // = StateInit;
+              ROT                // place message Builder on top
+              b{10} STSLICECONST // store Maybe = true, Either = false
+              // Start composing inlined StateInit
+              b{00} STSLICECONST // store split_depth and special first
+              STDICT             // store code
+              STDICT             // store data
+              b{0} STSLICECONST  // store library
+          }> PUSHCONT
+          // Group 3: IFELSE that does the branching shown above
+          IFELSE
+          // → Stack state
+          // s0: Builder
+          // s1: null or StateInit
+          // s2: `body`
+          // s3: `mode`
+          // Group 4: Finalizing the message
+          STDICT // store `body` as ref with an extra Maybe bit, since `body` might be null
+          ENDC
+          // → Stack state
+          // s0: Cell
+          // s1: `mode`
+          // Group 5: Sending the message, with `mode` on top
+          SWAP
+          SENDRAWMSG // https://github.com/tact-lang/tact/issues/1558
+      s7 s9 XCHG
+      s6 s8 XCHG
+      s5 s7 XCHG
+      s4 s6 XCHG
+      s3 s5 XCHG
+      s4 s3 s0 XCHG3
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    OVER
+    1275670469 PUSHINT
+    EQUAL
+    IFJMP:<{
+      NIP
+      LDMSGADDR
+      DROP
+      s8 s9 XCHG
+      s7 s8 XCHG
+      s6 s7 XCHG
+      s5 s6 XCHG
+      s4 s5 XCHG
+      s3 s4 XCHG
+      s1 s3 s10 XCHG3
+      $CSPINWithdrawalVoucher$_fun_requireOwner INLINECALLDICT
+      s6 POP
+      s8 s9 XCHG
+      s7 s8 XCHG
+      s6 s7 XCHG
+      5 ROLL
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    OVER
+    982889259 PUSHINT
+    EQUAL
+    IFJMP:<{
+      NIP
+      LDMSGADDR
+      DROP
+      s8 s9 XCHG
+      s7 s8 XCHG
+      s6 s7 XCHG
+      s5 s6 XCHG
+      s4 s5 XCHG
+      s3 s4 XCHG
+      s1 s3 s10 XCHG3
+      $CSPINWithdrawalVoucher$_fun_requireOwner INLINECALLDICT
+      s5 POP
+      s8 s9 XCHG
+      s7 s8 XCHG
+      s6 s7 XCHG
+      s5 s6 XCHG
+      4 ROLL
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    OVER
+    2051344601 PUSHINT
+    EQUAL
+    IFJMP:<{
+      2DROP
+      s7 s9 XCHG
+      2 7 BLKSWAP
+      $CSPINWithdrawalVoucher$_fun_requireOwner INLINECALLDICT
+      TRUE
+      s5 POP
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    OVER
+    2378902809 PUSHINT
+    EQUAL
+    IFJMP:<{
+      2DROP
+      s7 s9 XCHG
+      2 7 BLKSWAP
+      $CSPINWithdrawalVoucher$_fun_requireOwner INLINECALLDICT
+      FALSE
+      s5 POP
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    OVER
+    1511823115 PUSHINT
+    EQUAL
+    IFJMP:<{
+      NIP
+      LDVARUINT16
+      DROP
+      s8 s9 XCHG
+      s7 s8 XCHG
+      s6 s7 XCHG
+      s5 s6 XCHG
+      s4 s5 XCHG
+      s3 s4 XCHG
+      s1 s3 s10 XCHG3
+      $CSPINWithdrawalVoucher$_fun_requireOwner INLINECALLDICT
+      54615 PUSHINT
+          BALANCE FIRST
+      s12 PUSH
+      GEQ
+      THROWANYIFNOT
+      s9 s10 PUXC
+      1 PUSHINT
+      $SendParameters$_constructor_to_value_mode INLINECALLDICT
+          NEWC
+          b{01} STSLICECONST  // store tag = $0 and ihr_disabled = true
+          1 STI               // store `bounce`
+          b{000} STSLICECONST // store bounced = false and src = addr_none
+          STSLICE             // store `to`
+          SWAP
+          STGRAMS             // store `value`
+          105 PUSHINT         // 1 + 4 + 4 + 64 + 32
+          STZEROES            // store currency_collection, ihr_fee, fwd_fee, created_lt and created_at
+          // → Stack state
+          // s0: Builder
+          // s1: `data`
+          // s2: `code`
+          // s3: `body`
+          // s4: `mode`
+          // Group 2: Placing the Builder after code and data, then checking those for nullability
+          s2 XCHG0
+          DUP2
+          ISNULL
+          SWAP
+          ISNULL
+          AND
+          // → Stack state
+          // s0: -1 (true) if `data` and `code` are both null, 0 (false) otherwise
+          // s1: `code`
+          // s2: `data`
+          // s3: Builder
+          // s4: `body`
+          // s5: `mode`
+          // Group 3: Left branch of the IFELSE, executed if s0 is -1 (true)
+          <{
+              DROP2 // drop `data` and `code`, since either of those is null
+              b{0} STSLICECONST
+          }> PUSHCONT
+          // Group 3: Right branch of the IFELSE, executed if s0 is 0 (false)
+          <{
+              // _ split_depth:(Maybe (#***REMOVED***5))
+              //   special:(Maybe TickTock)
+              //   code:(Maybe ^Cell)
+              //   data:(Maybe ^Cell)
+              //   library:(Maybe ^Cell)
+              // = StateInit;
+              ROT                // place message Builder on top
+              b{10} STSLICECONST // store Maybe = true, Either = false
+              // Start composing inlined StateInit
+              b{00} STSLICECONST // store split_depth and special first
+              STDICT             // store code
+              STDICT             // store data
+              b{0} STSLICECONST  // store library
+          }> PUSHCONT
+          // Group 3: IFELSE that does the branching shown above
+          IFELSE
+          // → Stack state
+          // s0: Builder
+          // s1: null or StateInit
+          // s2: `body`
+          // s3: `mode`
+          // Group 4: Finalizing the message
+          STDICT // store `body` as ref with an extra Maybe bit, since `body` might be null
+          ENDC
+          // → Stack state
+          // s0: Cell
+          // s1: `mode`
+          // Group 5: Sending the message, with `mode` on top
+          SWAP
+          SENDRAWMSG // https://github.com/tact-lang/tact/issues/1558
+      9 ROLL
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    OVER
+    2303366791 PUSHINT
+    EQUAL
+    IFJMP:<{
+      NIP
+      LDVARUINT16
+      LDMSGADDR
+      DROP
+      s10 s11 XCHG2
+      $CSPINWithdrawalVoucher$_fun_requireOwner INLINECALLDICT
+      FALSE
+      FALSE
+          NEWC
+      260734629 PUSHINT
+      SWAP
+      32 STU
+      0 PUSHINT
+      SWAP
+      64 STU
+      s0 s13 XCHG2
+          STVARUINT16
+      s0 s13 XCHG2
+          STSLICER
+      s10 PUSH
+          STSLICER
+      s1 s11 XCHG
+          1 STI
+      10000000 PUSHINT
+          STVARUINT16
+      s1 s11 XCHG
+          1 STI
+          ENDC
+      100000000 PUSHINT
+      1 PUSHINT
+      s6 PUSH
+      s0 s3 XCHG
+      $SendParameters$_constructor_to_value_mode_body INLINECALLDICT
+          NEWC
+          b{01} STSLICECONST  // store tag = $0 and ihr_disabled = true
+          1 STI               // store `bounce`
+          b{000} STSLICECONST // store bounced = false and src = addr_none
+          STSLICE             // store `to`
+          SWAP
+          STGRAMS             // store `value`
+          105 PUSHINT         // 1 + 4 + 4 + 64 + 32
+          STZEROES            // store currency_collection, ihr_fee, fwd_fee, created_lt and created_at
+          // → Stack state
+          // s0: Builder
+          // s1: `data`
+          // s2: `code`
+          // s3: `body`
+          // s4: `mode`
+          // Group 2: Placing the Builder after code and data, then checking those for nullability
+          s2 XCHG0
+          DUP2
+          ISNULL
+          SWAP
+          ISNULL
+          AND
+          // → Stack state
+          // s0: -1 (true) if `data` and `code` are both null, 0 (false) otherwise
+          // s1: `code`
+          // s2: `data`
+          // s3: Builder
+          // s4: `body`
+          // s5: `mode`
+          // Group 3: Left branch of the IFELSE, executed if s0 is -1 (true)
+          <{
+              DROP2 // drop `data` and `code`, since either of those is null
+              b{0} STSLICECONST
+          }> PUSHCONT
+          // Group 3: Right branch of the IFELSE, executed if s0 is 0 (false)
+          <{
+              // _ split_depth:(Maybe (#***REMOVED***5))
+              //   special:(Maybe TickTock)
+              //   code:(Maybe ^Cell)
+              //   data:(Maybe ^Cell)
+              //   library:(Maybe ^Cell)
+              // = StateInit;
+              ROT                // place message Builder on top
+              b{10} STSLICECONST // store Maybe = true, Either = false
+              // Start composing inlined StateInit
+              b{00} STSLICECONST // store split_depth and special first
+              STDICT             // store code
+              STDICT             // store data
+              b{0} STSLICECONST  // store library
+          }> PUSHCONT
+          // Group 3: IFELSE that does the branching shown above
+          IFELSE
+          // → Stack state
+          // s0: Builder
+          // s1: null or StateInit
+          // s2: `body`
+          // s3: `mode`
+          // Group 4: Finalizing the message
+          STDICT // store `body` as ref with an extra Maybe bit, since `body` might be null
+          ENDC
+          // → Stack state
+          // s0: Cell
+          // s1: `mode`
+          // Group 5: Sending the message, with `mode` on top
+          SWAP
+          SENDRAWMSG // https://github.com/tact-lang/tact/issues/1558
+      2 8 BLKSWAP
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    SWAP
+    2490013878 PUSHINT
+    EQUAL
+    IFJMP:<{
+      64 LDU
+      DROP
+      $DeployOk$_constructor_queryId INLINECALLDICT
+      NEWC
+      $DeployOk$_store_cell INLINECALLDICT
+      s8 s10 XCHG
+      s7 s9 XCHG
+      s6 s8 XCHG
+      s5 s7 XCHG
+      s4 s6 XCHG
+      s3 s5 XCHG
+      s4 s3 s0 XCHG3
+      s1 s2 XCHG
+      $CSPINWithdrawalVoucher$_fun_notify INLINECALLDICT
+      $CSPINWithdrawalVoucher$_contract_store INLINECALLDICT
+    }>
+    11 BLKDROP
+    130 THROW
+  }>
+}END>c

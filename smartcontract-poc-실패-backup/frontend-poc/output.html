@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSPIN 토큰 인출 - Signed Voucher</title>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <script src="https://unpkg.com/tonweb@0.0.66/dist/tonweb.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .status-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+        }
+
+        .btn-connect {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-claim {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-claim:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-claim:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .debug-output {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .debug-output .log {
+            color: #d4d4d4;
+            margin-bottom: 4px;
+            word-wrap: break-word;
+        }
+
+        .debug-output .log.success {
+            color: #4ec9b0;
+        }
+
+        .debug-output .log.error {
+            color: #f48771;
+        }
+
+        .debug-output .log.info {
+            color: #569cd6;
+        }
+
+        .connected-badge {
+            display: inline-block;
+            background: #4ade80;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .disconnected-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎰 CSPIN 토큰 인출</h1>
+        <p class="subtitle" id="networkBadge">Signed Voucher 시스템</p>
+
+        <div class="status">
+            <div class="status-item">
+                <span class="status-label">지갑 상태:</span>
+                <span class="status-value" id="walletStatus">
+                    <span class="disconnected-badge">미연결</span>
+                </span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">네트워크:</span>
+                <span class="status-value" id="network">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">지갑 주소:</span>
+                <span class="status-value" id="walletAddress">-</span>
+            </div>
+        </div>
+
+        <button class="btn-connect" id="connectBtn" onclick="connectWallet()">
+            🔗 TON 지갑 연결
+        </button>
+
+        <button class="btn-connect" id="disconnectBtn" onclick="disconnectWallet()" style="display:none; background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);">
+            🔌 지갑 연결 끊기
+        </button>
+
+        <div class="input-group">
+            <label for="amountInput">인출할 CSPIN 토큰 개수</label>
+            <input type="number" id="amountInput" value="100" min="1" max="10000" placeholder="토큰 개수 입력">
+        </div>
+
+        <button class="btn-claim" id="claimBtn" onclick="claimTokens()" disabled>
+            💎 CSPIN 인출하기
+        </button>
+
+        <div class="debug-output" id="debugOutput">
+            <div class="log info">🚀 시스템 준비 완료</div>
+            <div class="log info">📝 지갑을 연결하여 시작하세요</div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 네트워크 설정 (여기만 수정하세요!)
+        // ============================================
+        const NETWORK = 'mainnet'; // 'testnet' 또는 'mainnet'
+        
+        // 컨트랙트 주소 설정 (Signed Voucher)
+        const CONTRACT_ADDRESSES = {
+            testnet: 'EQAIlrbypzom9HibUyYxosqmYnIRjFWAhFs5E1ybnKY2XtQg',
+            mainnet: 'EQA4Un24XvK12YDl-di6cgCkSHdZxIXMXIZjnA9vpDmqxIWI' // Signed Voucher 컨트랙트
+        };
+        
+        // 백엔드 API 주소
+        const BACKEND_URLS = {
+            testnet: 'http://localhost:3000',
+            mainnet: 'http://localhost:3000' // 로컬 테스트용 (프로덕션: https://your-api.com)
+        };
+        
+        const CONTRACT_ADDRESS = CONTRACT_ADDRESSES[NETWORK];
+        const BACKEND_URL = BACKEND_URLS[NETWORK];
+        const IS_TESTNET = NETWORK === 'testnet';
+
+        let tonConnectUI;
+        let userAddress;
+
+        // TonConnect 초기화
+        async function initTonConnect() {
+            try {
+                tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+                    manifestUrl: 'https://raw.githubusercontent.com/ton-org/blueprint/main/tonconnect/manifest.json',
+                    buttonRootId: null
+                });
+
+                // 연결 상태 감지
+                tonConnectUI.onStatusChange((wallet) => {
+                    if (wallet) {
+                        handleWalletConnected(wallet);
+                    } else {
+                        handleWalletDisconnected();
+                    }
+                });
+
+                addLog('✅ TonConnect 초기화 완료', 'success');
+            } catch (error) {
+                addLog(`❌ TonConnect 초기화 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 지갑 연결
+        async function connectWallet() {
+            try {
+                addLog('🔄 지갑 연결 시도 중...', 'info');
+                await tonConnectUI.openModal();
+            } catch (error) {
+                addLog(`❌ 지갑 연결 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 지갑 연결 끊기
+        async function disconnectWallet() {
+            try {
+                addLog('🔄 지갑 연결 해제 중...', 'info');
+                await tonConnectUI.disconnect();
+                addLog('✅ 지갑 연결이 해제되었습니다', 'success');
+            } catch (error) {
+                addLog(`❌ 연결 해제 실패: ${error.message}`, 'error');
+            }
+        }
+
+        // 지갑 연결 완료
+        function handleWalletConnected(wallet) {
+            userAddress = wallet.account.address;
+            
+            // TonConnect는 raw address (0:hash)를 반환
+            const rawAddress = userAddress;
+            const shortAddr = rawAddress.substring(0, 15);
+            
+            // Chain ID로 네트워크 감지 (Tonkeeper는 반대로 보고함)
+            const chainId = wallet.account.chain;
+            let detectedNetwork = 'Unknown';
+            let isTestnet = false;
+            
+            // Tonkeeper Chain ID: -3 = Testnet, -239 = Mainnet (역으로 보고됨)
+            if (chainId === '-3') {
+                detectedNetwork = 'Testnet';
+                isTestnet = true;
+            } else if (chainId === '-239') {
+                detectedNetwork = 'Mainnet';
+                isTestnet = false;
+            } else {
+                // Chain ID로 판단 불가능한 경우
+                detectedNetwork = 'Unknown';
+                isTestnet = false;
+            }
+            
+            document.getElementById('walletStatus').innerHTML = '<span class="connected-badge">연결됨</span>';
+            document.getElementById('network').textContent = detectedNetwork;
+            document.getElementById('walletAddress').textContent = formatAddress(userAddress);
+            document.getElementById('claimBtn').disabled = false;
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('disconnectBtn').style.display = 'block';
+            
+            addLog(`✅ 지갑 연결 성공`, 'success');
+            addLog(`📍 네트워크: ${detectedNetwork}`, 'info');
+            addLog(`🔍 주소: ${shortAddr}...${rawAddress.slice(-6)}`, 'info');
+            
+            // 네트워크 미스매치 경고
+            if (detectedNetwork === 'Unknown') {
+                addLog(`⚠️ 경고: 네트워크를 감지할 수 없습니다!`, 'error');
+                addLog(`📋 Chain ID: ${chainId}`, 'error');
+                addLog(`📋 연결된 주소: ${rawAddress}`, 'info');
+            } else if (IS_TESTNET && !isTestnet) {
+                addLog(`⚠️ 경고: Mainnet 지갑이 연결되었습니다!`, 'error');
+                addLog(`⚠️ 현재 설정은 Testnet입니다`, 'error');
+                addLog(`💡 Testnet 지갑으로 변경하거나 코드에서 NETWORK='mainnet' 설정`, 'info');
+            } else if (!IS_TESTNET && isTestnet) {
+                addLog(`⚠️ 경고: Testnet 지갑이 연결되었습니다!`, 'error');
+                addLog(`⚠️ 현재 설정은 Mainnet입니다`, 'error');
+                addLog(`💡 Mainnet 지갑으로 변경하거나 코드에서 NETWORK='testnet' 설정`, 'info');
+            } else {
+                addLog(`✅ ${detectedNetwork} 지갑 연결 완료 - 인출 가능!`, 'success');
+            }
+        }
+
+        // 지갑 연결 해제
+        function handleWalletDisconnected() {
+            userAddress = null;
+            document.getElementById('walletStatus').innerHTML = '<span class="disconnected-badge">미연결</span>';
+            document.getElementById('network').textContent = '-';
+            document.getElementById('walletAddress').textContent = '-';
+            document.getElementById('claimBtn').disabled = true;
+            document.getElementById('connectBtn').style.display = 'block';
+            document.getElementById('disconnectBtn').style.display = 'none';
+            
+            addLog('⚠️ 지갑 연결 해제됨', 'info');
+        }
+
+        // 토큰 인출 (Signed Voucher 방식)
+        async function claimTokens() {
+            if (!userAddress) {
+                addLog('❌ 지갑이 연결되지 않았습니다', 'error');
+                return;
+            }
+
+            const amount = document.getElementById('amountInput').value;
+            if (!amount || amount <= 0) {
+                addLog('❌ 올바른 금액을 입력하세요', 'error');
+                return;
+            }
+
+            try {
+                addLog(`🔄 ${amount} CSPIN 인출 시작...`, 'info');
+                document.getElementById('claimBtn').innerHTML = '<span class="spinner"></span>처리 중...';
+                document.getElementById('claimBtn').disabled = true;
+
+                // 1단계: 백엔드에서 바우처 받기 (서명된 인출 허가증)
+                addLog('📡 백엔드에서 바우처 요청 중...', 'info');
+                const voucherResponse = await fetch(`${BACKEND_URL}/api/request-voucher`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userAddress, // 지갑 주소를 userId로 사용
+                        amount: parseInt(amount),
+                        recipientAddress: userAddress
+                    })
+                });
+
+                if (!voucherResponse.ok) {
+                    throw new Error('바우처 발급 실패');
+                }
+
+                const { success, voucher } = await voucherResponse.json();
+                if (!success) {
+                    throw new Error('바우처 발급 실패');
+                }
+
+                addLog('✅ 바우처 발급 완료', 'success');
+                addLog(`📋 Nonce: ${voucher.nonce}`, 'info');
+
+                // 2단계: ClaimWithVoucher 메시지 생성
+                const { Cell } = TonWeb.boc;
+                
+                // Hex string을 Uint8Array로 변환
+                const signatureHex = voucher.signature;
+                const signatureBytes = new Uint8Array(signatureHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                
+                // 서명을 Cell로 래핑 (signature: Cell 타입에 맞춤)
+                const signatureCell = new Cell();
+                signatureCell.bits.writeBytes(signatureBytes);
+                
+                // Address 객체 생성
+                const recipientAddress = new TonWeb.utils.Address(voucher.recipient);
+                
+                // ClaimWithVoucher 메시지 구성
+                const messageCell = new Cell();
+                messageCell.bits.writeUint(0x7a0c23c0, 32); // ClaimWithVoucher opcode
+                messageCell.bits.writeUint(Date.now(), 64); // queryId
+                messageCell.bits.writeCoins(voucher.amount); // amount (nanoCSPIN)
+                messageCell.bits.writeAddress(recipientAddress); // recipient
+                messageCell.bits.writeUint(voucher.nonce, 64); // nonce
+                messageCell.refs.push(signatureCell); // signature (Cell로 전달)
+                
+                const payload = TonWeb.utils.bytesToBase64(await messageCell.toBoc());
+
+                // 3단계: 트랜잭션 전송
+                const transaction = {
+                    validUntil: Math.floor(Date.now() / 1000) + 300,
+                    messages: [
+                        {
+                            address: CONTRACT_ADDRESS,
+                            amount: '100000000', // 0.1 TON (가스비)
+                            payload: payload
+                        }
+                    ]
+                };
+
+                addLog('📤 트랜잭션 전송 중...', 'info');
+                const result = await tonConnectUI.sendTransaction(transaction);
+                
+                addLog(`✅ 트랜잭션 전송 성공!`, 'success');
+                addLog(`🎉 ${amount} CSPIN 인출 완료!`, 'success');
+                addLog(`💡 Tonscan에서 확인: https://tonscan.org/address/${CONTRACT_ADDRESS}`, 'info');
+                
+                if (IS_TESTNET) {
+                    addLog(`⚠️ 주의: 컨트랙트에 CSPIN이 충전되어 있어야 합니다`, 'info');
+                }
+
+            } catch (error) {
+                addLog(`❌ 인출 실패: ${error.message}`, 'error');
+                if (error.message.includes('fetch')) {
+                    addLog(`💡 백엔드 서버가 실행 중인지 확인하세요 (${BACKEND_URL})`, 'info');
+                }
+            } finally {
+                document.getElementById('claimBtn').innerHTML = '💎 CSPIN 인출하기';
+                document.getElementById('claimBtn').disabled = false;
+            }
+        }
+
+        // 주소 포맷팅
+        function formatAddress(address) {
+            if (!address) return '-';
+            return address.substring(0, 6) + '...' + address.substring(address.length - 4);
+        }
+
+        // 디버그 로그 추가
+        function addLog(message, type = 'log') {
+            const debugOutput = document.getElementById('debugOutput');
+            const timestamp = new Date().toLocaleTimeString('ko-KR');
+            const log = document.createElement('div');
+            log.className = `log ${type}`;
+            log.textContent = `[${timestamp}] ${message}`;
+            debugOutput.appendChild(log);
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+        }
+
+        // 페이지 로드 시 초기화
+        window.addEventListener('load', () => {
+            // 네트워크 배지 업데이트
+            const badge = document.getElementById('networkBadge');
+            if (IS_TESTNET) {
+                badge.textContent = 'Signed Voucher - 테스트넷';
+                badge.style.color = '#666';
+            } else {
+                badge.textContent = 'Signed Voucher - 메인넷';
+                badge.style.color = '#dc2626';
+                badge.style.fontWeight = 'bold';
+            }
+            
+            addLog('💡 Signed Voucher 시스템', 'info');
+            addLog('✅ 백엔드가 서명 생성 (RPC 불필요)', 'success');
+            addLog('✅ 사용자가 바우처 제출 (가스비 부담)', 'success');
+            
+            initTonConnect();
+        });
+    </script>
+</body>
+</html>

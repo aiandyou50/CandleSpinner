@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 CSPIN Withdrawal Test Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .card p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-emergency {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-emergency:hover {
+            box-shadow: 0 10px 20px rgba(245, 87, 108, 0.4);
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-online {
+            background: #28a745;
+        }
+
+        .status-offline {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+
+        .info p {
+            color: #856404;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #e83e8c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎰 CSPIN Withdrawal Test</h1>
+
+        <div class="status" id="backendStatus">
+            <span class="status-indicator status-offline"></span>
+            백엔드 서버 상태 확인 중...
+        </div>
+
+        <div class="info">
+            <p><strong>⚠️ 테스트 전 확인사항:</strong></p>
+            <p>1. 백엔드 서버가 실행 중이어야 합니다</p>
+            <p>2. <code>backend-api</code> 폴더에서 <code>npm start</code> 실행</p>
+            <p>3. 포트 3000이 사용 가능해야 합니다</p>
+        </div>
+
+        <div class="card">
+            <h2>👤 사용자 인출 테스트</h2>
+            <p>Signed Voucher 방식으로 CSPIN을 인출합니다.</p>
+            <p><strong>기능:</strong></p>
+            <ul style="color: #666; margin-left: 20px; margin-bottom: 15px;">
+                <li>백엔드에서 바우처 발급</li>
+                <li>TonConnect로 지갑 연결</li>
+                <li>ClaimWithVoucher 트랜잭션</li>
+                <li>사용자 가스비 부담 (0.1 TON)</li>
+            </ul>
+            <a href="output.html" class="btn">🎯 인출 테스트 시작</a>
+        </div>
+
+        <div class="card">
+            <h2>🛡️ Owner 긴급 정지 (관리자 전용)</h2>
+            <p>Owner만 접근 가능한 긴급 정지 제어판입니다.</p>
+            <p><strong>기능:</strong></p>
+            <ul style="color: #666; margin-left: 20px; margin-bottom: 15px;">
+                <li>컨트랙트 일시정지/재개</li>
+                <li>Owner 지갑 인증</li>
+                <li>컨트랙트 상태 확인</li>
+            </ul>
+            <a href="emergency-pause.html" class="btn btn-emergency">⚠️ 긴급 정지 제어판</a>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; color: #666; font-size: 14px;">
+            <p>💡 <strong>네트워크:</strong> Mainnet</p>
+            <p>📍 <strong>컨트랙트:</strong> EQA4Un24XvK12YDl-di6cgCkSHdZxIXMXIZjnA9vpDmqxIWI</p>
+            <p style="margin-top: 10px;">
+                <a href="https://tonscan.org/address/EQA4Un24XvK12YDl-di6cgCkSHdZxIXMXIZjnA9vpDmqxIWI" 
+                   target="_blank" 
+                   style="color: #667eea; text-decoration: none;">
+                    🔗 Tonscan에서 보기
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 백엔드 서버 상태 확인
+        async function checkBackendStatus() {
+            const statusElement = document.getElementById('backendStatus');
+            try {
+                const response = await fetch('http://localhost:3000/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusElement.innerHTML = '<span class="status-indicator status-online"></span>백엔드 서버 온라인 ✅';
+                    statusElement.style.background = '#d4edda';
+                } else {
+                    throw new Error('Server error');
+                }
+            } catch (error) {
+                statusElement.innerHTML = '<span class="status-indicator status-offline"></span>백엔드 서버 오프라인 ❌';
+                statusElement.style.background = '#f8d7da';
+            }
+        }
+
+        // 페이지 로드 시 상태 확인
+        checkBackendStatus();
+        
+        // 5초마다 재확인
+        setInterval(checkBackendStatus, 5000);
+    </script>
+</body>
+</html>
