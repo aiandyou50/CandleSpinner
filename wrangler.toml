@@ -13,19 +13,19 @@ id = "e573c59cb09b4d58b5f38a56ef65dd6f"
 binding = "CREDIT_KV"
 
 [vars]
-# ⚠️ RPC 환경변수: Cloudflare Pages에서 설정
-# ANKR_JSON_RPC_HTTPS_ENDPOINT: TON JSON-RPC 엔드포인트 (Cloudflare 환경변수)
+# ⚠️ 환경변수: Cloudflare Pages 대시보드에서 설정 필요
+# TONCENTER_API_KEY: TonCenter v3 API 키 (https://toncenter.com/)
+# GAME_WALLET_PRIVATE_KEY: 게임 지갑 개인키 (하드코딩 금지)
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
-# GAME_WALLET_PRIVATE_KEY: Cloudflare Pages 환경에서 설정 필요 (하드코딩 금지)
 
 [env.production]
 
 [env.production.vars]
-# ⚠️ RPC 환경변수: Cloudflare Pages에서 설정
-# ANKR_JSON_RPC_HTTPS_ENDPOINT: TON JSON-RPC 엔드포인트 (Cloudflare 환경변수)
+# ⚠️ 환경변수: Cloudflare Pages 대시보드에서 설정 필요
+# TONCENTER_API_KEY: TonCenter v3 API 키 (https://toncenter.com/)
+# GAME_WALLET_PRIVATE_KEY: 게임 지갑 개인키 (하드코딩 금지)
 NETWORK_FEE_TON = "0.03"
 GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
 CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
-# GAME_WALLET_PRIVATE_KEY: Cloudflare Pages 환경에서 설정 필요 (하드코딩 금지)

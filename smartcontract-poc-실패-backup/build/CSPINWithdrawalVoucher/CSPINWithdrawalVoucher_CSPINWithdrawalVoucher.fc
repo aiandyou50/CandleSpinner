@@ -1,0 +1,611 @@
+#pragma version =0.4.6;
+#pragma allow-post-modification;
+#pragma compute-asm-ltr;
+
+;; CSPINWithdrawalVoucher_CSPINWithdrawalVoucher.headers.fc
+;;
+;; Header files for CSPINWithdrawalVoucher
+;; NOTE: declarations are sorted for optimal order
+;;
+
+;; __tact_context_get
+(int, slice, int, slice) __tact_context_get() inline;
+
+;; __tact_context_get_sender
+slice __tact_context_get_sender() inline;
+
+;; __tact_dict_get_int_int
+int __tact_dict_get_int_int(cell d, int kl, int k, int vl) inline;
+
+;; __tact_dict_set_int_int
+(cell, ()) __tact_dict_set_int_int(cell d, int kl, int k, int v, int vl) inline;
+
+;; $DeployOk$_store
+builder $DeployOk$_store(builder build_0, (int) v) inline;
+
+;; $DeployOk$_store_cell
+cell $DeployOk$_store_cell((int) v, builder b) inline;
+
+;; $CSPINWithdrawalVoucher$_store
+builder $CSPINWithdrawalVoucher$_store(builder build_0, (slice, int, slice, slice, slice, int, int, int, int, cell) v) inline;
+
+;; $CSPINWithdrawalVoucher$_load
+(slice, ((slice, int, slice, slice, slice, int, int, int, int, cell))) $CSPINWithdrawalVoucher$_load(slice sc_0) inline;
+
+;; $Context$_get_value
+_ $Context$_get_value((int, slice, int, slice) v) inline;
+
+;; $ContractInfo$_to_external
+(slice, slice, slice, slice, int, int, int, int) $ContractInfo$_to_external(((slice, slice, slice, slice, int, int, int, int)) v) inline;
+
+;; $Stats$_to_external
+(int, int) $Stats$_to_external(((int, int)) v) inline;
+
+;; $CSPINWithdrawalVoucher$init$_load
+(slice, ((slice, int, slice, slice, int))) $CSPINWithdrawalVoucher$init$_load(slice sc_0) inline;
+
+;; $CSPINWithdrawalVoucher$_contract_init
+(slice, int, slice, slice, slice, int, int, int, int, cell) $CSPINWithdrawalVoucher$_contract_init(slice $owner, int $ownerPublicKey, slice $jettonMaster, slice $gameJettonWallet, int $maxWithdraw) impure inline;
+
+;; $CSPINWithdrawalVoucher$_contract_load
+(slice, int, slice, slice, slice, int, int, int, int, cell) $CSPINWithdrawalVoucher$_contract_load() impure inline;
+
+;; $CSPINWithdrawalVoucher$_contract_store
+() $CSPINWithdrawalVoucher$_contract_store((slice, int, slice, slice, slice, int, int, int, int, cell) v) impure inline;
+
+;; $CSPINWithdrawalVoucher$_fun_requireOwner
+((slice, int, slice, slice, slice, int, int, int, int, cell), ()) $CSPINWithdrawalVoucher$_fun_requireOwner((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref;
+
+;; $CSPINWithdrawalVoucher$_fun_balance
+((slice, int, slice, slice, slice, int, int, int, int, cell), int) $CSPINWithdrawalVoucher$_fun_balance((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref;
+
+;; $ContractInfo$_constructor_owner_jettonMaster_gameJettonWallet_contractJettonWallet_paused_maxSingleWithdraw_totalWithdrawn_withdrawCount
+((slice, slice, slice, slice, int, int, int, int)) $ContractInfo$_constructor_owner_jettonMaster_gameJettonWallet_contractJettonWallet_paused_maxSingleWithdraw_totalWithdrawn_withdrawCount(slice $owner, slice $jettonMaster, slice $gameJettonWallet, slice $contractJettonWallet, int $paused, int $maxSingleWithdraw, int $totalWithdrawn, int $withdrawCount) inline;
+
+;; $CSPINWithdrawalVoucher$_fun_contractInfo
+((slice, int, slice, slice, slice, int, int, int, int, cell), (slice, slice, slice, slice, int, int, int, int)) $CSPINWithdrawalVoucher$_fun_contractInfo((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref;
+
+;; $Stats$_constructor_totalWithdrawn_withdrawCount
+((int, int)) $Stats$_constructor_totalWithdrawn_withdrawCount(int $totalWithdrawn, int $withdrawCount) inline;
+
+;; $CSPINWithdrawalVoucher$_fun_stats
+((slice, int, slice, slice, slice, int, int, int, int, cell), (int, int)) $CSPINWithdrawalVoucher$_fun_stats((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref;
+
+;; $CSPINWithdrawalVoucher$_fun_isNonceUsed
+((slice, int, slice, slice, slice, int, int, int, int, cell), int) $CSPINWithdrawalVoucher$_fun_isNonceUsed((slice, int, slice, slice, slice, int, int, int, int, cell) $self, int $nonce) impure inline_ref;
+
+;; $MessageParameters$_constructor_bounce_to_value_mode_body
+((int, cell, int, slice, int)) $MessageParameters$_constructor_bounce_to_value_mode_body(int $bounce, slice $to, int $value, int $mode, cell $body) inline;
+
+;; $CSPINWithdrawalVoucher$_fun_notify
+((slice, int, slice, slice, slice, int, int, int, int, cell), ()) $CSPINWithdrawalVoucher$_fun_notify((slice, int, slice, slice, slice, int, int, int, int, cell) $self, cell $body) impure inline;
+
+;; $SendParameters$_constructor_to_value_mode_body
+((int, cell, cell, cell, int, slice, int)) $SendParameters$_constructor_to_value_mode_body(slice $to, int $value, int $mode, cell $body) inline;
+
+;; $SendParameters$_constructor_to_value_mode
+((int, cell, cell, cell, int, slice, int)) $SendParameters$_constructor_to_value_mode(slice $to, int $value, int $mode) inline;
+
+;; $DeployOk$_constructor_queryId
+((int)) $DeployOk$_constructor_queryId(int $queryId) inline;
+
+
+;; CSPINWithdrawalVoucher_CSPINWithdrawalVoucher.stdlib.fc
+global (int, slice, int, slice) __tact_context;
+global slice __tact_context_sender;
+global cell __tact_child_contract_codes;
+global int __tact_randomized;
+
+(int, slice, int, slice) __tact_context_get() inline {
+    return __tact_context;
+}
+
+slice __tact_context_get_sender() inline {
+    return __tact_context_sender;
+}
+
+int __tact_dict_get_int_int(cell d, int kl, int k, int vl) inline {
+    var (r, ok) = idict_get?(d, kl, k);
+    if (ok) {
+        return r~load_int(vl);
+    } else {
+        return null();
+    }
+}
+
+(cell, ()) __tact_dict_set_int_int(cell d, int kl, int k, int v, int vl) inline {
+    if (null?(v)) {
+        var (r, ok) = idict_delete?(d, kl, k);
+        return (r, ());
+    } else {
+        return (idict_set_builder(d, kl, k, begin_cell().store_int(v, vl)), ());
+    }
+}
+
+builder $global_beginCell() impure asm """
+    NEWC
+""";
+
+int $global_myBalance() impure asm """
+    BALANCE FIRST
+""";
+
+() $global_nativeReserve(int $amount, int $mode) impure asm """
+    RAWRESERVE
+""";
+
+() $global_message((int, cell, int, slice, int) $params) impure asm """
+    NEWC
+    b{01} STSLICECONST  // store tag = $0 and ihr_disabled = true
+    1 STI               // store `bounce`
+    b{000} STSLICECONST // store bounced = false and src = addr_none
+    STSLICE             // store `to`
+    SWAP
+    STGRAMS             // store `value`
+    106 PUSHINT         // 1 + 4 + 4 + 64 + 32 + 1
+    STZEROES
+    // → Stack state
+    // s0: Builder
+    // s1: `body`
+    // s2: `mode`
+    STDICT
+    ENDC
+    SWAP
+    SENDRAWMSG
+""";
+
+() $global_send((int, cell, cell, cell, int, slice, int) $params) impure asm """
+    NEWC
+    b{01} STSLICECONST  // store tag = $0 and ihr_disabled = true
+    1 STI               // store `bounce`
+    b{000} STSLICECONST // store bounced = false and src = addr_none
+    STSLICE             // store `to`
+    SWAP
+    STGRAMS             // store `value`
+    105 PUSHINT         // 1 + 4 + 4 + 64 + 32
+    STZEROES            // store currency_collection, ihr_fee, fwd_fee, created_lt and created_at
+    // → Stack state
+    // s0: Builder
+    // s1: `data`
+    // s2: `code`
+    // s3: `body`
+    // s4: `mode`
+
+    // Group 2: Placing the Builder after code and data, then checking those for nullability
+    s2 XCHG0
+    DUP2
+    ISNULL
+    SWAP
+    ISNULL
+    AND
+    // → Stack state
+    // s0: -1 (true) if `data` and `code` are both null, 0 (false) otherwise
+    // s1: `code`
+    // s2: `data`
+    // s3: Builder
+    // s4: `body`
+    // s5: `mode`
+
+    // Group 3: Left branch of the IFELSE, executed if s0 is -1 (true)
+    <{
+        DROP2 // drop `data` and `code`, since either of those is null
+        b{0} STSLICECONST
+    }> PUSHCONT
+
+    // Group 3: Right branch of the IFELSE, executed if s0 is 0 (false)
+    <{
+        // _ split_depth:(Maybe (## 5))
+        //   special:(Maybe TickTock)
+        //   code:(Maybe ^Cell)
+        //   data:(Maybe ^Cell)
+        //   library:(Maybe ^Cell)
+        // = StateInit;
+        ROT                // place message Builder on top
+        b{10} STSLICECONST // store Maybe = true, Either = false
+        // Start composing inlined StateInit
+        b{00} STSLICECONST // store split_depth and special first
+        STDICT             // store code
+        STDICT             // store data
+        b{0} STSLICECONST  // store library
+    }> PUSHCONT
+
+    // Group 3: IFELSE that does the branching shown above
+    IFELSE
+    // → Stack state
+    // s0: Builder
+    // s1: null or StateInit
+    // s2: `body`
+    // s3: `mode`
+
+    // Group 4: Finalizing the message
+    STDICT // store `body` as ref with an extra Maybe bit, since `body` might be null
+    ENDC
+    // → Stack state
+    // s0: Cell
+    // s1: `mode`
+
+    // Group 5: Sending the message, with `mode` on top
+    SWAP
+    SENDRAWMSG // https://github.com/tact-lang/tact/issues/1558
+""";
+
+builder $Builder$_fun_storeBit(int $value, builder $self) impure asm """
+    1 STI
+""";
+
+builder $Builder$_fun_storeCoins(builder $self, int $value) impure asm """
+    STVARUINT16
+""";
+
+cell $Builder$_fun_endCell(builder $self) impure asm """
+    ENDC
+""";
+
+builder $Builder$_fun_storeAddress(builder $self, slice $address) impure asm """
+    STSLICER
+""";
+
+((slice, int, slice, slice, slice, int, int, int, int, cell), ()) $CSPINWithdrawalVoucher$_fun_notify((slice, int, slice, slice, slice, int, int, int, int, cell) $self, cell $body) impure inline {
+    var (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)) = $self;
+    slice $to = __tact_context_get_sender();
+    int $bounce = false;
+    if (false) {
+        int $balance = $global_myBalance();
+        int $balanceBeforeMessage = ($balance - $Context$_get_value(__tact_context_get()));
+        if (($balanceBeforeMessage < 0)) {
+            $global_nativeReserve(0, 0);
+            $global_message($MessageParameters$_constructor_bounce_to_value_mode_body($bounce, $to, 0, 130, $body));
+            return (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces), ());
+        }
+    }
+    $global_message($MessageParameters$_constructor_bounce_to_value_mode_body($bounce, $to, 0, 66, $body));
+    return (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces), ());
+}
+
+;; CSPINWithdrawalVoucher_CSPINWithdrawalVoucher.constants.fc
+;; EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c
+slice __gen_slice_address_61ab4641fa30d9310391025086eec65d200d79268e1b7cd402565e01ba64be3c() asm """
+    B{b5ee9c72410101010024000043800000000000000000000000000000000000000000000000000000000000000000104aec829d} B>boc <s PUSHSLICE
+""";
+
+;; CSPINWithdrawalVoucher_CSPINWithdrawalVoucher.storage.fc
+;;
+;; Type: Context
+;; TLB: _ bounceable:bool sender:address value:int257 raw:^slice = Context
+;;
+
+_ $Context$_get_value((int, slice, int, slice) v) inline {
+    var (v'bounceable, v'sender, v'value, v'raw) = v;
+    return v'value;
+}
+
+;;
+;; Type: SendParameters
+;; TLB: _ mode:int257 body:Maybe ^cell code:Maybe ^cell data:Maybe ^cell value:int257 to:address bounce:bool = SendParameters
+;;
+
+((int, cell, cell, cell, int, slice, int)) $SendParameters$_constructor_to_value_mode_body(slice $to, int $value, int $mode, cell $body) inline {
+    return ($mode, $body, null(), null(), $value, $to, true);
+}
+
+((int, cell, cell, cell, int, slice, int)) $SendParameters$_constructor_to_value_mode(slice $to, int $value, int $mode) inline {
+    return ($mode, null(), null(), null(), $value, $to, true);
+}
+
+;;
+;; Type: MessageParameters
+;; TLB: _ mode:int257 body:Maybe ^cell value:int257 to:address bounce:bool = MessageParameters
+;;
+
+((int, cell, int, slice, int)) $MessageParameters$_constructor_bounce_to_value_mode_body(int $bounce, slice $to, int $value, int $mode, cell $body) inline {
+    return ($mode, $body, $value, $to, $bounce);
+}
+
+;;
+;; Type: DeployOk
+;; Header: 0xaff90f57
+;; TLB: deploy_ok#aff90f57 queryId:uint64 = DeployOk
+;;
+
+builder $DeployOk$_store(builder build_0, (int) v) inline {
+    var (v'queryId) = v;
+    build_0 = store_uint(build_0, 2952335191, 32);
+    build_0 = build_0.store_uint(v'queryId, 64);
+    return build_0;
+}
+
+cell $DeployOk$_store_cell((int) v, builder b) inline {
+    return $DeployOk$_store(b, v).end_cell();
+}
+
+((int)) $DeployOk$_constructor_queryId(int $queryId) inline {
+    return ($queryId);
+}
+
+;;
+;; Type: ContractInfo
+;; TLB: _ owner:address jettonMaster:address gameJettonWallet:address contractJettonWallet:address paused:bool maxSingleWithdraw:int257 totalWithdrawn:int257 withdrawCount:int257 = ContractInfo
+;;
+
+(slice, slice, slice, slice, int, int, int, int) $ContractInfo$_to_external(((slice, slice, slice, slice, int, int, int, int)) v) inline {
+    var (v'owner, v'jettonMaster, v'gameJettonWallet, v'contractJettonWallet, v'paused, v'maxSingleWithdraw, v'totalWithdrawn, v'withdrawCount) = v; 
+    return (v'owner, v'jettonMaster, v'gameJettonWallet, v'contractJettonWallet, v'paused, v'maxSingleWithdraw, v'totalWithdrawn, v'withdrawCount);
+}
+
+((slice, slice, slice, slice, int, int, int, int)) $ContractInfo$_constructor_owner_jettonMaster_gameJettonWallet_contractJettonWallet_paused_maxSingleWithdraw_totalWithdrawn_withdrawCount(slice $owner, slice $jettonMaster, slice $gameJettonWallet, slice $contractJettonWallet, int $paused, int $maxSingleWithdraw, int $totalWithdrawn, int $withdrawCount) inline {
+    return ($owner, $jettonMaster, $gameJettonWallet, $contractJettonWallet, $paused, $maxSingleWithdraw, $totalWithdrawn, $withdrawCount);
+}
+
+;;
+;; Type: Stats
+;; TLB: _ totalWithdrawn:int257 withdrawCount:int257 = Stats
+;;
+
+(int, int) $Stats$_to_external(((int, int)) v) inline {
+    var (v'totalWithdrawn, v'withdrawCount) = v; 
+    return (v'totalWithdrawn, v'withdrawCount);
+}
+
+((int, int)) $Stats$_constructor_totalWithdrawn_withdrawCount(int $totalWithdrawn, int $withdrawCount) inline {
+    return ($totalWithdrawn, $withdrawCount);
+}
+
+;;
+;; Type: CSPINWithdrawalVoucher
+;; TLB: _ owner:address ownerPublicKey:uint256 jettonMaster:address gameJettonWallet:address contractJettonWallet:address paused:bool maxSingleWithdraw:int257 totalWithdrawn:int257 withdrawCount:int257 usedNonces:dict<int, bool> = CSPINWithdrawalVoucher
+;;
+
+builder $CSPINWithdrawalVoucher$_store(builder build_0, (slice, int, slice, slice, slice, int, int, int, int, cell) v) inline {
+    var (v'owner, v'ownerPublicKey, v'jettonMaster, v'gameJettonWallet, v'contractJettonWallet, v'paused, v'maxSingleWithdraw, v'totalWithdrawn, v'withdrawCount, v'usedNonces) = v;
+    build_0 = build_0.store_slice(v'owner);
+    build_0 = build_0.store_uint(v'ownerPublicKey, 256);
+    build_0 = build_0.store_slice(v'jettonMaster);
+    var build_1 = begin_cell();
+    build_1 = build_1.store_slice(v'gameJettonWallet);
+    build_1 = build_1.store_slice(v'contractJettonWallet);
+    build_1 = build_1.store_int(v'paused, 1);
+    build_1 = build_1.store_int(v'maxSingleWithdraw, 257);
+    var build_2 = begin_cell();
+    build_2 = build_2.store_int(v'totalWithdrawn, 257);
+    build_2 = build_2.store_int(v'withdrawCount, 257);
+    build_2 = build_2.store_dict(v'usedNonces);
+    build_1 = store_builder_ref(build_1, build_2);
+    build_0 = store_builder_ref(build_0, build_1);
+    return build_0;
+}
+
+(slice, ((slice, int, slice, slice, slice, int, int, int, int, cell))) $CSPINWithdrawalVoucher$_load(slice sc_0) inline {
+    var v'owner = sc_0~load_msg_addr();
+    var v'ownerPublicKey = sc_0~load_uint(256);
+    var v'jettonMaster = sc_0~load_msg_addr();
+    slice sc_1 = sc_0~load_ref().begin_parse();
+    var v'gameJettonWallet = sc_1~load_msg_addr();
+    var v'contractJettonWallet = sc_1~load_msg_addr();
+    var v'paused = sc_1~load_int(1);
+    var v'maxSingleWithdraw = sc_1~load_int(257);
+    slice sc_2 = sc_1~load_ref().begin_parse();
+    var v'totalWithdrawn = sc_2~load_int(257);
+    var v'withdrawCount = sc_2~load_int(257);
+    var v'usedNonces = sc_2~load_dict();
+    return (sc_0, (v'owner, v'ownerPublicKey, v'jettonMaster, v'gameJettonWallet, v'contractJettonWallet, v'paused, v'maxSingleWithdraw, v'totalWithdrawn, v'withdrawCount, v'usedNonces));
+}
+
+(slice, ((slice, int, slice, slice, int))) $CSPINWithdrawalVoucher$init$_load(slice sc_0) inline {
+    var v'owner = sc_0~load_msg_addr();
+    var v'ownerPublicKey = sc_0~load_int(257);
+    var v'jettonMaster = sc_0~load_msg_addr();
+    slice sc_1 = sc_0~load_ref().begin_parse();
+    var v'gameJettonWallet = sc_1~load_msg_addr();
+    var v'maxWithdraw = sc_1~load_int(257);
+    return (sc_0, (v'owner, v'ownerPublicKey, v'jettonMaster, v'gameJettonWallet, v'maxWithdraw));
+}
+
+(slice, int, slice, slice, slice, int, int, int, int, cell) $CSPINWithdrawalVoucher$_contract_load() impure inline {
+    slice $sc = get_data().begin_parse();
+    int $loaded = $sc~load_int(1);
+    if ($loaded) {
+        return $sc~$CSPINWithdrawalVoucher$_load();
+    }
+    else {
+        (slice $owner, int $ownerPublicKey, slice $jettonMaster, slice $gameJettonWallet, int $maxWithdraw) = $sc~$CSPINWithdrawalVoucher$init$_load();
+        $sc.end_parse();
+        return $CSPINWithdrawalVoucher$_contract_init($owner, $ownerPublicKey, $jettonMaster, $gameJettonWallet, $maxWithdraw);
+    }
+}
+
+() $CSPINWithdrawalVoucher$_contract_store((slice, int, slice, slice, slice, int, int, int, int, cell) v) impure inline {
+    builder b = begin_cell();
+    b = b.store_int(true, 1);
+    b = $CSPINWithdrawalVoucher$_store(b, v);
+    set_data(b.end_cell());
+}
+
+;;
+;; Contract CSPINWithdrawalVoucher functions
+;;
+
+(slice, int, slice, slice, slice, int, int, int, int, cell) $CSPINWithdrawalVoucher$_contract_init(slice $owner, int $ownerPublicKey, slice $jettonMaster, slice $gameJettonWallet, int $maxWithdraw) impure inline {
+    var (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)) = (null(), null(), null(), null(), null(), null(), null(), null(), null(), null());
+    $self'owner = $owner;
+    $self'ownerPublicKey = $ownerPublicKey;
+    $self'jettonMaster = $jettonMaster;
+    $self'gameJettonWallet = $gameJettonWallet;
+    $self'contractJettonWallet = __gen_slice_address_61ab4641fa30d9310391025086eec65d200d79268e1b7cd402565e01ba64be3c();
+    $self'paused = false;
+    $self'maxSingleWithdraw = $maxWithdraw;
+    $self'totalWithdrawn = 0;
+    $self'withdrawCount = 0;
+    return ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces);
+}
+
+((slice, int, slice, slice, slice, int, int, int, int, cell), ()) $CSPINWithdrawalVoucher$_fun_requireOwner((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref {
+    var (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)) = $self;
+    throw_unless(59802, ( equal_slices_bits(__tact_context_get_sender(), $self'owner) ));
+    return (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces), ());
+}
+
+((slice, int, slice, slice, slice, int, int, int, int, cell), int) $CSPINWithdrawalVoucher$_fun_balance((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref {
+    var (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)) = $self;
+    var $fresh$ret_6 = $global_myBalance();
+    return (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces), $fresh$ret_6);
+}
+
+((slice, int, slice, slice, slice, int, int, int, int, cell), (slice, slice, slice, slice, int, int, int, int)) $CSPINWithdrawalVoucher$_fun_contractInfo((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref {
+    var (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)) = $self;
+    var $fresh$ret_7 = $ContractInfo$_constructor_owner_jettonMaster_gameJettonWallet_contractJettonWallet_paused_maxSingleWithdraw_totalWithdrawn_withdrawCount($self'owner, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount);
+    return (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces), $fresh$ret_7);
+}
+
+((slice, int, slice, slice, slice, int, int, int, int, cell), (int, int)) $CSPINWithdrawalVoucher$_fun_stats((slice, int, slice, slice, slice, int, int, int, int, cell) $self) impure inline_ref {
+    var (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)) = $self;
+    var $fresh$ret_8 = $Stats$_constructor_totalWithdrawn_withdrawCount($self'totalWithdrawn, $self'withdrawCount);
+    return (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces), $fresh$ret_8);
+}
+
+((slice, int, slice, slice, slice, int, int, int, int, cell), int) $CSPINWithdrawalVoucher$_fun_isNonceUsed((slice, int, slice, slice, slice, int, int, int, int, cell) $self, int $nonce) impure inline_ref {
+    var (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)) = $self;
+    var $fresh$ret_9 = (~ null?(__tact_dict_get_int_int($self'usedNonces, 257, $nonce, 1)));
+    return (($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces), $fresh$ret_9);
+}
+
+;;
+;; Get methods of a Contract CSPINWithdrawalVoucher
+;;
+
+_ %balance() method_id(104128) {
+    var self = $CSPINWithdrawalVoucher$_contract_load();
+    var res = self~$CSPINWithdrawalVoucher$_fun_balance();
+    return res;
+}
+
+_ %contractInfo() method_id(100057) {
+    var self = $CSPINWithdrawalVoucher$_contract_load();
+    var res = self~$CSPINWithdrawalVoucher$_fun_contractInfo();
+    return $ContractInfo$_to_external(res);
+}
+
+_ %stats() method_id(89570) {
+    var self = $CSPINWithdrawalVoucher$_contract_load();
+    var res = self~$CSPINWithdrawalVoucher$_fun_stats();
+    return $Stats$_to_external(res);
+}
+
+_ %isNonceUsed(int $nonce) method_id(80072) {
+    int $nonce = $nonce;
+    var self = $CSPINWithdrawalVoucher$_contract_load();
+    var res = self~$CSPINWithdrawalVoucher$_fun_isNonceUsed($nonce);
+    return res;
+}
+
+;;
+;; Routing of a Contract CSPINWithdrawalVoucher
+;;
+
+;; message opcode reader utility: only binary receivers
+;; Returns 32 bit message opcode, otherwise throws the "Invalid incoming message" exit code
+(slice, int) ~load_opcode_internal(slice s) asm( -> 1 0) "32 LDUQ 130 THROWIFNOT";
+
+() recv_internal(int msg_value, cell in_msg_cell, slice in_msg) impure {
+    
+    ;; Context
+    var cs = in_msg_cell.begin_parse();
+    cs~skip_bits(2);
+    var msg_bounceable = cs~load_int(1);
+    var msg_bounced = cs~load_int(1);
+    slice msg_sender_addr = cs~load_msg_addr();
+    __tact_context = (msg_bounceable, msg_sender_addr, msg_value, cs);
+    __tact_context_sender = msg_sender_addr;
+    
+    ;; Load contract data
+    var ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces) = $CSPINWithdrawalVoucher$_contract_load();
+    
+    ;; Handle bounced messages
+    if (msg_bounced) { return (); }
+    var op = in_msg~load_opcode_internal();
+    ;; Receive ClaimWithVoucher message
+    if (op == 3489514392) {
+        var $msg'amount = in_msg~load_varuint16();
+        var $msg'recipient = in_msg~load_msg_addr();
+        var $msg'nonce = in_msg~load_uint(64);
+        var $msg'signature = in_msg~load_ref();
+        throw_unless(19792, (~ $self'paused));
+        throw_unless(61135, ($msg'amount > 0));
+        throw_unless(58403, ($msg'amount <= $self'maxSingleWithdraw));
+        throw_unless(17091, null?(__tact_dict_get_int_int($self'usedNonces, 257, $msg'nonce, 1)));
+        $self'usedNonces~__tact_dict_set_int_int(257, $msg'nonce, true, 1);
+        $self'totalWithdrawn = ($self'totalWithdrawn + $msg'amount);
+        $self'withdrawCount = ($self'withdrawCount + 1);
+        cell $jettonTransferBody = $Builder$_fun_endCell($Builder$_fun_storeBit(false, $Builder$_fun_storeCoins($Builder$_fun_storeBit(false, $Builder$_fun_storeAddress($Builder$_fun_storeAddress($Builder$_fun_storeCoins(store_uint(store_uint($global_beginCell(), 260734629, 32), 0, 64), $msg'amount), $msg'recipient), $self'owner)), 10000000)));
+        $global_send($SendParameters$_constructor_to_value_mode_body($self'contractJettonWallet, 100000000, 1, $jettonTransferBody));
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Receive UpdateGameWallet message
+    if (op == 1275670469) {
+        var $msg'newWallet = in_msg~load_msg_addr();
+        ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)~$CSPINWithdrawalVoucher$_fun_requireOwner();
+        $self'gameJettonWallet = $msg'newWallet;
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Receive UpdateContractWallet message
+    if (op == 982889259) {
+        var $msg'newWallet = in_msg~load_msg_addr();
+        ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)~$CSPINWithdrawalVoucher$_fun_requireOwner();
+        $self'contractJettonWallet = $msg'newWallet;
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Receive Pause message
+    if (op == 2051344601) {
+        var $msg = empty_tuple();
+        ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)~$CSPINWithdrawalVoucher$_fun_requireOwner();
+        $self'paused = true;
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Receive Unpause message
+    if (op == 2378902809) {
+        var $msg = empty_tuple();
+        ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)~$CSPINWithdrawalVoucher$_fun_requireOwner();
+        $self'paused = false;
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Receive WithdrawTON message
+    if (op == 1511823115) {
+        var $msg'amount = in_msg~load_varuint16();
+        ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)~$CSPINWithdrawalVoucher$_fun_requireOwner();
+        throw_unless(54615, ($global_myBalance() >= $msg'amount));
+        $global_send($SendParameters$_constructor_to_value_mode($self'owner, $msg'amount, 1));
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Receive WithdrawJetton message
+    if (op == 2303366791) {
+        var $msg'amount = in_msg~load_varuint16();
+        var $msg'recipient = in_msg~load_msg_addr();
+        ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)~$CSPINWithdrawalVoucher$_fun_requireOwner();
+        cell $jettonTransferBody = $Builder$_fun_endCell($Builder$_fun_storeBit(false, $Builder$_fun_storeCoins($Builder$_fun_storeBit(false, $Builder$_fun_storeAddress($Builder$_fun_storeAddress($Builder$_fun_storeCoins(store_uint(store_uint($global_beginCell(), 260734629, 32), 0, 64), $msg'amount), $msg'recipient), $self'owner)), 10000000)));
+        $global_send($SendParameters$_constructor_to_value_mode_body($self'contractJettonWallet, 100000000, 1, $jettonTransferBody));
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Receive Deploy message
+    if (op == 0x946a98b6) {
+        var $deploy'queryId = in_msg~load_uint(64);
+        ($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces)~$CSPINWithdrawalVoucher$_fun_notify($DeployOk$_store_cell($DeployOk$_constructor_queryId($deploy'queryId), begin_cell()));
+        $CSPINWithdrawalVoucher$_contract_store(($self'owner, $self'ownerPublicKey, $self'jettonMaster, $self'gameJettonWallet, $self'contractJettonWallet, $self'paused, $self'maxSingleWithdraw, $self'totalWithdrawn, $self'withdrawCount, $self'usedNonces));
+        return ();
+    }
+    
+    ;; Throw if not handled
+    throw(130);
+}

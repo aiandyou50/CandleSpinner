@@ -1,4 +1,0 @@
-name: CSPINWithdrawal
-type: tact-contract
-sources:
-  - sources/CSPINWithdrawal.tact

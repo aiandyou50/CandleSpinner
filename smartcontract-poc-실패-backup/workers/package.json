@@ -1,0 +1,20 @@
+{
+  "name": "cspin-voucher-api",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers API for CSPIN Signed Voucher System",
+  "main": "api.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "@ton/crypto": "^3.3.0",
+    "@ton/ton": "^15.0.0",
+    "@ton/core": "^0.62.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "@cloudflare/workers-types": "^4.0.0"
+  }
+}
