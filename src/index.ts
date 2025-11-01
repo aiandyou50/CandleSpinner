@@ -3,6 +3,10 @@
  * 정적 파일 서빙 + API 라우팅
  */
 
+// Buffer 폴리필 (Cloudflare Workers 환경에서 @ton/ton 사용을 위해 필요)
+import { Buffer } from 'buffer';
+(globalThis as any).Buffer = Buffer;
+
 export interface Env {
   ASSETS: Fetcher;
   CREDIT_KV: KVNamespace;
