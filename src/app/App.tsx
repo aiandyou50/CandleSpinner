@@ -1,12 +1,14 @@
-// src/App.tsx
+// src/app/App.tsx
 import React, { useState, Suspense, lazy, useEffect } from 'react';
-import ErrorBoundary from './components/ErrorBoundary';
+import ErrorBoundary from '../shared/components/ErrorBoundary';
 import { TonConnectUIProvider, TonConnectButton } from '@tonconnect/ui-react';
-import { TON_CONNECT_MANIFEST_URL } from './constants';
+import { TON_CONNECT_MANIFEST_URL } from '../constants';
+import { logger } from '../shared/lib/logger';
+import { DebugPanel } from '../shared/ui/DebugPanel';
 
 // 동적 임포트: 번들 크기 최적화
-const GameComplete = lazy(() => import('./components/GameComplete'));
-const Deposit = lazy(() => import('./components/Deposit'));
+const GameComplete = lazy(() => import('../features/game/GameComplete'));
+const Deposit = lazy(() => import('../features/deposit/Deposit'));
 
 type AppMode = 'game' | 'deposit';
 
@@ -49,13 +51,15 @@ function App() {
 
   // 입금 완료 처리
   const handleDepositSuccess = (amount: number) => {
-    console.log(`[App] 입금 완료: ${amount} CSPIN`);
+    logger.info('입금 완료', { amount }, 'App');
     // 게임 화면으로 복귀
     setAppMode('game');
   };
 
   // 페이지 언로드 시 크레딧을 강제 저장
   useEffect(() => {
+    logger.debug('App 마운트', { environment: isTMA ? 'tma' : 'web' }, 'App');
+
     const handleBeforeUnload = () => {
       // 모든 localStorage 크레딧 데이터를 KV에 저장하려고 시도
       const walletAddresses = Object.keys(localStorage)
@@ -86,10 +90,12 @@ function App() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [isTMA]);
+    logger.debug('App 마운트', { environment: isTMA ? 'tma' : 'web' }, 'App');
 
   return (
     <ErrorBoundary>
+      <DebugPanel />
       <TonConnectUIProvider manifestUrl={TON_CONNECT_MANIFEST_URL}>
       {isTMA ? (
         // ==================== Telegram Mini App 환경 ====================

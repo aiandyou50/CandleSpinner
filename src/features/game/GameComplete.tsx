@@ -1,9 +1,10 @@
-// src/components/GameComplete.tsx - MVP 완전 테스트 UI (v3.0)
+// src/features/game/GameComplete.tsx - MVP 완전 테스트 UI (v3.0)
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
-import { useGameState } from '../hooks/useGameState';
-import { useToast } from '../hooks/useToast';
-import { useDeveloperMode } from '../hooks/useDeveloperMode';
+import { useGameState } from '../../shared/hooks/useGameState';
+import { useToast } from '../../shared/hooks/useToast';
+import { useDeveloperMode } from '../../shared/hooks/useDeveloperMode';
+import { logger } from '../../shared/lib/logger';
 
 interface GameProps {
   onDepositClick?: () => void;
@@ -46,6 +47,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   // 히스토리 API (뒤로/앞으로 기능)
   const handleBack = useCallback(() => {
     if (currentScreen !== 'main') {
+      logger.info('화면 뒤로가기', { from: currentScreen }, 'GameComplete');
       setCurrentScreen('main');
       // 브라우저 뒤로가기와 동기화
       window.history.back();
@@ -53,6 +55,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   }, [currentScreen]);
 
   const handleScreenChange = useCallback((screen: GameScreen) => {
+    logger.debug('화면 전환', { to: screen }, 'GameComplete');
     setCurrentScreen(screen);
     // 브라우저 히스토리에 현재 화면 상태 저장
     window.history.pushState({ screen }, '', window.location.href);
@@ -77,7 +80,9 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
 
   // 스핀 핸들러 (useCallback 최적화)
   const handleSpin = useCallback(() => {
+    logger.debug('스핀 요청', { userCredit, betAmount }, 'GameComplete');
     if (userCredit < betAmount) {
+      logger.warn('스핀 불가 - 크레딧 부족', { userCredit, betAmount }, 'GameComplete');
       showToast('크레딧이 부족합니다. 입금해주세요.', 'error');
       onDepositClick?.();
       return;
@@ -101,13 +106,14 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
       setCurrentScreen('result');
 
       showToast(isWin ? `${isDeveloperMode ? '🔧 개발자 모드: ' : ''}승리! +${winnings} CSPIN 획득` : '다시 시도해주세요', isWin ? 'success' : 'error');
+      logger.info('스핀 완료', { result, winnings, isWin }, 'GameComplete');
       
       if (isWin) {
         setLastWinnings(winnings);
       }
     } catch (error) {
       showToast('스핀 실패', 'error');
-      console.error('Spin error:', error);
+      logger.error('스핀 실패', { error: error instanceof Error ? error.message : String(error) }, 'GameComplete');
     }
   }, [userCredit, betAmount, onDepositClick, showToast, endSpin, setLastWinnings, isDeveloperMode]);
 
@@ -181,7 +187,7 @@ const GameComplete: React.FC<GameProps> = ({ onDepositClick }) => {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'depositSuccess_') {
-        console.log('[GameComplete] 📢 입금 완료 이벤트 감지! 크레딧 새로고침 시작...');
+        logger.info('입금 성공 이벤트 감지', null, 'GameComplete');
         // 200ms 후 새로고침 (입금 처리 완료 대기)
         setTimeout(() => {
           refreshCreditFromKV();
