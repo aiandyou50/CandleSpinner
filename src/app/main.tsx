@@ -1,11 +1,11 @@
-// src/main.tsx
-import './polyfills';
+// src/app/main.tsx
+import '../polyfills';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import App from './App';
-import { validateConfiguration } from './constants';
-import './index.css';
+import { validateConfiguration } from '../constants';
+import '../index.css';
 
 /**
  * Configuration 검증

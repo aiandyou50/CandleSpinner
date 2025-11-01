@@ -275,7 +275,7 @@ Address.parse('EQBbso-Bvv1r0N8aVQ1drMpqnJaYWCqH6s_8D1c8l92vGPzJ')
 ##***REMOVED***6.1 Jetton Transfer (CSPIN 입금)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `buildJettonTransferPayload()`
+`src/features/deposit/Deposit.tsx` - `buildJettonTransferPayload()`
 
 ###***REMOVED***핵심 로직
 
@@ -341,7 +341,7 @@ const payload = beginCell()
 ##***REMOVED***6.3 Error Classification (에러 분류)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `classifyError()`, `isRetryableError()`, `getErrorMessage()`
+`src/features/deposit/Deposit.tsx` - `classifyError()`, `isRetryableError()`, `getErrorMessage()`
 
 ###***REMOVED***에러 분류 체계
 
@@ -368,7 +368,7 @@ Smart Contract → 재시도 X (계약 문제)
 ##***REMOVED***6.4 Transaction Confirmation (트랜잭션 확인)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `confirmTransaction()`
+`src/features/deposit/Deposit.tsx` - `confirmTransaction()`
 
 ###***REMOVED***확인 메커니즘
 
@@ -385,7 +385,7 @@ async function confirmTransaction(address: string, timeout: number): Promise<boo
 ##***REMOVED***6.5 Backend Response Structuring (응답 구조화)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `recordDepositOnBackend()`, `DepositApiResponse`
+`src/features/deposit/Deposit.tsx` - `recordDepositOnBackend()`, `DepositApiResponse`
 
 ###***REMOVED***응답 구조
 
@@ -411,7 +411,7 @@ HTTP 500-599 → 서버 오류 (재시도 가능)
 ##***REMOVED***6.6 Jetton Wallet Dynamic Query (동적 조회)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `getUserJettonWallet()`, `initializeGameJettonWallet()`
+`src/features/deposit/Deposit.tsx` - `getUserJettonWallet()`, `initializeGameJettonWallet()`
 
 ###***REMOVED***동작 원리
 
@@ -433,14 +433,14 @@ const gameJettonWallet = getGameJettonWallet();
 ##***REMOVED***6.7 Gas Fee Dynamic Calculation (가스비 동적 계산)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `estimateJettonTransferGas()`, `calculateJettonTransferFee()`
+`src/features/deposit/Deposit.tsx` - `estimateJettonTransferGas()`, `calculateJettonTransferFee()`
 
 ###***REMOVED***가스비 모드
 
 ```typescript
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `classifyError()`, `isRetryableError()`, `getErrorMessage()`
+`src/features/deposit/Deposit.tsx` - `classifyError()`, `isRetryableError()`, `getErrorMessage()`
 
 ###***REMOVED***에러 분류 체계
 
@@ -467,7 +467,7 @@ Smart Contract → 재시도 X (계약 문제)
 ##***REMOVED***6.3 Transaction Confirmation (트랜잭션 확인)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `confirmTransaction()`
+`src/features/deposit/Deposit.tsx` - `confirmTransaction()`
 
 ###***REMOVED***확인 메커니즘
 
@@ -484,7 +484,7 @@ async function confirmTransaction(address: string, timeout: number): Promise<boo
 ##***REMOVED***6.4 Backend Response Structuring (응답 구조화)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `recordDepositOnBackend()`, `DepositApiResponse`
+`src/features/deposit/Deposit.tsx` - `recordDepositOnBackend()`, `DepositApiResponse`
 
 ###***REMOVED***응답 구조
 
@@ -510,7 +510,7 @@ HTTP 500-599 → 서버 오류 (재시도 가능)
 ##***REMOVED***6.5 Jetton Wallet Dynamic Query (동적 조회)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `getUserJettonWallet()`, `initializeGameJettonWallet()`
+`src/features/deposit/Deposit.tsx` - `getUserJettonWallet()`, `initializeGameJettonWallet()`
 
 ###***REMOVED***동작 원리
 
@@ -532,7 +532,7 @@ const gameJettonWallet = getGameJettonWallet();
 ##***REMOVED***6.6 Gas Fee Dynamic Calculation (가스비 동적 계산)
 
 ###***REMOVED***구현 위치
-`src/components/Deposit.tsx` - `estimateJettonTransferGas()`, `calculateJettonTransferFee()`
+`src/features/deposit/Deposit.tsx` - `estimateJettonTransferGas()`, `calculateJettonTransferFee()`
 
 ###***REMOVED***가스비 모드
 

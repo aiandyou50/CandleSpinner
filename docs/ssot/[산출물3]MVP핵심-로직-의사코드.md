@@ -545,7 +545,7 @@ useEffect(() => {
 
 -----
 
-##***REMOVED*****B. 프론트엔드 로직 (React - `src/components/Game.tsx`)**
+##***REMOVED*****B. 프론트엔드 로직 (React - `src/features/game/GameComplete.tsx`)**
 
   * **설명:** 사용자 입력을 받아 백엔드 API를 호출하고, 그 결과를 화면(애니메이션, UI)에 반영합니다.
   * **상태 관리:** Zustand 스토어를 사용하여 `userCredit`, `betAmount`, `reelSymbols`, `lastWinnings`, `isSpinning`, `showDoubleUp`, `isDeveloperMode` 등의 상태를 관리합니다.

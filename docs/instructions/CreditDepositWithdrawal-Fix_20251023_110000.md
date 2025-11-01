@@ -34,10 +34,10 @@ MVP 테스트 중 발견된 3가지 Blocking 이슈:
 
 | 파일 | 수정 항목 | 이유 |
 |------|---------|------|
-| `src/hooks/useGameState.ts` | KV 키 통일 + 초기값 동기화 | KV 키 일관성 |
+| `src/shared/hooks/useGameState.ts` | KV 키 통일 + 초기값 동기화 | KV 키 일관성 |
 | `functions/api/deposit.ts` | KV 키 통일 (기존 로직 정상) | KV 키 일관성 |
-| `src/components/Deposit.tsx` | onDepositSuccess 콜백 동작 확인 | 입금 후 상태 반영 |
-| `src/components/GameComplete.tsx` | 인출 버튼 → API 호출 추가 | 실제 인출 기능 구현 |
+| `src/features/deposit/Deposit.tsx` | onDepositSuccess 콜백 동작 확인 | 입금 후 상태 반영 |
+| `src/features/game/GameComplete.tsx` | 인출 버튼 → API 호출 추가 | 실제 인출 기능 구현 |
 | `functions/api/initiate-withdrawal.ts` | seqno 원자성 + Jetton 트랜잭션 완성 | 인출 기능 완성 |
 | `functions/api/get-credit.ts` | 초기값 조회 시 사용 | 기존 사용자 크레딧 복구 |
 
@@ -98,11 +98,11 @@ useEffect(() => {
 
 #***REMOVED***✅ 체크리스트
 
-- [ ] `src/hooks/useGameState.ts`: KV 키 표준화 + useEffect 추가
-- [ ] `src/components/GameComplete.tsx`: 인출 버튼 API 호출 구현
+- [ ] `src/shared/hooks/useGameState.ts`: KV 키 표준화 + useEffect 추가
+- [ ] `src/features/game/GameComplete.tsx`: 인출 버튼 API 호출 구현
 - [ ] `functions/api/deposit.ts`: KV 키 확인 (기존 정상)
 - [ ] `functions/api/initiate-withdrawal.ts`: seqno 관리 + Jetton 트랜잭션
-- [ ] `src/components/Deposit.tsx`: onDepositSuccess 콜백 확인
+- [ ] `src/features/deposit/Deposit.tsx`: onDepositSuccess 콜백 확인
 - [ ] npm test (12/12 통과 확인)
 - [ ] git commit + push (v2.4.0 또는 2.3.1)
 - [ ] kanban.md 업데이트
