@@ -1,0 +1,61 @@
+{
+  "name": "candlespinner",
+  "version": "2.5.0",
+  "description": "TON 블록체인 기반의 탈중앙화 서버리스 Web3 슬롯머신 게임입니다. Phase 3-2 중복 코드 제거 완료 버전.",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "dev": "vite",
+    "build": "vite build --logLevel error",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aiandyou50/CandleSpinner.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/aiandyou50/CandleSpinner/issues"
+  },
+  "homepage": "https://github.com/aiandyou50/CandleSpinner#readme",
+  "dependencies": {
+    "@sentry/react": "^10.20.0",
+    "@sentry/tracing": "^7.120.4",
+    "@ton/core": "^0.62.0",
+    "@ton/ton": "^16.0.0",
+    "@tonconnect/ui-react": "^2.3.1",
+    "@twa-dev/sdk": "^8.0.2",
+    "buffer": "^6.0.3",
+    "i18next": "^25.6.0",
+    "pixi.js": "^8.14.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-i18next": "^16.1.0",
+    "tonweb": "^0.0.66",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.14",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^20.14.2",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.3",
+    "@vitejs/plugin-react": "^5.0.4",
+    "@vitest/ui": "^3.2.4",
+    "autoprefixer": "^10.4.21",
+    "happy-dom": "^20.0.0",
+    "postcss": "^8.5.6",
+    "rollup-plugin-visualizer": "^6.0.5",
+    "tailwindcss": "^4.1.14",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.10",
+    "vitest": "^3.2.4"
+  }
+}
