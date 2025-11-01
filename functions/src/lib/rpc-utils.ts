@@ -439,26 +439,65 @@ export class TonCenterV3Rpc {
   async sendBoc(boc: string): Promise<string> {
     console.log(`[TonCenter v3] sendBoc 요청: ${boc.substring(0, 30)}...`);
     
+    // 1) 기본: TonCenter JSON-RPC sendBocReturnHash 사용 (TonCenter 문서 권장)
     try {
-      const rawResult = await this.call<{ hash?: string } | string>('sendBocReturnHash', [boc]);
+      const rpcResult = await this.call<{ hash?: string; message_hash?: string } | string>('sendBocReturnHash', [boc]);
+      const hash = typeof rpcResult === 'string'
+        ? rpcResult
+        : rpcResult?.hash || rpcResult?.message_hash;
 
-      // sendBocReturnHash는 문자열 혹은 { hash } 형태로 응답할 수 있으므로 모두 처리
-      const hash = typeof rawResult === 'string'
-        ? rawResult
-        : rawResult?.hash;
-
-      if (!hash) {
-        console.warn('[TonCenter v3] sendBocReturnHash에서 해시가 반환되지 않음. sendBoc로 폴백 시도');
-        const fallback = await this.call<string>('sendBoc', [boc]);
-        console.log(`[TonCenter v3] ✅ sendBoc 성공 (fallback): ${fallback || 'pending'}`);
-        return fallback || 'pending';
+      if (hash) {
+        console.log(`[TonCenter v3] ✅ sendBoc (jsonRPC) 성공: ${hash}`);
+        return hash;
       }
 
-      console.log(`[TonCenter v3] ✅ sendBoc 성공: ${hash}`);
+      console.warn('[TonCenter v3] sendBocReturnHash 응답에 해시 없음, REST 폴백 진행');
+    } catch (rpcError) {
+      console.warn(`[TonCenter v3] sendBocReturnHash 실패, REST 폴백 시도: ${rpcError instanceof Error ? rpcError.message : String(rpcError)}`);
+    }
+
+    // 2) 폴백: REST /message 엔드포인트 활용 (일부 구버전 환경 대응)
+    try {
+      const response = await fetch(`${this.baseUrl}/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': this.apiKey,
+          accept: 'application/json',
+        },
+        body: JSON.stringify({ boc }),
+      });
+
+      console.log(`[TonCenter v3] sendBoc (REST) HTTP 응답: ${response.status}`);
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error(`[TonCenter v3] ❌ sendBoc REST 오류 (${response.status}): ${text.substring(0, 200)}`);
+        throw new Error(`TonCenter v3 sendBoc REST ${response.status}: ${text.substring(0, 100)}`);
+      }
+
+      type SendMessageResult = {
+        message_hash?: string;
+        message_hash_norm?: string;
+        hash?: string;
+        result?: { hash?: string; message_hash?: string };
+      };
+
+      const data = (await response.json()) as SendMessageResult;
+      const hash = data.message_hash
+        || data.result?.hash
+        || data.hash
+        || data.message_hash_norm;
+
+      if (!hash) {
+        throw new Error('TonCenter v3 sendBoc REST: 해시를 확인할 수 없습니다.');
+      }
+
+      console.log(`[TonCenter v3] ✅ sendBoc (REST) 성공: ${hash}`);
       return hash;
-    } catch (error) {
-      console.error(`[TonCenter v3] ❌ sendBoc 실패:`, error);
-      throw error;
+    } catch (restError) {
+      console.error('[TonCenter v3] ❌ sendBoc REST 실패', restError);
+      throw new Error(`TonCenter v3 sendBoc 실패: ${restError instanceof Error ? restError.message : String(restError)}`);
     }
   }
 
