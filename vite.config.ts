@@ -10,7 +10,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@api': path.resolve(__dirname, './functions/api'),
       '@lib': path.resolve(__dirname, './functions/lib'),
+      buffer: 'buffer/',
     },
+  },
+  define: {
+    'global': 'globalThis',
   },
   server: {
     port: 3000,
