@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell, toNano } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
+import { GAME_WALLET_ADDRESS, CSPIN_JETTON_WALLET } from '@/constants';
 
 interface DepositProps {
   walletAddress: string;
@@ -29,53 +30,50 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         throw new Error('잘못된 금액입니다');
       }
 
-      // 환경 변수에서 주소 가져오기
-      const CSPIN_JETTON_WALLET = import.meta.env.VITE_CSPIN_JETTON_WALLET;
-      const GAME_WALLET = import.meta.env.VITE_GAME_WALLET_ADDRESS;
-
-      if (!CSPIN_JETTON_WALLET || !GAME_WALLET) {
-        throw new Error('지갑 주소가 설정되지 않았습니다');
-      }
-
-      // 주소 유효성 검사
+      // 주소 파싱 (PoC 방식)
       let gameWalletAddress: Address;
       let responseAddress: Address;
       
       try {
-        gameWalletAddress = Address.parse(GAME_WALLET);
+        gameWalletAddress = Address.parse(GAME_WALLET_ADDRESS);
         responseAddress = Address.parse(walletAddress);
       } catch (err) {
         console.error('Address parsing error:', err);
+        console.log('GAME_WALLET_ADDRESS:', GAME_WALLET_ADDRESS);
+        console.log('CSPIN_JETTON_WALLET:', CSPIN_JETTON_WALLET);
         throw new Error('주소 형식이 올바르지 않습니다');
       }
 
-      // Jetton Transfer 메시지 생성
+      // Jetton Transfer 페이로드 생성 (PoC 방식)
+      const amountNano = BigInt(Math.floor(depositAmount * 1_000_000_000));
       const transferBody = beginCell()
-        .storeUint(0x0f8a7ea5, 32) // op code: Jetton Transfer
+        .storeUint(0xF8A7EA5, 32) // op code: Jetton Transfer
         .storeUint(0, 64) // query_id
-        .storeCoins(BigInt(Math.floor(depositAmount * 1_000_000_000))) // amount (nanoCSPIN)
+        .storeCoins(amountNano) // amount (nanoCSPIN)
         .storeAddress(gameWalletAddress) // destination
         .storeAddress(responseAddress) // response_destination
-        .storeBit(0) // custom_payload
-        .storeCoins(toNano('0.05')) // forward_ton_amount
+        .storeBit(0) // custom_payload: none
+        .storeCoins(BigInt(0)) // forward_ton_amount
         .storeBit(0) // forward_payload
         .endCell();
 
-      // TON Connect로 트랜잭션 전송
+      // TON Connect 트랜잭션 (PoC 방식)
       const transaction = {
-        validUntil: Date.now() + 5 * 60 * 1000, // 5분
+        validUntil: Math.floor(Date.now() / 1000) + 600, // 10 minutes
         messages: [
           {
             address: CSPIN_JETTON_WALLET,
-            amount: toNano('0.1').toString(),
+            amount: toNano('0.1').toString(), // 트랜잭션 수수료
             payload: transferBody.toBoc().toString('base64'),
           },
         ],
       };
 
+      console.log('Sending transaction:', transaction);
       const result = await tonConnectUI.sendTransaction(transaction);
+      console.log('Transaction result:', result);
       
-      // 트랜잭션 해시 추출
+      // 트랜잭션 해시
       const txHash = result.boc;
 
       // 백엔드에 입금 확인 요청

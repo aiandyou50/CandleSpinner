@@ -1,8 +1,13 @@
 // TON 네트워크 설정
 export const TON_NETWORK = import.meta.env.VITE_TON_NETWORK || 'testnet';
 
-// CSPIN 토큰 주소
-export const CSPIN_TOKEN_ADDRESS = import.meta.env.VITE_CSPIN_TOKEN_ADDRESS || '';
+// 블록체인 주소 (하드코딩 - 환경 변수 fallback)
+export const GAME_WALLET_ADDRESS = import.meta.env.VITE_GAME_WALLET_ADDRESS || 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
+export const CSPIN_TOKEN_ADDRESS = import.meta.env.VITE_CSPIN_TOKEN_ADDRESS || 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV';
+export const CSPIN_JETTON_WALLET = import.meta.env.VITE_CSPIN_JETTON_WALLET || 'EQBbso-Bvv1r0N8aVQ1drMpqnJaYWCqH6s_8D1c8l92vGPzJ';
+
+// TON Connect
+export const TON_CONNECT_MANIFEST_URL = import.meta.env.VITE_TON_CONNECT_MANIFEST_URL || 'https://aiandyou.me/tonconnect-manifest.json';
 
 // 게임 설정
 export const GAME_CONFIG = {
