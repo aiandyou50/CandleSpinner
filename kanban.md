@@ -23,11 +23,24 @@
 - [ ] [개발] initiate-withdrawal.ts 스마트컨트랙트 통합
 - [ ] [개발] GameComplete.tsx 가스비 알림 UI 추가
 - [x] [버그] RPC 인출 window not defined 오류 수정
-- [ ] [버그] TonCenter v3 API `Method Not Allowed` 오류 수정
+- [x] [버그] TonCenter v3 API `Method Not Allowed` 오류 수정
+- [ ] [리팩토링] 전면 구조 재정비 및 문서 아카이빙
 
 ---
 
 ## [Done] (최근 완료)
+
+- [x] **[버그] TonCenter v3 API `Method Not Allowed` 오류 수정 → v2로 전환 (v2.4.0) (2025-11-01)**
+  - **원인**: TonCenter v3 API의 `/message` 엔드포인트가 `Method Not Allowed` 오류 발생. v3 API 불안정.
+  - **해결**: TonCenter v2 API로 전환. `/api/v2/sendBoc` 엔드포인트 사용으로 안정성 확보.
+  - **변경 파일**: 
+    - `functions/src/lib/rpc-utils.ts`: `TonCenterV2Rpc` 클래스 추가
+    - `functions/src/handlers/initiate-withdrawal.ts`: v3 → v2 전환
+  - **주요 개선**:
+    - 검증된 v2 API 사용으로 안정성 향상
+    - 간결한 응답 처리 로직
+    - 명확한 오류 메시지
+  - **SSOT 업데이트**: 불필요 (내부 구현 개선)
 
 - [x] **[버그] RPC 인출 `window not defined` 오류 수정 (v2.3.1) (2025-11-01)**
   - **원인**: Cloudflare Workers(서버) 환경에서 브라우저 전용 `crypto` API를 사용하는 `@ton/crypto` 라이브러리 호출로 인한 오류.

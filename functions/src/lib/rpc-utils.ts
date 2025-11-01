@@ -350,6 +350,197 @@ export class SeqnoManager {
 }
 
 // ============================================================================
+// TonCenter v2 RPC Client (안정 버전)
+// ============================================================================
+
+/**
+ * TonCenter v2 API 클라이언트
+ * 
+ * 공식 문서: https://toncenter.com/api/v2/
+ * 
+ * v2는 v3보다 안정적이며, sendBoc 기능이 검증되어 있습니다.
+ * 
+ * 사용:
+ * - sendBoc(boc): BOC 전송 (거래 확인)
+ * - getBalance(address): TON 잔액 조회
+ * - runGetMethod(address, method, params): 스마트 컨트랙트 메서드 호출
+ */
+export class TonCenterV2Rpc {
+  private baseUrl = 'https://toncenter.com/api/v2';
+  
+  constructor(private apiKey: string) {
+    if (!apiKey) {
+      throw new Error('TonCenterV2Rpc: API key required');
+    }
+    console.log(`[TonCenter v2] 초기화 완료 (endpoint: ${this.baseUrl})`);
+  }
+
+  private async callEndpoint<T>(endpoint: string, body?: any): Promise<T> {
+    console.log(`[TonCenter v2] 호출: ${endpoint}`);
+    
+    try {
+      const url = `${this.baseUrl}${endpoint}`;
+      const options: RequestInit = {
+        method: body ? 'POST' : 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': this.apiKey,
+        },
+      };
+
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(url, options);
+
+      console.log(`[TonCenter v2] HTTP 응답: ${response.status}`);
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error(`[TonCenter v2] ❌ HTTP 오류 (${response.status}): ${text.substring(0, 200)}`);
+        throw new Error(`TonCenter v2 HTTP ${response.status}: ${text.substring(0, 100)}`);
+      }
+
+      const data = await response.json() as { ok: boolean; result?: T; error?: string };
+
+      if (!data.ok) {
+        console.error(`[TonCenter v2] ❌ API 오류: ${data.error}`);
+        throw new Error(`TonCenter v2 Error: ${data.error}`);
+      }
+
+      if (data.result === undefined) {
+        console.warn(`[TonCenter v2] ⚠️ result 없음`);
+        throw new Error(`TonCenter v2 no result`);
+      }
+
+      console.log(`[TonCenter v2] ✅ 호출 성공`);
+      return data.result;
+    } catch (error) {
+      console.error(`[TonCenter v2] ❌ 호출 실패: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  /**
+   * BOC 전송 (거래 확인)
+   * 
+   * @param boc - 서명된 거래 BOC (base64)
+   * @returns 결과 객체
+   */
+  async sendBoc(boc: string): Promise<string> {
+    console.log(`[TonCenter v2] sendBoc 요청: ${boc.substring(0, 30)}...`);
+
+    try {
+      const result = await this.callEndpoint<{ hash: string }>('/sendBoc', { boc });
+      
+      const hash = result.hash;
+      if (!hash) {
+        throw new Error('TonCenter v2 sendBoc: 응답에서 해시를 찾을 수 없음');
+      }
+
+      console.log(`[TonCenter v2] ✅ sendBoc 성공: ${hash}`);
+      return hash;
+    } catch (error) {
+      console.error('[TonCenter v2] ❌ sendBoc 실패', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`TonCenter v2 sendBoc 실패: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * TON 잔액 조회
+   * 
+   * @param address - 조회할 주소
+   * @returns 잔액 (nanoTON)
+   */
+  async getBalance(address: string): Promise<bigint> {
+    console.log(`[TonCenter v2] getBalance: ${address}`);
+    
+    try {
+      const result = await this.callEndpoint<string>(`/getAddressBalance?address=${encodeURIComponent(address)}`);
+      
+      const balance = BigInt(result);
+      console.log(`[TonCenter v2] ✅ 잔액: ${(Number(balance) / 1e9).toFixed(4)} TON`);
+      return balance;
+    } catch (error) {
+      console.error(`[TonCenter v2] ❌ getBalance 실패:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * seqno 조회
+   * 
+   * @param address - 조회할 주소
+   * @returns seqno
+   */
+  async getSeqno(address: string): Promise<number> {
+    console.log(`[TonCenter v2] getSeqno: ${address}`);
+    
+    try {
+      const result = await this.runGetMethod(address, 'seqno', []);
+      
+      if (!result.stack || result.stack.length === 0) {
+        console.warn(`[TonCenter v2] seqno 없음 (초기화 전 지갑), 기본값 0 반환`);
+        return 0;
+      }
+      
+      // v2 응답 형식: stack[0] = ['num', '0x1234']
+      const seqnoValue = result.stack[0];
+      let seqno = 0;
+      
+      if (Array.isArray(seqnoValue) && seqnoValue.length >= 2) {
+        const valueStr = seqnoValue[1];
+        seqno = valueStr.startsWith('0x') 
+          ? parseInt(valueStr, 16) 
+          : parseInt(valueStr, 10);
+      }
+      
+      console.log(`[TonCenter v2] ✅ seqno: ${seqno}`);
+      return seqno;
+    } catch (error) {
+      console.error(`[TonCenter v2] ❌ getSeqno 실패:`, error);
+      console.warn('[TonCenter v2] seqno를 결정하지 못해 0을 반환합니다.');
+      return 0;
+    }
+  }
+
+  /**
+   * 스마트 컨트랙트 get 메서드 호출
+   * 
+   * @param address - 컨트랙트 주소
+   * @param method - 메서드 이름
+   * @param params - 매개변수 배열
+   * @returns 실행 결과 (stack 포함)
+   */
+  async runGetMethod(address: string, method: string, params: any[] = []): Promise<any> {
+    console.log(`[TonCenter v2] runGetMethod: ${address}.${method}()`);
+    
+    try {
+      const stack = params.map(p => {
+        if (typeof p === 'number' || typeof p === 'bigint') {
+          return ['num', p.toString()];
+        }
+        return p;
+      });
+
+      const result = await this.callEndpoint<any>('/runGetMethod', {
+        address,
+        method,
+        stack,
+      });
+      
+      console.log(`[TonCenter v2] ✅ runGetMethod 성공`);
+      return result;
+    } catch (error) {
+      console.error(`[TonCenter v2] ❌ runGetMethod 실패:`, error);
+      throw error;
+    }
+  }
+}
+
+// ============================================================================
 // TonCenter v3 RPC Client
 // ============================================================================
 
