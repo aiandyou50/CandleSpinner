@@ -45,12 +45,12 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
 
   return (
     <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
-      <h3 className="text-2xl font-bold text-white mb-4">Withdraw CSPIN</h3>
+      <h3 className="text-2xl font-bold text-white mb-4">💸 CSPIN 인출</h3>
       
       <div className="space-y-4">
         <div>
           <label className="block text-sm text-gray-300 mb-2">
-            Amount (Available: {currentCredit} CSPIN)
+            금액 (보유: {currentCredit} CSPIN)
           </label>
           <input
             type="number"
@@ -67,7 +67,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
           disabled={isLoading || currentCredit === 0}
           className="w-full py-3 bg-gradient-to-r from-pink-500 to-red-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
         >
-          {isLoading ? 'Processing...' : 'Withdraw'}
+          {isLoading ? '처리 중...' : '인출하기'}
         </button>
 
         {error && (

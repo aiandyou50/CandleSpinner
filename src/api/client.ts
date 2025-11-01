@@ -11,7 +11,9 @@ import {
   WithdrawResponse 
 } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787';
+// Production에서는 현재 도메인 사용, Development에서는 localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+  (import.meta.env.DEV ? 'http://localhost:8787' : window.location.origin);
 
 /**
  * 크레딧 조회
