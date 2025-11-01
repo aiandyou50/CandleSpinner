@@ -19,7 +19,7 @@ function App() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-4xl font-bold text-white mb-2">🕯️ CandleSpinner</h1>
-              <p className="text-white/80">TON Blockchain Slot Machine</p>
+              <p className="text-white/80">TON 블록체인 슬롯머신</p>
             </div>
             <TonConnectButton />
           </div>
@@ -27,7 +27,7 @@ function App() {
           {/* 크레딧 표시 */}
           {isConnected && (
             <div className="mt-6 bg-white/20 rounded-xl p-4">
-              <div className="text-white/60 text-sm mb-1">Your Credits</div>
+              <div className="text-white/60 text-sm mb-1">보유 크레딧</div>
               <div className="text-3xl font-bold text-white">
                 {isLoading ? '...' : credit} CSPIN
               </div>
@@ -56,7 +56,7 @@ function App() {
         ) : (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center">
             <p className="text-xl text-white/80">
-              Connect your TON wallet to start playing!
+              TON 지갑을 연결하여 게임을 시작하세요!
             </p>
           </div>
         )}
@@ -64,7 +64,7 @@ function App() {
 
       {/* 푸터 */}
       <footer className="mt-8 text-white/60 text-sm">
-        <p>MVP v2.0.0 - Powered by TON Blockchain</p>
+        <p>MVP v2.0.0 - TON 블록체인 기반</p>
       </footer>
     </div>
   );

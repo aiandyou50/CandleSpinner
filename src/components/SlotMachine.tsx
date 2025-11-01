@@ -22,7 +22,7 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
 
   const handleSpin = async () => {
     if (currentCredit < 1) {
-      alert('Insufficient credit! Please deposit CSPIN first.');
+      alert('크레딧이 부족합니다! 먼저 CSPIN을 입금해주세요.');
       return;
     }
 
@@ -54,24 +54,24 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
         onSuccess();
 
         if (result.winAmount > 0) {
-          alert(`🎉 You won ${result.winAmount} CSPIN!`);
+          alert(`🎉 ${result.winAmount} CSPIN 당첨!`);
         }
       }, 2000);
     } catch (error) {
       console.error('Spin failed:', error);
       setIsSpinning(false);
-      alert('Spin failed. Please try again.');
+      alert('게임 실행에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
   return (
     <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-8 border border-white/20 shadow-2xl">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Slot Machine</h2>
-        <p className="text-gray-400">Cost: 1 CSPIN per spin</p>
+        <h2 className="text-3xl font-bold text-white mb-2">🎰 슬롯머신</h2>
+        <p className="text-gray-400">1회당 1 CSPIN</p>
         {lastWin !== null && lastWin > 0 && (
           <div className="mt-2 text-2xl font-bold text-yellow-400">
-            🎉 Won {lastWin} CSPIN!
+            🎉 {lastWin} CSPIN 당첨!
           </div>
         )}
       </div>
@@ -95,7 +95,7 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
         disabled={isSpinning || currentCredit < 1}
         className="w-full py-4 bg-gradient-to-r from-yellow-500 to-pink-500 rounded-xl font-bold text-xl text-white hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isSpinning ? 'SPINNING...' : `SPIN (${currentCredit} CSPIN)`}
+        {isSpinning ? '회전 중...' : `게임 시작 (${currentCredit} CSPIN)`}
       </button>
     </div>
   );
