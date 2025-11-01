@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { getErrorMessage } from '../utils/errors';
+import { getErrorMessage } from '../../utils/errors';
 import * as Sentry from '@sentry/react';
 
 /**
