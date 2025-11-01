@@ -1,0 +1,29 @@
+# Cloudflare Workers 설정 (프론트엔드 + 백엔드 통합)
+name = "candlespinner"
+compatibility_date = "2024-11-01"
+main = "src/index.ts"
+
+# Assets (React 빌드 결과물)
+[assets]
+directory = "./dist"
+
+# KV Namespace (크레딧 저장소)
+[[kv_namespaces]]
+binding = "CREDIT_KV"
+id = "0190e4e479144180a5e0ee7bd47b959b"
+
+# 환경 변수 (Secrets는 Dashboard에서 설정됨)
+# GAME_WALLET_MNEMONI
+# GAME_WALLET_ADDRESS
+# CSPIN_JETTON_MASTER
+# CSPIN_JETTON_WALLET
+# TONCENTER_API_KEY
+
+# 커스텀 도메인
+[[routes]]
+pattern = "aiandyou.me/*"
+zone_name = "aiandyou.me"
+
+[[routes]]
+pattern = "www.aiandyou.me/*"
+zone_name = "aiandyou.me"
