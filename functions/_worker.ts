@@ -3,6 +3,10 @@
  * 모든 API 라우팅 처리
  */
 
+// Buffer 폴리필 (Cloudflare Workers 환경)
+import { Buffer } from 'buffer';
+(globalThis as any).Buffer = Buffer;
+
 import { verifyDeposit } from './api/verify-deposit';
 import { spin } from './api/spin';
 import { withdraw } from './api/withdraw';
