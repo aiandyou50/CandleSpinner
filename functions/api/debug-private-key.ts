@@ -2,30 +2,29 @@
  * GET /api/debug-private-key
  * 
  * 환경변수의 개인키 형식 검증
- * - hex format인지 확인
- * - mnemonic인지 확인
- * - 개인키로부터 게임 지갑 주소 생성 가능한지 확인
+ * - mnemonic인지 확인 (24 단어)
+ * - BIP39 유효성 검증
+ * - 니모닉으로부터 게임 지갑 주소 생성 가능한지 확인
  */
 
-import { keyPairFromSecretKey } from '@ton/crypto';
+import { mnemonicToPrivateKey, mnemonicValidate } from '@ton/crypto';
 import { WalletContractV5R1 } from '@ton/ton';
 
 export async function onRequestGet(context: any) {
   const env = context.env;
 
   try {
-    const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
+    const gameWalletMnemonic = env.GAME_WALLET_PRIVATE_KEY;
     const gameWalletAddress = env.GAME_WALLET_ADDRESS;
 
     const result: any = {
-      hasPrivateKey: !!gameWalletPrivateKey,
+      hasMnemonic: !!gameWalletMnemonic,
       hasGameWalletAddress: !!gameWalletAddress,
-      privateKeyLength: gameWalletPrivateKey?.length || 0,
       gameWalletAddress,
       issues: []
     };
 
-    if (!gameWalletPrivateKey) {
+    if (!gameWalletMnemonic) {
       result.issues.push('❌ GAME_WALLET_PRIVATE_KEY 환경 변수 미설정');
       return new Response(JSON.stringify(result), {
         status: 500,
@@ -33,66 +32,74 @@ export async function onRequestGet(context: any) {
       });
     }
 
-    // 개인키 형식 분석
-    console.log(`[디버그] 개인키 길이: ${gameWalletPrivateKey.length}`);
-    console.log(`[디버그] 개인키 처음 50자: ${gameWalletPrivateKey.substring(0, 50)}`);
+    // 니모닉 형식 분석
+    const mnemonic = gameWalletMnemonic.trim().split(/\s+/);
+    result.mnemonicWordCount = mnemonic.length;
+    result.mnemonicFirstWords = `${mnemonic.slice(0, 3).join(' ')}... (${mnemonic.length} words total)`;
 
-    // 1. Hex 형식인가?
-    if (!/^[0-9a-fA-F]*$/.test(gameWalletPrivateKey)) {
-      result.issues.push('⚠️ Hex 형식이 아님 (0-9, a-f만 포함해야 함)');
-      result.format = 'UNKNOWN (not hex)';
-      
-      // Mnemonic일 수도?
-      if (gameWalletPrivateKey.includes(' ')) {
-        result.format = 'POSSIBLY_MNEMONIC (contains spaces)';
-        result.issues.push('🔴 MNEMONIC 형식으로 보임. Hex format의 개인키가 필요합니다!');
-      }
+    console.log(`[디버그] 니모닉 단어 수: ${mnemonic.length}`);
+
+    // 1. 단어 수 확인 (24 단어여야 함)
+    if (mnemonic.length !== 24) {
+      result.issues.push(`⚠️ 니모닉 단어 수 오류: ${mnemonic.length}개 (24개여야 함)`);
+      result.format = 'INVALID_MNEMONIC_LENGTH';
     } else {
-      result.format = 'HEX';
+      result.format = 'MNEMONIC_24_WORDS';
 
-      // 2. 길이 확인 (개인키는 32바이트 = 64 hex characters)
-      if (gameWalletPrivateKey.length !== 128) {
-        result.issues.push(`⚠️ 개인키 길이 오류: ${gameWalletPrivateKey.length}자 (128자여야 함)`);
-      } else {
-        result.privateKeyLength_bytes = 64;
-        result.privateKeyFormat = '✅ 정상적인 길이 (64 bytes = 128 hex characters)';
+      // 2. BIP39 유효성 검증
+      try {
+        const isValid = await mnemonicValidate(mnemonic);
+        
+        if (!isValid) {
+          result.issues.push('⚠️ 유효하지 않은 니모닉: BIP39 검증 실패');
+          result.mnemonicValid = false;
+        } else {
+          result.mnemonicValid = true;
+          result.mnemonicValidation = '✅ BIP39 검증 통과';
+        }
+      } catch (validationError) {
+        result.mnemonicValid = false;
+        result.validationError = validationError instanceof Error ? validationError.message : String(validationError);
+        result.issues.push(`🔴 니모닉 검증 실패: ${result.validationError}`);
       }
 
       // 3. 실제로 키페어를 생성할 수 있는가?
-      try {
-        const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-        result.keyPairCreated = true;
-        result.publicKeyLength = keyPair.publicKey.length;
-        result.publicKeyLength_hex = keyPair.publicKey.toString('hex').length;
-
-        // 4. 게임 지갑 주소 생성 가능한가?
+      if (result.mnemonicValid) {
         try {
-          const gameWallet = WalletContractV5R1.create({
-            publicKey: keyPair.publicKey,
-            workchain: 0
-          });
+          const keyPair = await mnemonicToPrivateKey(mnemonic);
+          result.keyPairCreated = true;
+          result.publicKeyLength = keyPair.publicKey.length;
+          result.secretKeyLength = keyPair.secretKey.length;
 
-          const derivedAddress = gameWallet.address.toString();
-          result.derivedWalletAddress = derivedAddress;
-          result.addressMatches = derivedAddress === gameWalletAddress;
+          // 4. 게임 지갑 주소 생성 가능한가?
+          try {
+            const gameWallet = WalletContractV5R1.create({
+              publicKey: keyPair.publicKey,
+              workchain: 0
+            });
 
-          if (!result.addressMatches) {
-            result.issues.push(
-              `⚠️ 개인키로부터 생성된 주소와 환경변수 주소 불일치!\n` +
-              `생성된 주소: ${derivedAddress}\n` +
-              `환경변수: ${gameWalletAddress}`
-            );
-          } else {
-            result.verification = '✅ 개인키와 지갑 주소가 일치합니다! (V5R1 - Telegram TON Wallet)';
+            const derivedAddress = gameWallet.address.toString();
+            result.derivedWalletAddress = derivedAddress;
+            result.addressMatches = derivedAddress === gameWalletAddress;
+
+            if (!result.addressMatches) {
+              result.issues.push(
+                `⚠️ 니모닉으로부터 생성된 주소와 환경변수 주소 불일치!\n` +
+                `생성된 주소: ${derivedAddress}\n` +
+                `환경변수: ${gameWalletAddress}`
+              );
+            } else {
+              result.verification = '✅ 니모닉과 지갑 주소가 일치합니다! (V5R1 - Telegram TON Wallet)';
+            }
+          } catch (walletError) {
+            result.walletCreationError = walletError instanceof Error ? walletError.message : String(walletError);
+            result.issues.push(`🔴 지갑 생성 실패: ${result.walletCreationError}`);
           }
-        } catch (walletError) {
-          result.walletCreationError = walletError instanceof Error ? walletError.message : String(walletError);
-          result.issues.push(`🔴 지갑 생성 실패: ${result.walletCreationError}`);
+        } catch (keyError) {
+          result.keyPairCreated = false;
+          result.keyPairError = keyError instanceof Error ? keyError.message : String(keyError);
+          result.issues.push(`🔴 키페어 생성 실패: ${result.keyPairError}`);
         }
-      } catch (keyError) {
-        result.keyPairCreated = false;
-        result.keyPairError = keyError instanceof Error ? keyError.message : String(keyError);
-        result.issues.push(`🔴 키페어 생성 실패: ${result.keyPairError}`);
       }
     }
 
