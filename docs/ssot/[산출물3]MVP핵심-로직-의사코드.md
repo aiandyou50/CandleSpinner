@@ -396,6 +396,7 @@ END FUNCTION
 - ✅ 게임 지갑이 가스비 부담 (~0.05 TON)
 - ✅ seqno 관리로 트랜잭션 충돌 방지
 - ✅ Jetton TEP-74 표준 준수
+- ✅ Cloudflare Worker 전역(`window`, `self`) 폴리필 적용으로 Ton SDK 브라우저 의존성 대응 (`functions/_bufferPolyfill.ts`)
 
 #### **A.6.1. API 엔드포인트: `/api/confirm-withdrawal` (신규)**
 
