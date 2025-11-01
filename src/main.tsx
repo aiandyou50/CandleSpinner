@@ -1,12 +1,11 @@
-import { Buffer } from 'buffer';
+// Buffer 및 기타 Node.js 폴리필 로드 (가장 먼저 실행)
+import './polyfills';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import App from './App';
 import './styles/index.css';
-
-// Buffer 폴리필을 전역으로 설정
-(window as any).Buffer = Buffer;
 
 // TON Connect Manifest URL
 const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
