@@ -6,6 +6,10 @@
 
 import { mnemonicToPrivateKey, mnemonicValidate } from '@ton/crypto';
 import { WalletContractV5R1 } from '@ton/ton';
+import { webcrypto } from 'node:crypto';
+if (typeof globalThis.crypto === 'undefined') {
+  globalThis.crypto = webcrypto as any;
+}
 
 /**
  * Validates and converts a mnemonic string to a keypair
