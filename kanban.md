@@ -23,7 +23,7 @@
 - [ ] [개발] initiate-withdrawal.ts 스마트컨트랙트 통합
 - [ ] [개발] GameComplete.tsx 가스비 알림 UI 추가
 - [x] [버그] RPC 인출 window not defined 오류 수정
-- [ ] [리팩토링] 전면 구조 재정비 및 문서 아카이빙
+- [ ] [버그] TonCenter v3 API `Method Not Allowed` 오류 수정
 
 ---
 
