@@ -29,10 +29,23 @@ interface Env {
   GAME_WALLET_PRIVATE_KEY: string;
   GAME_WALLET_ADDRESS: string;
   CSPIN_TOKEN_ADDRESS: string;
+  TONCENTER_API_KEY?: string;
 }
 
 export async function onRequestGet(context: { request: Request; env: Env }): Promise<Response> {
   const { env } = context;
+
+  // 디버그: 환경변수 전체 확인
+  console.log('[debug-withdrawal] 환경변수 디버그:');
+  console.log(`  - context.env 존재: ${!!env}`);
+  if (env) {
+    console.log(`  - 환경변수 키 개수: ${Object.keys(env).length}`);
+    console.log(`  - 환경변수 키 목록:`, Object.keys(env));
+    console.log(`  - GAME_WALLET_PRIVATE_KEY 존재: ${!!env.GAME_WALLET_PRIVATE_KEY}`);
+    console.log(`  - GAME_WALLET_ADDRESS 존재: ${!!env.GAME_WALLET_ADDRESS}`);
+    console.log(`  - TONCENTER_API_KEY 존재: ${!!(env as any).TONCENTER_API_KEY}`);
+    console.log(`  - CSPIN_TOKEN_ADDRESS 존재: ${!!env.CSPIN_TOKEN_ADDRESS}`);
+  }
 
   try {
     // ✅ 주소 정규화 함수 (EQ... ↔ UQ... 변환)
@@ -61,12 +74,15 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
         mnemonicMasked,
         mnemonicWordCount,
         gameWalletAddress: env.GAME_WALLET_ADDRESS || '❌ NOT SET',
-        cspinTokenAddress: env.CSPIN_TOKEN_ADDRESS || '❌ NOT SET'
+        cspinTokenAddress: env.CSPIN_TOKEN_ADDRESS || '❌ NOT SET',
+        tonCenterApiKey: (env as any).TONCENTER_API_KEY ? '✅ SET' : '❌ NOT SET',
+        tonCenterApiKeyLength: (env as any).TONCENTER_API_KEY?.length || 0
       },
       status: {
         mnemonicValid: hasMnemonic && mnemonicWordCount === 24,
         gameWalletValid: !!env.GAME_WALLET_ADDRESS,
-        cspinTokenValid: !!env.CSPIN_TOKEN_ADDRESS
+        cspinTokenValid: !!env.CSPIN_TOKEN_ADDRESS,
+        tonCenterApiKeyValid: !!(env as any).TONCENTER_API_KEY
       }
     };
 
