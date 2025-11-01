@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, renderHook, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
-import Deposit from './Deposit';
-import { useDepositState } from '../hooks/useDepositState';
+import Deposit from '../Deposit';
+import { useDepositState } from '../../../shared/hooks/useDepositState';
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
   <TonConnectUIProvider manifestUrl="https://ton.org/manifest.json">

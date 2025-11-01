@@ -47,7 +47,7 @@
     "dist",
     "PoC/**",
     "contracts_PoC/**",
-    "smartcontract-poc-실패-backup/**",
+    "archive/legacy-code/smartcontract-poc-실패-backup/**",
     "functions/**",
     "vite.config.ts",
     "vitest.config.ts",

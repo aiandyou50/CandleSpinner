@@ -1,4 +1,4 @@
-// src/components/Deposit.tsx - 입금 UI 완전 재작성
+// src/features/deposit/Deposit.tsx - 입금 UI 완전 재작성
 import React from 'react';
 import { useTonWallet, useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell } from '@ton/core';
@@ -6,14 +6,23 @@ import { TonClient } from '@ton/ton';
 import type { Transaction } from '@ton/ton';
 import { JettonMaster } from '@ton/ton';
 import WebApp from '@twa-dev/sdk';
-import { useDepositState } from '../hooks/useDepositState';
-import { useToast } from '../hooks/useToast';
-import { TON_RPC_URL, GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../constants';
+import { useDepositState } from '../../shared/hooks/useDepositState';
+import { useToast } from '../../shared/hooks/useToast';
+import { TON_RPC_URL, GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '../../constants';
+import { logger } from '../../shared/lib/logger';
 
 interface DepositProps {
   onDepositSuccess?: (amount: number) => void;
   onBack?: () => void;
 }
+
+const LOG_ORIGIN = 'Deposit';
+const log = {
+  debug: (message: string, details?: unknown) => logger.debug(message, details, LOG_ORIGIN),
+  info: (message: string, details?: unknown) => logger.info(message, details, LOG_ORIGIN),
+  warn: (message: string, details?: unknown) => logger.warn(message, details, LOG_ORIGIN),
+  error: (message: string, details?: unknown) => logger.error(message, details, LOG_ORIGIN),
+};
 
 /**
  * Jetton Transfer Payload 구성 (TEP-74 표준 준수)
@@ -109,7 +118,7 @@ async function confirmTransaction(
   userAddress: string,
   maxWaitMs = 30000
 ): Promise<boolean> {
-  console.log('[Transaction Confirmation] Starting blockchain verification...');
+  log.debug('트랜잭션 확인 시작', { userAddress, maxWaitMs });
   
   const startTime = Date.now();
   let attempts = 0;
@@ -126,9 +135,7 @@ async function confirmTransaction(
       attempts++;
       const elapsedMs = Date.now() - startTime;
       
-      console.log(
-        `[Transaction Confirmation] Attempt ${attempts} (${elapsedMs}ms elapsed)...`
-      );
+      log.debug('트랜잭션 확인 시도', { attempt: attempts, elapsedMs });
 
       try {
         // TON RPC에서 최근 트랜잭션 조회
@@ -144,25 +151,22 @@ async function confirmTransaction(
         if (transactions.length > 0) {
           const latestTx = transactions[0]!;
           
-          console.log(
-            '[Transaction Confirmation] ✅ Transaction confirmed!',
-            {
-              hash: latestTx.hash().toString('base64').substring(0, 20) + '...',
-              lt: latestTx.lt.toString(),
-              timestamp: latestTx.now,
-              messages: latestTx.outMessages.size
-            }
-          );
+          log.info('트랜잭션 확인 완료', {
+            hash: latestTx.hash().toString('base64').substring(0, 20) + '...',
+            lt: latestTx.lt.toString(),
+            timestamp: latestTx.now,
+            messages: latestTx.outMessages.size
+          });
 
           return true;
         }
 
-        console.log('[Transaction Confirmation] No transactions found yet, waiting...');
+        log.debug('트랜잭션 미확인 - 대기', { attempt: attempts });
       } catch (queryError) {
-        console.warn(
-          `[Transaction Confirmation] Query attempt ${attempts} failed:`,
-          queryError instanceof Error ? queryError.message : queryError
-        );
+        log.warn('트랜잭션 조회 실패', {
+          attempt: attempts,
+          error: queryError instanceof Error ? queryError.message : queryError,
+        });
       }
 
       // 2초 대기 후 재시도
@@ -170,14 +174,11 @@ async function confirmTransaction(
     }
 
     // Timeout
-    console.error(
-      '[Transaction Confirmation] ❌ Confirmation timeout after ' +
-      `${maxWaitMs}ms and ${attempts} attempts`
-    );
+    log.error('트랜잭션 확인 타임아웃', { maxWaitMs, attempts });
     return false;
 
   } catch (error) {
-    console.error('[Transaction Confirmation] Fatal error:', error);
+    log.error('트랜잭션 확인 중 오류', { error: error instanceof Error ? error.message : error });
     return false;
   }
 }
@@ -215,7 +216,7 @@ async function recordDepositOnBackend(
   retryable: boolean;
   recordId?: string;
 }> {
-  console.log('[Backend Recording] Starting deposit record...');
+  log.debug('백엔드 입금 기록 시작', { walletAddress, depositAmount, method });
 
   try {
     const response = await fetch('/api/deposit', {
@@ -235,7 +236,7 @@ async function recordDepositOnBackend(
     try {
       data = await response.json() as DepositApiResponse;
     } catch (parseError) {
-      console.error('[Backend Recording] Failed to parse response JSON:', parseError);
+      log.error('백엔드 응답 JSON 파싱 실패', { error: parseError });
       return {
         success: false,
         message: '백엔드 응답 파싱 실패',
@@ -245,11 +246,11 @@ async function recordDepositOnBackend(
 
     // 상태 코드 확인
     if (!response.ok) {
-      console.warn('[Backend Recording] HTTP Error', {
+      log.warn('백엔드 HTTP 오류', {
         status: response.status,
         statusText: response.statusText,
         error: data.error,
-        retryable: data.retryable
+        retryable: data.retryable,
       });
 
       return {
@@ -260,10 +261,10 @@ async function recordDepositOnBackend(
     }
 
     // 성공 응답
-    console.log('[Backend Recording] ✅ Successfully recorded:', {
+    log.info('백엔드 입금 기록 완료', {
       recordId: data.recordId,
       transactionHash: data.transactionHash,
-      message: data.message
+      message: data.message,
     });
 
     return {
@@ -275,9 +276,9 @@ async function recordDepositOnBackend(
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('[Backend Recording] Network or other error:', {
+    log.error('백엔드 통신 실패', {
       message: errorMessage,
-      error
+      error,
     });
 
     return {
@@ -305,33 +306,26 @@ async function getUserJettonWallet(
   jettonMasterAddr: string
 ): Promise<string> {
   try {
-    console.log('[Jetton Wallet] Calculating user Jetton wallet address...');
+    log.debug('Jetton 지갑 주소 계산 시작', { userAddress, jettonMasterAddr });
 
     const userAddr = Address.parse(userAddress);
     const jettonMasterAddress = Address.parse(jettonMasterAddr);
 
-    // JettonMaster 컨트랙트 열기
     const jettonMaster = client.open(JettonMaster.create(jettonMasterAddress));
-
-    // JettonMaster 컨트랙트에 질의 (provider 매개변수 필요)
     const jettonWallet = await jettonMaster.getWalletAddress(userAddr);
     const jettonWalletStr = jettonWallet.toString();
-    
-    console.log('[Jetton Wallet] ✅ Calculated:', {
+
+    log.info('Jetton 지갑 주소 계산 완료', {
       user: userAddr.toString(),
       jettonWallet: jettonWalletStr,
-      normalized: jettonWallet.toString({ bounceable: false })
+      normalized: jettonWallet.toString({ bounceable: false }),
     });
 
     return jettonWalletStr;
-
   } catch (error) {
-    console.error('[Jetton Wallet] Failed to calculate:', error);
-    throw new Error(
-      `Jetton Wallet 주소 계산 실패: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log.error('Jetton 지갑 주소 계산 실패', { error: errorMessage });
+    throw new Error(`Jetton Wallet 주소 계산 실패: ${errorMessage}`);
   }
 }
 
@@ -347,24 +341,25 @@ export async function initializeGameJettonWallet(
   client: TonClient
 ): Promise<void> {
   if (cachedGameJettonWallet) {
-    console.log('[Init] Game Jetton Wallet already cached');
+    log.debug('게임 Jetton Wallet 캐시 사용');
     return;
   }
 
   try {
-    console.log('[Init] Initializing Game Jetton Wallet...');
+    log.debug('게임 Jetton Wallet 초기화 시작');
 
-    // 게임 지갑의 CSPIN Jetton Wallet 주소 계산
     cachedGameJettonWallet = await getUserJettonWallet(
       GAME_WALLET_ADDRESS,
       client,
       CSPIN_TOKEN_ADDRESS
     );
 
-    console.log('[Init] ✅ Game Jetton Wallet initialized successfully');
-
+    log.info('게임 Jetton Wallet 초기화 완료', {
+      wallet: cachedGameJettonWallet,
+    });
   } catch (error) {
-    console.error('[Init] Failed to initialize Game Jetton Wallet:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    log.error('게임 Jetton Wallet 초기화 실패', { error: message });
     throw error;
   }
 }
@@ -377,16 +372,14 @@ export async function initializeGameJettonWallet(
  */
 export function getGameJettonWallet(): string {
   if (!cachedGameJettonWallet) {
-    throw new Error(
-      'Game Jetton Wallet not initialized. Call initializeGameJettonWallet() first.'
-    );
+    throw new Error('Game Jetton Wallet이 초기화되지 않았습니다.');
   }
   return cachedGameJettonWallet;
 }
 
 /**
  * Jetton Transfer 가스비 동적 계산
- * 
+    log.error('Jetton 지갑 주소 계산 실패', { error });
  * TON 블록체인의 가스비는 메시지 크기와 컴퓨팅 복잡도에 따라 결정됩니다.
  * Jetton Transfer는 상대적으로 간단한 작업이므로 고정된 기본값 사용
  * 
@@ -404,7 +397,7 @@ export function getGameJettonWallet(): string {
 export function estimateJettonTransferGas(
   gasMode: 'fast' | 'standard' | 'slow' = 'standard'
 ): bigint {
-  console.log(`[Gas Estimation] Calculating gas for mode: ${gasMode}`);
+  log.debug('Jetton 가스비 계산 시작', { gasMode });
 
   // 기본 가스비 예측
   // Jetton transfer: 약 4,000 gas
@@ -426,16 +419,11 @@ export function estimateJettonTransferGas(
   const minGasNanoton = BigInt(10000);  // 최소 가스비 보장
   const finalGas = selectedGas > minGasNanoton ? selectedGas : minGasNanoton;
 
-  console.log(`[Gas Estimation] ✅ Calculated:`, {
+  log.debug('Jetton 가스비 계산 완료', {
     mode: gasMode,
     selectedGas: selectedGas.toString(),
     finalGas: finalGas.toString(),
-    inTon: `0.00000${finalGas}`,
-    description: gasMode === 'fast' 
-      ? '빠른 처리 (높은 가스비)'
-      : gasMode === 'slow'
-      ? '느린 처리 (낮은 가스비)'
-      : '표준 처리 (권장)'
+    ton: (Number(finalGas) / 1e9).toFixed(9),
   });
 
   return finalGas;
@@ -453,17 +441,14 @@ export function calculateJettonTransferFee(
   gasMode: 'fast' | 'standard' | 'slow' = 'standard'
 ): bigint {
   const gas = estimateJettonTransferGas(gasMode);
-  
-  // 기본 메시지 전송 비용: 약 3,000 nanoton
   const messageForwardFee = BigInt(3000);
-  
   const totalFee = gas + messageForwardFee;
 
-  console.log(`[Fee Calculation] ✅ Total fee:`, {
+  log.debug('Jetton 수수료 계산', {
     gas: gas.toString(),
     messageForwardFee: messageForwardFee.toString(),
     totalFee: totalFee.toString(),
-    inTon: (Number(totalFee) / 1e9).toFixed(9)
+    ton: (Number(totalFee) / 1e9).toFixed(9),
   });
 
   return totalFee;
@@ -482,9 +467,9 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
   const handleDepositTonConnect = async () => {
     if (!wallet?.account?.address) {
       showToast('❌ 지갑이 연결되지 않았습니다. TonConnect 버튼을 클릭해주세요.', 'error');
-      console.error('[TonConnect Deposit] Wallet not connected');
+      log.error('[TonConnect Deposit] Wallet not connected');
       if (isTMA) {
-        try { WebApp.showAlert('지갑을 연결해주세요.'); } catch (e) { console.log('[TMA Alert] Not supported:', e); }
+        try { WebApp.showAlert('지갑을 연결해주세요.'); } catch (e) { log.debug('[TMA Alert] Not supported:', e); }
       }
       return;
     }
@@ -492,9 +477,9 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
     const validation = depositState.validateAmount();
     if (!validation.valid) {
       showToast(`❌ ${validation.error}`, 'error');
-      console.warn('[TonConnect Deposit] Validation failed:', validation.error);
+      log.warn('[TonConnect Deposit] Validation failed:', validation.error);
       if (isTMA) {
-        try { WebApp.showAlert(validation.error || '올바른 금액을 입력해주세요.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
+        try { WebApp.showAlert(validation.error || '올바른 금액을 입력해주세요.'); } catch (e) { log.debug('[TMA Alert] Not supported'); }
       }
       return;
     }
@@ -502,7 +487,7 @@ const Deposit: React.FC<DepositProps> = ({ onDepositSuccess, onBack }) => {
     const amount = parseFloat(depositState.depositAmount);
     depositState.setLoading(true);
     
-    console.log(`
+    log.debug(`
 ═════════════════════════════════════════════════════
 🚀 [TonConnect Deposit] START
 ═════════════════════════════════════════════════════
@@ -520,7 +505,7 @@ Time: ${new Date().toISOString()}
     const attemptTransaction = async (): Promise<void> => {
       try {
         retries++;
-        console.log(`[TonConnect Deposit] Attempt ${retries}/${maxRetries + 1}`);
+        log.debug(`[TonConnect Deposit] Attempt ${retries}/${maxRetries + 1}`);
 
         // ✅ 주소 파싱 (ton-core는 모든 Base64 형식 지원 - URL-safe, 정식 모두)
         let destinationAddressObj: Address;
@@ -541,14 +526,14 @@ Time: ${new Date().toISOString()}
           destinationAddressObj = Address.parse(GAME_WALLET_ADDRESS);
           responseAddressObj = Address.parse(wallet.account.address);
           
-          console.log('[TonConnect Deposit] ✓ All addresses parsed successfully');
-          console.log('[TonConnect Deposit] 📍 Addresses:', {
+          log.debug('[TonConnect Deposit] ✓ All addresses parsed successfully');
+          log.debug('[TonConnect Deposit] 📍 Addresses:', {
             gameWallet: GAME_WALLET_ADDRESS,
             userWallet: wallet.account.address,
             jettonWallet: userJettonWalletAddress
           });
         } catch (parseError) {
-          console.error('[TonConnect Deposit] ❌ Address parse error:', {
+          log.error('[TonConnect Deposit] ❌ Address parse error:', {
             gameWallet: GAME_WALLET_ADDRESS,
             userWallet: wallet.account.address,
             jettonWallet: userJettonWalletAddress,
@@ -561,8 +546,8 @@ Time: ${new Date().toISOString()}
         const amountInNano = BigInt(amount) * BigInt(1000000000);
         
         const payload = buildJettonTransferPayload(amountInNano, destinationAddressObj, responseAddressObj);
-        console.log('[TonConnect Deposit] ✓ Payload built successfully');
-        console.log('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
+        log.debug('[TonConnect Deposit] ✓ Payload built successfully');
+        log.debug('[TonConnect Deposit] Payload (base64):', payload.substring(0, 50) + '...');
 
         // TonConnect 메시지 구성 (원본 주소 그대로 사용!)
         const transaction = {
@@ -576,34 +561,34 @@ Time: ${new Date().toISOString()}
           ]
         };
 
-        console.log('[TonConnect Deposit] 📤 Sending transaction...');
-        console.log('[TonConnect Deposit] Transaction object:', JSON.stringify(transaction, null, 2));
+        log.debug('[TonConnect Deposit] 📤 Sending transaction...');
+        log.debug('[TonConnect Deposit] Transaction object:', JSON.stringify(transaction, null, 2));
 
         const result = await tonConnectUI.sendTransaction(transaction as any);
         
-        console.log('[TonConnect Deposit] ✅ Transaction sent to wallet');
-        console.log('[TonConnect Deposit] Response:', result);
+        log.debug('[TonConnect Deposit] ✅ Transaction sent to wallet');
+        log.debug('[TonConnect Deposit] Response:', result);
 
         // ✅ 블록체인에서 트랜잭션 확인 (새로운 단계)
-        console.log('[TonConnect Deposit] 🔍 Confirming on blockchain...');
+        log.debug('[TonConnect Deposit] 🔍 Confirming on blockchain...');
         const confirmed = await confirmTransaction(
           wallet.account.address,
           30000  // 최대 30초 대기
         );
 
         if (!confirmed) {
-          console.warn('[TonConnect Deposit] ⏳ Transaction pending confirmation');
+          log.warn('[TonConnect Deposit] ⏳ Transaction pending confirmation');
           showToast(
             '⏳ 트랜잭션이 처리 중입니다. 잠시 후 확인해주세요.',
             'warning'
           );
           // 여기서는 계속 진행 (블록체인에 기록되었을 가능성 있음)
         } else {
-          console.log('[TonConnect Deposit] ✅ Confirmed on blockchain!');
+          log.debug('[TonConnect Deposit] ✅ Confirmed on blockchain!');
         }
 
         // ✅ 백엔드에 입금 기록 (개선: 구조화된 응답 처리)
-        console.log('[TonConnect Deposit] 📝 Recording deposit on backend...');
+        log.debug('[TonConnect Deposit] 📝 Recording deposit on backend...');
         const backendResult = await recordDepositOnBackend(
           wallet.account.address,
           amount,
@@ -612,14 +597,14 @@ Time: ${new Date().toISOString()}
         );
 
         if (!backendResult.success) {
-          console.warn('[TonConnect Deposit] Backend recording failed:', backendResult);
+          log.warn('[TonConnect Deposit] Backend recording failed:', backendResult);
           // 블록체인 기록은 성공했으므로, 백엔드 재시도 또는 무시
           if (!backendResult.retryable) {
-            console.error('❌ Backend error (non-retryable): manual review needed');
+            log.error('❌ Backend error (non-retryable): manual review needed');
             // 여기서는 계속 진행 (블록체인은 성공했음)
           }
         } else {
-          console.log('[TonConnect Deposit] ✓ Backend recorded:', backendResult);
+          log.debug('[TonConnect Deposit] ✓ Backend recorded:', backendResult);
         }
 
         showToast(`✅ 입금 성공! ${amount} CSPIN이 추가되었습니다.`, 'success');
@@ -630,10 +615,10 @@ Time: ${new Date().toISOString()}
         
         if (onDepositSuccess) onDepositSuccess(amount);
         if (isTMA) {
-          try { WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`); } catch (e) { console.log('[TMA Alert] Not supported'); }
+          try { WebApp.showAlert(`입금 성공! ${amount} CSPIN 추가됨`); } catch (e) { log.debug('[TMA Alert] Not supported'); }
         }
 
-        console.log(`
+        log.debug(`
 ═════════════════════════════════════════════════════
 ✅ [TonConnect Deposit] SUCCESS
 ═════════════════════════════════════════════════════
@@ -642,8 +627,8 @@ Time: ${new Date().toISOString()}
         // 2초 후 자동 뒤로 가기
         setTimeout(() => onBack?.(), 2000);
       } catch (error) {
-        console.error(`[TonConnect Deposit] Attempt ${retries} failed:`, error);
-        console.error('[TonConnect Deposit] Error details:', {
+        log.error(`[TonConnect Deposit] Attempt ${retries} failed:`, error);
+        log.error('[TonConnect Deposit] Error details:', {
           message: error instanceof Error ? error.message : String(error),
           name: error instanceof Error ? error.name : undefined,
           stack: error instanceof Error ? error.stack : undefined
@@ -654,14 +639,14 @@ Time: ${new Date().toISOString()}
         const errorMessage = getErrorMessage(errorCategory);
         const shouldRetry = isRetryableError(errorCategory) && retries < maxRetries + 1;
 
-        console.log('[TonConnect Deposit] Error classification:', {
+        log.debug('[TonConnect Deposit] Error classification:', {
           category: errorCategory,
           message: errorMessage,
           shouldRetry
         });
 
         if (shouldRetry) {
-          console.log('[TonConnect Deposit] 🔄 Retrying due to ' + errorCategory + '...');
+          log.debug('[TonConnect Deposit] 🔄 Retrying due to ' + errorCategory + '...');
           await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
           return attemptTransaction();
         }
@@ -669,7 +654,7 @@ Time: ${new Date().toISOString()}
         depositState.handleError(error, { method: 'tonconnect' });
         showToast(errorMessage, 'error');
         if (isTMA) {
-          try { WebApp.showAlert(errorMessage); } catch (e) { console.log('[TMA Alert] Not supported'); }
+          try { WebApp.showAlert(errorMessage); } catch (e) { log.debug('[TMA Alert] Not supported'); }
         }
 
         throw error;
@@ -688,14 +673,14 @@ Time: ${new Date().toISOString()}
     const validation = depositState.validateAmount();
     if (!validation.valid) {
       showToast(`❌ ${validation.error}`, 'error');
-      console.warn('[RPC Deposit] Validation failed:', validation.error);
+      log.warn('[RPC Deposit] Validation failed:', validation.error);
       return;
     }
 
     const amount = parseFloat(depositState.depositAmount);
     depositState.setLoading(true);
     showToast('⏳ RPC: 백엔드에서 처리 중... (테스트 모드)', 'info');
-    console.log(`[RPC Deposit] Starting TEST MODE deposit: amount=${amount} CSPIN, wallet=${wallet?.account?.address || 'anonymous'}`);
+    log.debug(`[RPC Deposit] Starting TEST MODE deposit: amount=${amount} CSPIN, wallet=${wallet?.account?.address || 'anonymous'}`);
 
     try {
       const response = await fetch('/api/deposit-rpc', {
@@ -715,11 +700,11 @@ Time: ${new Date().toISOString()}
       }
 
       const data = await response.json();
-      console.log('[RPC Deposit] Server response:', data);
+      log.debug('[RPC Deposit] Server response:', data);
 
       // ⚠️ 주의: 이것은 테스트 모드입니다!
       showToast(`⚠️ [테스트 모드] ${amount} CSPIN 추가됨 (실제 트랜잭션 없음)`, 'warning');
-      console.warn('[RPC Deposit] TEST MODE: No actual transaction executed');
+      log.warn('[RPC Deposit] TEST MODE: No actual transaction executed');
       
       depositState.setAmount('100');
       
@@ -728,20 +713,20 @@ Time: ${new Date().toISOString()}
       
       if (onDepositSuccess) onDepositSuccess(amount);
       if (isTMA) {
-        try { WebApp.showAlert(`[테스트] ${amount} CSPIN 추가됨`); } catch (e) { console.log('[TMA Alert] Not supported'); }
+        try { WebApp.showAlert(`[테스트] ${amount} CSPIN 추가됨`); } catch (e) { log.debug('[TMA Alert] Not supported'); }
       }
 
       // 2초 후 자동 뒤로 가기
       setTimeout(() => onBack?.(), 2000);
     } catch (error) {
-      console.error('[RPC Deposit] Error:', error);
-      console.error('[RPC Deposit] Error details:', {
+      log.error('[RPC Deposit] Error:', error);
+      log.error('[RPC Deposit] Error details:', {
         message: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       });
       depositState.handleError(error, { method: 'rpc' });
       if (isTMA) {
-        try { WebApp.showAlert('입금에 실패했습니다.'); } catch (e) { console.log('[TMA Alert] Not supported'); }
+        try { WebApp.showAlert('입금에 실패했습니다.'); } catch (e) { log.debug('[TMA Alert] Not supported'); }
       }
     } finally {
       depositState.setLoading(false);
