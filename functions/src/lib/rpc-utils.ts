@@ -440,14 +440,22 @@ export class TonCenterV3Rpc {
     console.log(`[TonCenter v3] sendBoc 요청: ${boc.substring(0, 30)}...`);
     
     try {
-      const result = await this.call<{ hash: string }>('sendBocReturnHash', [{ boc }]);
-      
-      if (!result.hash) {
-        throw new Error('TonCenter v3 sendBoc: hash not returned');
+      const rawResult = await this.call<{ hash?: string } | string>('sendBocReturnHash', [boc]);
+
+      // sendBocReturnHash는 문자열 혹은 { hash } 형태로 응답할 수 있으므로 모두 처리
+      const hash = typeof rawResult === 'string'
+        ? rawResult
+        : rawResult?.hash;
+
+      if (!hash) {
+        console.warn('[TonCenter v3] sendBocReturnHash에서 해시가 반환되지 않음. sendBoc로 폴백 시도');
+        const fallback = await this.call<string>('sendBoc', [boc]);
+        console.log(`[TonCenter v3] ✅ sendBoc 성공 (fallback): ${fallback || 'pending'}`);
+        return fallback || 'pending';
       }
-      
-      console.log(`[TonCenter v3] ✅ sendBoc 성공: ${result.hash}`);
-      return result.hash;
+
+      console.log(`[TonCenter v3] ✅ sendBoc 성공: ${hash}`);
+      return hash;
     } catch (error) {
       console.error(`[TonCenter v3] ❌ sendBoc 실패:`, error);
       throw error;
