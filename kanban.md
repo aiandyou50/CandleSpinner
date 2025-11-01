@@ -22,12 +22,18 @@
 - [ ] [개발] WithdrawalManager 테스트넷 배포 (환경 설정 완료, 배포 대기)
 - [ ] [개발] initiate-withdrawal.ts 스마트컨트랙트 통합
 - [ ] [개발] GameComplete.tsx 가스비 알림 UI 추가
-- [ ] [버그] RPC 인출 window not defined 오류 수정
+- [x] [버그] RPC 인출 window not defined 오류 수정
 - [ ] [리팩토링] 전면 구조 재정비 및 문서 아카이빙
 
 ---
 
 #***REMOVED***[Done] (최근 완료)
+
+- [x] **[버그] RPC 인출 `window not defined` 오류 수정 (v2.3.1) (2025-11-01)**
+  - **원인**: Cloudflare Workers(서버) 환경에서 브라우저 전용 `crypto` API를 사용하는 `@ton/crypto` 라이브러리 호출로 인한 오류.
+  - **해결**: `functions/src/lib/mnemonic-utils.ts` 파일에 Node.js의 `crypto` 모듈을 `globalThis.crypto`에 할당하는 폴리필을 추가하여 서버 환경에서도 암호화 기능이 정상 동작하도록 수정.
+  - **변경 파일**: `functions/src/lib/mnemonic-utils.ts`
+  - **SSOT 업데이트**: 불필요 (내부 구현 수정)
 
 - [x] **[API] RPC 인출 방식 TonCenter v3로 변경 (v2.3.0) (2025-10-31)**
   - **SSOT 업데이트**: 스마트컨트랙트 Permit 방식 → RPC 직접 전송 방식 (문서-코드 동기화)
