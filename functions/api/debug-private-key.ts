@@ -13,6 +13,18 @@ import { isMnemonicValid, validateAndConvertMnemonic } from './mnemonic-utils';
 export async function onRequestGet(context: any) {
   const env = context.env;
 
+  // 디버그: 환경변수 전체 확인
+  console.log('[debug-private-key] 환경변수 디버그:');
+  console.log(`  - context.env 존재: ${!!env}`);
+  if (env) {
+    console.log(`  - 환경변수 키 개수: ${Object.keys(env).length}`);
+    console.log(`  - 환경변수 키 목록:`, Object.keys(env));
+    console.log(`  - GAME_WALLET_PRIVATE_KEY 존재: ${!!env.GAME_WALLET_PRIVATE_KEY}`);
+    console.log(`  - GAME_WALLET_ADDRESS 존재: ${!!env.GAME_WALLET_ADDRESS}`);
+    console.log(`  - TONCENTER_API_KEY 존재: ${!!env.TONCENTER_API_KEY}`);
+    console.log(`  - CSPIN_TOKEN_ADDRESS 존재: ${!!env.CSPIN_TOKEN_ADDRESS}`);
+  }
+
   try {
     const gameWalletMnemonic = env.GAME_WALLET_PRIVATE_KEY;
     const gameWalletAddress = env.GAME_WALLET_ADDRESS;
