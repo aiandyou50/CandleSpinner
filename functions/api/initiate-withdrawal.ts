@@ -1,7 +1,7 @@
 import '../_bufferPolyfill';
-import { keyPairFromSecretKey } from '@ton/crypto';
 import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode, Cell } from '@ton/ton';
 import { TonCenterV3Rpc, SeqnoManager } from './rpc-utils';
+import { getKeyPairAndWallet } from './mnemonic-utils';
 
 /**
  * POST /api/initiate-withdrawal (v2.3.0 - TonCenter v3)
@@ -53,20 +53,18 @@ async function withdrawViaRpc(
   console.log(`[RPC] 시작: ${walletAddress} → ${withdrawalAmount} CSPIN`);
 
   // 환경 변수 확인
-  const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
+  const gameWalletMnemonic = env.GAME_WALLET_PRIVATE_KEY;
   const gameWalletAddress = env.GAME_WALLET_ADDRESS;
   const cspinTokenAddress = env.CSPIN_TOKEN_ADDRESS;
 
-  if (!gameWalletPrivateKey || !gameWalletAddress || !cspinTokenAddress) {
+  if (!gameWalletMnemonic || !gameWalletAddress || !cspinTokenAddress) {
     throw new Error('게임 지갑 설정 오류: 필수 환경 변수 누락 (GAME_WALLET_PRIVATE_KEY, GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS)');
   }
 
-  // 게임 지갑 생성
-  const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-  const gameWallet = WalletContractV5R1.create({
-    publicKey: keyPair.publicKey,
-    workchain: 0
-  });
+  // 니모닉을 키 쌍 및 지갑으로 변환
+  console.log(`[RPC] 니모닉을 키 쌍으로 변환 중...`);
+  const { keyPair, wallet: gameWallet } = await getKeyPairAndWallet(gameWalletMnemonic);
+  console.log(`[RPC] 키 쌍 변환 완료`);
 
   console.log(`[RPC] 게임 지갑: ${gameWallet.address.toString()}`);
 
@@ -221,6 +219,16 @@ export async function onRequestPost(context: any) {
     const { request } = context;
     env = context.env;
 
+    // 디버그: context 구조 확인
+    console.log('[인출-v2.3.0] 함수 시작 - context 디버그:');
+    console.log(`  - context 존재: ${!!context}`);
+    console.log(`  - context.env 존재: ${!!context.env}`);
+    console.log(`  - context 키들:`, Object.keys(context || {}));
+    if (context.env) {
+      console.log(`  - context.env 키 개수: ${Object.keys(context.env).length}`);
+      console.log(`  - context.env의 주요 키들:`, Object.keys(context.env).slice(0, 10));
+    }
+
     // 요청 바디 파싱
     const body = await request.json() as {
       walletAddress?: string;
@@ -262,10 +270,27 @@ export async function onRequestPost(context: any) {
     }
 
     // TonCenter v3 RPC 초기화
+    // 디버그: 환경변수 확인
+    console.log('[인출-v2.3.0] 환경변수 디버그:');
+    console.log(`  - TONCENTER_API_KEY 존재: ${!!env.TONCENTER_API_KEY}`);
+    console.log(`  - TONCENTER_API_KEY 타입: ${typeof env.TONCENTER_API_KEY}`);
+    console.log(`  - TONCENTER_API_KEY 길이: ${env.TONCENTER_API_KEY?.length || 0}`);
+    console.log(`  - env 객체 키들:`, Object.keys(env || {}).filter(k => k.includes('API') || k.includes('KEY')));
+    
     const tonCenterApiKey = env.TONCENTER_API_KEY;
     if (!tonCenterApiKey) {
+      console.error('[인출-v2.3.0] ❌ TONCENTER_API_KEY 없음!');
+      console.error('[인출-v2.3.0] 사용 가능한 환경변수:', Object.keys(env || {}));
       return new Response(
-        JSON.stringify({ success: false, error: 'TonCenter API 키가 설정되지 않았습니다.' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'TonCenter API 키가 설정되지 않았습니다.',
+          debug: {
+            hasEnv: !!env,
+            envKeys: Object.keys(env || {}).length,
+            apiKeyExists: !!env.TONCENTER_API_KEY
+          }
+        }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
       );
     }

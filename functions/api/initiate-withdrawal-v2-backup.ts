@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
-import { keyPairFromSecretKey } from '@ton/crypto';
 import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode, Cell } from '@ton/ton';
+import { getKeyPairAndWallet } from './mnemonic-utils';
 import { AnkrRpc, SeqnoManager } from './rpc-utils';
 
 /**
@@ -150,20 +150,18 @@ async function withdrawViaRpc(
   console.log(`[인출-RPC] 시작: ${walletAddress} → ${withdrawalAmount} CSPIN`);
 
   // 환경 변수 확인
-  const gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY;
+  const gameWalletMnemonic = env.GAME_WALLET_PRIVATE_KEY;
   const gameWalletAddress = env.GAME_WALLET_ADDRESS;
   const cspinTokenAddress = env.CSPIN_TOKEN_ADDRESS;
 
-  if (!gameWalletPrivateKey || !gameWalletAddress || !cspinTokenAddress) {
+  if (!gameWalletMnemonic || !gameWalletAddress || !cspinTokenAddress) {
     throw new Error('게임 지갑 설정 오류: 필수 환경 변수 누락');
   }
 
-  // 게임 지갑 생성
-  const keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'));
-  const gameWallet = WalletContractV5R1.create({
-    publicKey: keyPair.publicKey,
-    workchain: 0
-  });
+  // 니모닉을 키 쌍 및 지갑으로 변환
+  console.log(`[인출-RPC] 니모닉을 키 쌍으로 변환 중...`);
+  const { keyPair, wallet: gameWallet } = await getKeyPairAndWallet(gameWalletMnemonic);
+  console.log(`[인출-RPC] 키 쌍 변환 완료`);
 
   console.log(`[인출-RPC] 게임 지갑: ${gameWallet.address.toString()}`);
 
