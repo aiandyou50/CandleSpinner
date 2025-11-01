@@ -1,3 +1,16 @@
-// src/main.tsx
-// 엔트리 포인트를 유지하기 위한 래퍼. 실제 초기화 로직은 src/app/main.tsx에 위치.
-import './app/main';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { TonConnectUIProvider } from '@tonconnect/ui-react';
+import App from './App';
+import './styles/index.css';
+
+// TON Connect Manifest URL
+const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <TonConnectUIProvider manifestUrl={manifestUrl}>
+      <App />
+    </TonConnectUIProvider>
+  </React.StrictMode>,
+);

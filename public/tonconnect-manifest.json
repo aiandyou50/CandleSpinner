@@ -1,8 +1,7 @@
 {
-  "url": "https://aiandyou.me",
+  "url": "https://candlespinner.com",
   "name": "CandleSpinner",
-  "description": "Telegram Mini App - Slot Machine Game with CSPIN Token",
-  "iconUrl": "https://aiandyou.me/icon.png",
-  "termsOfUseUrl": "https://aiandyou.me/terms",
-  "privacyUrl": "https://aiandyou.me/privacy"
+  "iconUrl": "https://candlespinner.com/icon.png",
+  "termsOfUseUrl": "https://candlespinner.com/terms",
+  "privacyPolicyUrl": "https://candlespinner.com/privacy"
 }

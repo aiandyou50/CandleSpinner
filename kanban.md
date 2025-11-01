@@ -1,34 +1,51 @@
-# CandleSpinner 작업 현황판 (KANBAN) v1.0
+# CandleSpinner 작업 현황판 (KANBAN) v2.0
+
+**마지막 업데이트**: 2025-11-01  
+**현재 상태**: MVP v2 재구축 시작
 
 ---
 
 ## [To Do] (대기)
 
-- [ ] [Phase 2] 크레딧 영속화 로직 구현 (/api/get-credit 및 프론트엔드 연동)
-- [ ] [Phase 2] 동기식 인출 로직 구현 (/api/initiate-withdrawal 실제 코드 작성 및 seqno 관리)
-- [ ] [개발] 인출 스마트 컨트랙트 개발 (FunC/Tact)
-- [ ] [개발] 백엔드 API 수정 (/api/initiate-withdrawal -> 인출 허가증 생성 로직)
-- [ ] [개발] 프론트엔드 수정 (스마트 컨트랙트 호출 로직 추가)
-- [ ] [Phase 1] `/api/spin` 엔드포인트 실제 코드 구현 (백엔드)
-- [ ] [Phase 1] 슬롯머신 릴 애니메이션 `PixiJS` 연동 (프론트엔드)
-- [ ] [Phase 1] 잭팟 발생 시 비디오 재생 기능 구현 (프론트엔드)
-- [ ] [Phase 1] 미니게임(더블업) API 로직 구현 (백엔드)
+### MVP v2 핵심 기능
+- [ ] [개발] 프로젝트 초기화 (package.json, tsconfig.json)
+- [ ] [개발] 지갑 연결 (TON Connect UI)
+- [ ] [개발] 입금 기능 (Jetton Transfer)
+- [ ] [개발] 슬롯 머신 게임 (간단한 버전)
+- [ ] [개발] 인출 기능 (서버 서명 방식)
+- [ ] [개발] 크레딧 관리 (Cloudflare KV)
+
+### 향후 기능 (Phase 2)
+- [ ] [Phase 2] 스마트 컨트랙트 기반 인출
+- [ ] [Phase 2] 더블업 미니게임
+- [ ] [Phase 2] PixiJS 애니메이션
+- [ ] [Phase 2] 잭팟 비디오
 
 ---
 
 ## [In Progress] (진행 중)
 
-- [x] [아키텍처] 인출 로직 스마트 컨트랙트 방식으로 변경 설계
-- [ ] [개발] WithdrawalManager 테스트넷 배포 (환경 설정 완료, 배포 대기)
-- [ ] [개발] initiate-withdrawal.ts 스마트컨트랙트 통합
-- [ ] [개발] GameComplete.tsx 가스비 알림 UI 추가
-- [x] [버그] RPC 인출 window not defined 오류 수정
-- [x] [버그] TonCenter v3 API `Method Not Allowed` 오류 수정
-- [ ] [리팩토링] 전면 구조 재정비 및 문서 아카이빙
+- [ ] [리팩토링] MVP v2 재구축 (클린 아키텍처)
+  - [x] 레거시 코드 아카이빙 완료
+  - [x] 새로운 프로젝트 구조 생성 완료
+  - [x] 아키텍처 설계 문서 작성 완료
+  - [ ] **검토 대기: 아키텍처 설계 승인 필요**
+  - [ ] 핵심 기능 구현 (입금/게임/인출)
 
 ---
 
 ## [Done] (최근 완료)
+
+- [x] **[리팩토링] MVP v1 레거시 코드 아카이빙 (2025-11-01)**
+  - **배경**: 여러 RPC 방식(Ankr, TonCenter v2/v3)과 스마트 컨트랙트 방식이 혼재되어 오류 추적 및 디버깅이 어려움
+  - **작업**: `archive/legacy-code/mvp-v1-backup-20251101/` 로 전체 코드베이스 백업
+  - **아카이빙 대상**: 
+    - 백엔드: `functions/`
+    - 프론트엔드: `src/`, `public/`, `index.html`
+    - 설정: `package.json`, `tsconfig.json`, `vite.config.ts`, `wrangler.toml` 등
+    - 유틸리티: `scripts/`, `wallet-tools/`
+  - **보존**: `docs/`, `PoC/`, `archive/`, `.git/`, `README.md`, `kanban.md`
+  - **다음 단계**: 클린 아키텍처로 MVP v2 재구축
 
 - [x] **[버그] TonCenter v3 API `Method Not Allowed` 오류 수정 → v2로 전환 (v2.4.0) (2025-11-01)**
   - **원인**: TonCenter v3 API의 `/message` 엔드포인트가 `Method Not Allowed` 오류 발생. v3 API 불안정.
