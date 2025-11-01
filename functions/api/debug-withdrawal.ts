@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
-import { keyPairFromSecretKey } from '@ton/crypto';
 import { WalletContractV5R1, Address } from '@ton/ton';
+import { isMnemonicValid, validateAndConvertMnemonic } from './mnemonic-utils';
 
 /**
  * GET /api/debug-withdrawal
@@ -29,10 +29,23 @@ interface Env {
   GAME_WALLET_PRIVATE_KEY: string;
   GAME_WALLET_ADDRESS: string;
   CSPIN_TOKEN_ADDRESS: string;
+  TONCENTER_API_KEY?: string;
 }
 
 export async function onRequestGet(context: { request: Request; env: Env }): Promise<Response> {
   const { env } = context;
+
+  // 디버그: 환경변수 전체 확인
+  console.log('[debug-withdrawal] 환경변수 디버그:');
+  console.log(`  - context.env 존재: ${!!env}`);
+  if (env) {
+    console.log(`  - 환경변수 키 개수: ${Object.keys(env).length}`);
+    console.log(`  - 환경변수 키 목록:`, Object.keys(env));
+    console.log(`  - GAME_WALLET_PRIVATE_KEY 존재: ${!!env.GAME_WALLET_PRIVATE_KEY}`);
+    console.log(`  - GAME_WALLET_ADDRESS 존재: ${!!env.GAME_WALLET_ADDRESS}`);
+    console.log(`  - TONCENTER_API_KEY 존재: ${!!(env as any).TONCENTER_API_KEY}`);
+    console.log(`  - CSPIN_TOKEN_ADDRESS 존재: ${!!env.CSPIN_TOKEN_ADDRESS}`);
+  }
 
   try {
     // ✅ 주소 정규화 함수 (EQ... ↔ UQ... 변환)
@@ -43,59 +56,79 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
         return addr; // 파싱 실패 시 원본 반환
       }
     };
-    // ⚠️ keyPairFromSecretKey는 64바이트(128자 hex) secret key를 요구합니다
-    const hasPrivateKey = !!env.GAME_WALLET_PRIVATE_KEY && env.GAME_WALLET_PRIVATE_KEY.length === 128;
-    const privateKeyMasked = hasPrivateKey 
-      ? `${env.GAME_WALLET_PRIVATE_KEY.substring(0, 8)}...${env.GAME_WALLET_PRIVATE_KEY.substring(120)}` 
+    
+    // ⚠️ 변경: GAME_WALLET_PRIVATE_KEY는 이제 니모닉(24 단어)입니다
+    const hasMnemonic = !!env.GAME_WALLET_PRIVATE_KEY;
+    const mnemonicWordCount = hasMnemonic 
+      ? env.GAME_WALLET_PRIVATE_KEY.trim().split(/\s+/).length 
+      : 0;
+    const mnemonicMasked = hasMnemonic 
+      ? `${env.GAME_WALLET_PRIVATE_KEY.trim().split(/\s+/).slice(0, 3).join(' ')}... (${mnemonicWordCount} words)` 
       : '❌ NOT SET';
 
     // 1. 환경변수 기본 확인
     const diagnostics: any = {
       timestamp: new Date().toISOString(),
       environment: {
-        hasPrivateKey,
-        privateKeyMasked,
-        privateKeyLength: env.GAME_WALLET_PRIVATE_KEY?.length || 0,
+        hasMnemonic,
+        mnemonicMasked,
+        mnemonicWordCount,
         gameWalletAddress: env.GAME_WALLET_ADDRESS || '❌ NOT SET',
-        cspinTokenAddress: env.CSPIN_TOKEN_ADDRESS || '❌ NOT SET'
+        cspinTokenAddress: env.CSPIN_TOKEN_ADDRESS || '❌ NOT SET',
+        tonCenterApiKey: (env as any).TONCENTER_API_KEY ? '✅ SET' : '❌ NOT SET',
+        tonCenterApiKeyLength: (env as any).TONCENTER_API_KEY?.length || 0
       },
       status: {
-        privateKeyValid: hasPrivateKey,
+        mnemonicValid: hasMnemonic && mnemonicWordCount === 24,
         gameWalletValid: !!env.GAME_WALLET_ADDRESS,
-        cspinTokenValid: !!env.CSPIN_TOKEN_ADDRESS
+        cspinTokenValid: !!env.CSPIN_TOKEN_ADDRESS,
+        tonCenterApiKeyValid: !!(env as any).TONCENTER_API_KEY
       }
     };
 
-    // 2. 개인키가 있다면 게임 지갱 주소 계산
-    if (hasPrivateKey && env.GAME_WALLET_ADDRESS) {
+    // 2. 니모닉이 있다면 게임 지갑 주소 계산
+    if (hasMnemonic && env.GAME_WALLET_ADDRESS) {
       try {
-        const keyPair = keyPairFromSecretKey(Buffer.from(env.GAME_WALLET_PRIVATE_KEY, 'hex'));
-        const gameWallet = WalletContractV5R1.create({
-          publicKey: keyPair.publicKey,
-          workchain: 0
-        });
-
-        const calculatedAddress = gameWallet.address.toString();
+        // 니모닉 유효성 검증
+        const isValid = await isMnemonicValid(env.GAME_WALLET_PRIVATE_KEY);
         
-        // ✅ 주소 정규화 비교 (EQ... vs UQ... 형식 차이 무시)
-        const normalizedCalculated = normalizeAddress(calculatedAddress);
-        const normalizedEnv = normalizeAddress(env.GAME_WALLET_ADDRESS);
-        const addressMatch = normalizedCalculated === normalizedEnv;
+        if (!isValid) {
+          const mnemonic = env.GAME_WALLET_PRIVATE_KEY.trim().split(/\s+/);
+          diagnostics.mnemonicError = {
+            error: '유효하지 않은 니모닉: BIP39 검증 실패',
+            wordCount: mnemonic.length,
+            note: '니모닉이 올바른 BIP39 단어 목록이 아닙니다.'
+          };
+        } else {
+          // 니모닉을 키 쌍으로 변환
+          const keyPair = await validateAndConvertMnemonic(env.GAME_WALLET_PRIVATE_KEY);
+          const gameWallet = WalletContractV5R1.create({
+            publicKey: keyPair.publicKey,
+            workchain: 0
+          });
 
-        diagnostics.gameWallet = {
-          publicKeyMasked: `${keyPair.publicKey.toString('hex').substring(0, 16)}...${keyPair.publicKey.toString('hex').substring(120)}`,
-          address: calculatedAddress,
-          workchain: 0
-        };
+          const calculatedAddress = gameWallet.address.toString();
+          
+          // ✅ 주소 정규화 비교 (EQ... vs UQ... 형식 차이 무시)
+          const normalizedCalculated = normalizeAddress(calculatedAddress);
+          const normalizedEnv = normalizeAddress(env.GAME_WALLET_ADDRESS);
+          const addressMatch = normalizedCalculated === normalizedEnv;
 
-        diagnostics.addressMatch = {
-          match: addressMatch,
-          envAddress: env.GAME_WALLET_ADDRESS,
-          calculatedAddress: calculatedAddress,
-          note: addressMatch 
-            ? '✅ 개인키와 주소가 일치합니다 (형식 무관)' 
-            : '❌ 경고: 개인키와 주소가 불일치! 개인키를 다시 확인하세요'
-        };
+          diagnostics.gameWallet = {
+            publicKeyMasked: `${keyPair.publicKey.toString('hex').substring(0, 16)}...`,
+            address: calculatedAddress,
+            workchain: 0
+          };
+
+          diagnostics.addressMatch = {
+            match: addressMatch,
+            envAddress: env.GAME_WALLET_ADDRESS,
+            calculatedAddress: calculatedAddress,
+            note: addressMatch 
+              ? '✅ 니모닉과 주소가 일치합니다 (형식 무관)' 
+              : '❌ 경고: 니모닉과 주소가 불일치! 니모닉을 다시 확인하세요'
+          };
+        }
 
         // 3. KV에서 최근 정보 조회
         try {
@@ -118,15 +151,15 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
         }
 
         console.log('[debug-withdrawal] 진단 완료:', {
-          addressMatch,
-          hasPrivateKey,
+          addressMatch: diagnostics.addressMatch?.match,
+          hasMnemonic,
           timestamp: diagnostics.timestamp
         });
 
       } catch (keyError) {
         diagnostics.keyError = {
           error: keyError instanceof Error ? keyError.message : JSON.stringify(keyError),
-          note: '개인키를 파싱하는 중 오류 발생. 개인키 형식을 확인하세요 (128자 16진수).'
+          note: '니모닉을 파싱하는 중 오류 발생. 니모닉 형식을 확인하세요 (24단어, 공백으로 구분).'
         };
       }
     }

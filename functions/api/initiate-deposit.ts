@@ -1,19 +1,6 @@
 import '../_bufferPolyfill';
-import { keyPairFromSecretKey } from '@ton/crypto';
 import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode } from '@ton/ton';
-
-// Cloudflare Functions 환경에서는 Node's Buffer가 항상 존재하지 않습니다.
-// 작은 헥스 -> Uint8Array 변환 유틸을 사용해 Buffer 의존성을 제거합니다.
-function hexToBytes(hex: string): Uint8Array {
-  if (!hex) return new Uint8Array();
-  const normalized = hex.startsWith('0x') ? hex.slice(2) : hex;
-  const len = normalized.length;
-  const bytes = new Uint8Array(Math.ceil(len / 2));
-  for (let i = 0; i < len; i += 2) {
-    bytes[i / 2] = parseInt(normalized.substr(i, 2), 16);
-  }
-  return bytes;
-}
+import { getKeyPairAndWallet } from './mnemonic-utils';
 
 interface UserState {
   credit: number;
@@ -129,18 +116,16 @@ export const onRequest = async (context: any) => {
     const GAME_WALLET_ADDRESS = 'UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd';
 
     // Get environment variables
-    const gameWalletPrivateKeyHex = context.env.GAME_WALLET_PRIVATE_KEY as string;
-    if (!gameWalletPrivateKeyHex) {
+    const gameWalletMnemonic = context.env.GAME_WALLET_PRIVATE_KEY as string;
+    if (!gameWalletMnemonic) {
       return new Response(
         JSON.stringify({ success: false, error: '게임 지갑 설정이 누락되었습니다.' }),
         { status: 500 }
       );
     }
 
-    // Create game wallet
-    const privateKeyBytes = hexToBytes(gameWalletPrivateKeyHex);
-    const keyPair = keyPairFromSecretKey(Buffer.from(privateKeyBytes));
-    const gameWallet = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    // Convert mnemonic to keypair and wallet
+    const { keyPair, wallet: gameWallet } = await getKeyPairAndWallet(gameWalletMnemonic);
 
     // Get jetton wallet address for game wallet
     const gameJettonWalletAddress = await retry(() =>
