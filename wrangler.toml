@@ -2,12 +2,12 @@
 name = "candlespinner-workers-api"
 main = "functions/_worker.ts"
 compatibility_date = "2024-11-01"
+node_compat = true
 
 ***REMOVED***KV Namespace (크레딧 저장소)
 [[kv_namespaces]]
 binding = "CREDIT_KV"
-id = "your-kv-namespace-id"
-preview_id = "your-preview-kv-namespace-id"
+id = "0190e4e479144180a5e0ee7bd47b959b"
 
 ***REMOVED***환경 변수 (실제 값은 Cloudflare Dashboard에서 설정)
 [env.production]
