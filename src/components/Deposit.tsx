@@ -62,6 +62,24 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       logger.info(`입금 금액: ${depositAmount} CSPIN`);
       logger.info(`사용자 지갑: ${walletAddress}`);
       logger.info(`게임 지갑: ${GAME_WALLET_ADDRESS}`);
+      logger.info(`CSPIN Token Master: ${import.meta.env.VITE_CSPIN_TOKEN_ADDRESS}`);
+
+      // ⚠️ 긴급: Jetton Wallet 주소 확인
+      if (!CSPIN_JETTON_WALLET || CSPIN_JETTON_WALLET.length === 0) {
+        const errorMsg = 
+          '❌ 입금 기능이 아직 설정되지 않았습니다.\n\n' +
+          '관리자가 다음 작업을 완료해야 합니다:\n' +
+          '1. 게임 지갑의 CSPIN Jetton Wallet 주소 계산\n' +
+          '2. VITE_CSPIN_JETTON_WALLET 환경변수 설정\n\n' +
+          '계산 방법:\n' +
+          `- Jetton Master: ${import.meta.env.VITE_CSPIN_TOKEN_ADDRESS}\n` +
+          `- Owner Address: ${GAME_WALLET_ADDRESS}\n` +
+          '- get_wallet_address() 메서드 호출';
+        
+        logger.error('Jetton Wallet 주소 미설정');
+        throw new Error(errorMsg);
+      }
+
       logger.info(`CSPIN Jetton Wallet: ${CSPIN_JETTON_WALLET}`);
 
       // 주소 파싱 및 변환
@@ -91,13 +109,29 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       logger.debug(`페이로드 생성 완료 (base64): ${payloadBase64.substring(0, 50)}...`);
 
       // ✅ TON Connect는 raw format (non-bounceable, URL-safe) 주소 요구
-      const jettonWalletRaw = Address.parse(CSPIN_JETTON_WALLET)
-        .toString({ urlSafe: true, bounceable: false });
-
-      logger.info('TON Connect 주소 형식:', {
-        original: CSPIN_JETTON_WALLET,
-        converted: jettonWalletRaw,
-      });
+      // ⚠️ 임시: Jetton Wallet 주소 검증 및 변환
+      let jettonWalletRaw: string;
+      
+      try {
+        // 먼저 주소 파싱 시도
+        const jettonAddr = Address.parse(CSPIN_JETTON_WALLET);
+        jettonWalletRaw = jettonAddr.toString({ urlSafe: true, bounceable: false });
+        
+        logger.info('TON Connect 주소 형식:', {
+          original: CSPIN_JETTON_WALLET,
+          converted: jettonWalletRaw,
+        });
+      } catch (addrError) {
+        logger.error('Jetton Wallet 주소 파싱 실패:', addrError);
+        
+        // ⚠️ 긴급 대안: 사용자의 Jetton Wallet을 동적으로 계산해야 함
+        // 현재는 게임 지갑 주소를 사용 (임시)
+        throw new Error(
+          'CSPIN Jetton Wallet 주소가 올바르지 않습니다.\n' +
+          '관리자에게 문의하세요.\n' +
+          `오류: ${addrError instanceof Error ? addrError.message : String(addrError)}`
+        );
+      }
 
       // TON Connect 트랜잭션 (MVP v1 방식)
       const transaction = {
