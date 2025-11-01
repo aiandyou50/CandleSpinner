@@ -1,7 +1,7 @@
 import '../_bufferPolyfill';
-import { mnemonicToPrivateKey, mnemonicValidate } from '@ton/crypto';
 import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode, Cell } from '@ton/ton';
 import { AnkrRpc, SeqnoManager } from './rpc-utils';
+import { getKeyPairAndWallet } from './mnemonic-utils';
 
 /**
  * POST /api/initiate-withdrawal (v3 - 단순화 버전)
@@ -61,24 +61,10 @@ async function withdrawViaRpc(
     throw new Error('게임 지갑 설정 오류: 필수 환경 변수 누락 (GAME_WALLET_PRIVATE_KEY, GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS)');
   }
 
-  // 니모닉을 키 쌍으로 변환
+  // 니모닉을 키 쌍 및 지갑으로 변환
   console.log(`[RPC] 니모닉을 키 쌍으로 변환 중...`);
-  const mnemonic = gameWalletMnemonic.trim().split(/\s+/);
-  
-  // 니모닉 유효성 검증
-  const isValid = await mnemonicValidate(mnemonic);
-  if (!isValid) {
-    throw new Error('유효하지 않은 니모닉: BIP39 검증 실패');
-  }
-  
-  const keyPair = await mnemonicToPrivateKey(mnemonic);
+  const { keyPair, wallet: gameWallet } = await getKeyPairAndWallet(gameWalletMnemonic);
   console.log(`[RPC] 키 쌍 변환 완료`);
-
-  // 게임 지갑 생성
-  const gameWallet = WalletContractV5R1.create({
-    publicKey: keyPair.publicKey,
-    workchain: 0
-  });
 
   console.log(`[RPC] 게임 지갑: ${gameWallet.address.toString()}`);
 

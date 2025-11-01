@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
-import { mnemonicToPrivateKey, mnemonicValidate } from '@ton/crypto';
 import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode } from '@ton/ton';
+import { getKeyPairAndWallet } from './mnemonic-utils';
 
 interface UserState {
   credit: number;
@@ -124,20 +124,8 @@ export const onRequest = async (context: any) => {
       );
     }
 
-    // Convert mnemonic to keypair
-    const mnemonic = gameWalletMnemonic.trim().split(/\s+/);
-    
-    // Validate mnemonic
-    const isValid = await mnemonicValidate(mnemonic);
-    if (!isValid) {
-      return new Response(
-        JSON.stringify({ success: false, error: '유효하지 않은 니모닉입니다.' }),
-        { status: 500 }
-      );
-    }
-    
-    const keyPair = await mnemonicToPrivateKey(mnemonic);
-    const gameWallet = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 });
+    // Convert mnemonic to keypair and wallet
+    const { keyPair, wallet: gameWallet } = await getKeyPairAndWallet(gameWalletMnemonic);
 
     // Get jetton wallet address for game wallet
     const gameJettonWalletAddress = await retry(() =>

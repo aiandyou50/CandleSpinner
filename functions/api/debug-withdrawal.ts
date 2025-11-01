@@ -1,6 +1,6 @@
 import '../_bufferPolyfill';
-import { mnemonicToPrivateKey, mnemonicValidate } from '@ton/crypto';
 import { WalletContractV5R1, Address } from '@ton/ton';
+import { isMnemonicValid, validateAndConvertMnemonic } from './mnemonic-utils';
 
 /**
  * GET /api/debug-withdrawal
@@ -73,13 +73,11 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
     // 2. 니모닉이 있다면 게임 지갑 주소 계산
     if (hasMnemonic && env.GAME_WALLET_ADDRESS) {
       try {
-        // 니모닉을 배열로 분할
-        const mnemonic = env.GAME_WALLET_PRIVATE_KEY.trim().split(/\s+/);
-        
         // 니모닉 유효성 검증
-        const isValid = await mnemonicValidate(mnemonic);
+        const isValid = await isMnemonicValid(env.GAME_WALLET_PRIVATE_KEY);
         
         if (!isValid) {
+          const mnemonic = env.GAME_WALLET_PRIVATE_KEY.trim().split(/\s+/);
           diagnostics.mnemonicError = {
             error: '유효하지 않은 니모닉: BIP39 검증 실패',
             wordCount: mnemonic.length,
@@ -87,7 +85,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
           };
         } else {
           // 니모닉을 키 쌍으로 변환
-          const keyPair = await mnemonicToPrivateKey(mnemonic);
+          const keyPair = await validateAndConvertMnemonic(env.GAME_WALLET_PRIVATE_KEY);
           const gameWallet = WalletContractV5R1.create({
             publicKey: keyPair.publicKey,
             workchain: 0
