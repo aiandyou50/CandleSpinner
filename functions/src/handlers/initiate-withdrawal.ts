@@ -1,14 +1,14 @@
 import '../../_bufferPolyfill';
 import { WalletContractV5R1, internal, beginCell, toNano, Address, SendMode, Cell } from '@ton/ton';
-import { TonCenterV3Rpc, SeqnoManager } from '../lib/rpc-utils';
+import { TonCenterV2Rpc, SeqnoManager } from '../lib/rpc-utils';
 import { getKeyPairAndWallet } from '../lib/mnemonic-utils';
 
 /**
- * POST /api/initiate-withdrawal (v2.3.0 - TonCenter v3)
+ * POST /api/initiate-withdrawal (v2.4.0 - TonCenter v2)
  * 
- * ✅ v2.3.0 변경사항:
- * 1. Ankr RPC → TonCenter v3 API로 교체
- * 2. 환경 변수 TONCENTER_API_KEY 사용
+ * ✅ v2.4.0 변경사항:
+ * 1. TonCenter v3 → v2 API로 변경 (안정성 개선)
+ * 2. /api/v2/sendBoc 엔드포인트 사용
  * 3. RPC 직접 전송 방식 유지 (게임 지갑 서명)
  * 4. 오류 메시지 명확화
  */
@@ -41,10 +41,10 @@ function buildJettonTransferPayload(
 }
 
 // ============================================================================
-// 2. RPC 방식 인출 (게임 지갑에서 서명) - TonCenter v3
+// 2. RPC 방식 인출 (게임 지갑에서 서명) - TonCenter v2
 // ============================================================================
 async function withdrawViaRpc(
-  rpc: TonCenterV3Rpc,
+  rpc: TonCenterV2Rpc,
   env: any,
   walletAddress: string,
   withdrawalAmount: number,
@@ -220,7 +220,7 @@ export async function onRequestPost(context: any) {
     env = context.env;
 
     // 디버그: context 구조 확인
-    console.log('[인출-v2.3.0] 함수 시작 - context 디버그:');
+    console.log('[인출-v2.4.0] 함수 시작 - context 디버그:');
     console.log(`  - context 존재: ${!!context}`);
     console.log(`  - context.env 존재: ${!!context.env}`);
     console.log(`  - context 키들:`, Object.keys(context || {}));
@@ -254,7 +254,7 @@ export async function onRequestPost(context: any) {
       );
     }
 
-    console.log(`[인출-v2.3.0] 요청: ${walletAddress}, ${withdrawalAmount} CSPIN, RPC 모드`);
+    console.log(`[인출-v2.4.0] 요청: ${walletAddress}, ${withdrawalAmount} CSPIN, RPC 모드`);
 
     // ✅ 변경: userJettonWalletAddress를 직접 사용 또는 고정값 사용
     // 임시: 고정값 사용 (실제로는 프론트에서 계산하여 전달해야 함)
@@ -269,9 +269,9 @@ export async function onRequestPost(context: any) {
       );
     }
 
-    // TonCenter v3 RPC 초기화
+    // TonCenter v2 RPC 초기화
     // 디버그: 환경변수 확인
-    console.log('[인출-v2.3.0] 환경변수 디버그:');
+    console.log('[인출-v2.4.0] 환경변수 디버그:');
     console.log(`  - TONCENTER_API_KEY 존재: ${!!env.TONCENTER_API_KEY}`);
     console.log(`  - TONCENTER_API_KEY 타입: ${typeof env.TONCENTER_API_KEY}`);
     console.log(`  - TONCENTER_API_KEY 길이: ${env.TONCENTER_API_KEY?.length || 0}`);
@@ -279,8 +279,8 @@ export async function onRequestPost(context: any) {
     
     const tonCenterApiKey = env.TONCENTER_API_KEY;
     if (!tonCenterApiKey) {
-      console.error('[인출-v2.3.0] ❌ TONCENTER_API_KEY 없음!');
-      console.error('[인출-v2.3.0] 사용 가능한 환경변수:', Object.keys(env || {}));
+      console.error('[인출-v2.4.0] ❌ TONCENTER_API_KEY 없음!');
+      console.error('[인출-v2.4.0] 사용 가능한 환경변수:', Object.keys(env || {}));
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -295,8 +295,8 @@ export async function onRequestPost(context: any) {
       );
     }
     
-    const rpc = new TonCenterV3Rpc(tonCenterApiKey);
-    console.log(`[인출-v2.3.0] TonCenter v3 RPC 초기화 완료`);
+    const rpc = new TonCenterV2Rpc(tonCenterApiKey);
+    console.log(`[인출-v2.4.0] TonCenter v2 RPC 초기화 완료`);
 
     // KV에서 사용자 상태 조회
     const stateKey = `state:${walletAddress}`;
@@ -345,7 +345,7 @@ export async function onRequestPost(context: any) {
       { expirationTtl: 86400 * 7 }
     );
 
-    console.log(`[인출-v2.3.0] ✅ 완료: ${walletAddress} -${withdrawalAmount} CSPIN`);
+    console.log(`[인출-v2.4.0] ✅ 완료: ${walletAddress} -${withdrawalAmount} CSPIN`);
 
     return new Response(
       JSON.stringify({
@@ -362,8 +362,8 @@ export async function onRequestPost(context: any) {
     const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
     const errorStack = error instanceof Error ? error.stack : 'No stack trace';
     
-    console.error('[인출-v2.3.0] ❌ 오류:', errorMessage);
-    console.error('[인출-v2.3.0] 스택:', errorStack);
+    console.error('[인출-v2.4.0] ❌ 오류:', errorMessage);
+    console.error('[인출-v2.4.0] 스택:', errorStack);
 
     return new Response(
       JSON.stringify({
