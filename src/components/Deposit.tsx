@@ -9,6 +9,8 @@ import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell, toNano } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
 import { GAME_WALLET_ADDRESS, CSPIN_JETTON_WALLET } from '@/constants';
+import { logger } from '@/utils/logger';
+import { DebugLogModal } from './DebugLogModal';
 
 interface DepositProps {
   walletAddress: string;
@@ -44,6 +46,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
   const [amount, setAmount] = useState('10');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDebugLog, setShowDebugLog] = useState(false);
 
   const handleDeposit = async () => {
     try {
@@ -55,13 +58,13 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         throw new Error('잘못된 금액입니다');
       }
 
-      console.log('=== Deposit 시작 ===');
-      console.log('입금 금액:', depositAmount, 'CSPIN');
-      console.log('사용자 지갑:', walletAddress);
-      console.log('게임 지갑:', GAME_WALLET_ADDRESS);
-      console.log('CSPIN Jetton Wallet:', CSPIN_JETTON_WALLET);
+      logger.info('=== Deposit 시작 ===');
+      logger.info(`입금 금액: ${depositAmount} CSPIN`);
+      logger.info(`사용자 지갑: ${walletAddress}`);
+      logger.info(`게임 지갑: ${GAME_WALLET_ADDRESS}`);
+      logger.info(`CSPIN Jetton Wallet: ${CSPIN_JETTON_WALLET}`);
 
-      // 주소 파싱 (MVP v1 방식: raw format, non-bounceable)
+      // 주소 파싱 및 변환
       let gameWalletAddress: Address;
       let responseAddress: Address;
       
@@ -69,61 +72,68 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         gameWalletAddress = Address.parse(GAME_WALLET_ADDRESS);
         responseAddress = Address.parse(walletAddress);
         
-        console.log('파싱된 게임 지갑:', gameWalletAddress.toString());
-        console.log('파싱된 응답 지갑:', responseAddress.toString());
+        logger.debug('파싱된 게임 지갑 (기본):', gameWalletAddress.toString());
+        logger.debug('파싱된 응답 지갑 (기본):', responseAddress.toString());
       } catch (err) {
-        console.error('주소 파싱 오류:', err);
+        logger.error('주소 파싱 오류:', err);
         throw new Error('주소 형식이 올바르지 않습니다');
       }
 
       // Jetton Transfer 페이로드 생성 (MVP v1 방식)
       const amountNano = BigInt(Math.floor(depositAmount * 1_000_000_000));
-      console.log('nano 단위 금액:', amountNano.toString());
+      logger.debug(`nano 단위 금액: ${amountNano.toString()}`);
 
       const payloadBase64 = buildJettonTransferPayload(
         amountNano,
         gameWalletAddress,
         responseAddress
       );
-      console.log('페이로드 생성 완료 (base64):', payloadBase64.substring(0, 50) + '...');
+      logger.debug(`페이로드 생성 완료 (base64): ${payloadBase64.substring(0, 50)}...`);
+
+      // ✅ TON Connect는 raw format (non-bounceable, URL-safe) 주소 요구
+      const jettonWalletRaw = Address.parse(CSPIN_JETTON_WALLET)
+        .toString({ urlSafe: true, bounceable: false });
+
+      logger.info('TON Connect 주소 형식:', {
+        original: CSPIN_JETTON_WALLET,
+        converted: jettonWalletRaw,
+      });
 
       // TON Connect 트랜잭션 (MVP v1 방식)
-      // ✅ validUntil: 현재 시간 + 5분 (300초)
-      // ✅ 주소: raw format (non-bounceable)
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5분
         messages: [
           {
-            address: CSPIN_JETTON_WALLET,
-            amount: toNano('0.05').toString(), // ✅ 0.05 TON으로 감소
+            address: jettonWalletRaw, // ✅ raw format 사용
+            amount: toNano('0.05').toString(),
             payload: payloadBase64,
           },
         ],
       };
 
-      console.log('트랜잭션 전송:', {
+      logger.debug('트랜잭션 전송:', {
         validUntil: transaction.validUntil,
         currentTime: Math.floor(Date.now() / 1000),
         timeDiff: transaction.validUntil - Math.floor(Date.now() / 1000),
-        address: CSPIN_JETTON_WALLET,
+        address: jettonWalletRaw,
         amount: transaction.messages[0]?.amount || '0',
       });
 
       const result = await tonConnectUI.sendTransaction(transaction);
-      console.log('트랜잭션 결과:', result);
+      logger.info('트랜잭션 결과:', result);
       
       // 트랜잭션 해시
       const txHash = result.boc;
 
       // 백엔드에 입금 확인 요청
-      console.log('백엔드 입금 확인 요청...');
+      logger.info('백엔드 입금 확인 요청...');
       await verifyDeposit({ walletAddress, txHash });
 
-      console.log('=== Deposit 완료 ===');
+      logger.info('=== Deposit 완료 ===');
       alert(`${depositAmount} CSPIN 입금이 완료되었습니다!`);
       onSuccess();
     } catch (err) {
-      console.error('Deposit 실패:', err);
+      logger.error('Deposit 실패:', err);
       setError(err instanceof Error ? err.message : '입금에 실패했습니다');
     } finally {
       setIsLoading(false);
@@ -131,33 +141,46 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
   };
 
   return (
-    <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
-      <h3 className="text-2xl font-bold text-white mb-4">💰 CSPIN 입금</h3>
-      
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm text-gray-300 mb-2">금액 (CSPIN)</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
-            placeholder="10"
-          />
+    <>
+      <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
+        <h3 className="text-2xl font-bold text-white mb-4">💰 CSPIN 입금</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-gray-300 mb-2">금액 (CSPIN)</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              placeholder="10"
+            />
+          </div>
+
+          <button
+            onClick={handleDeposit}
+            disabled={isLoading}
+            className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
+          >
+            {isLoading ? '처리 중...' : '입금하기'}
+          </button>
+
+          {/* 디버그 로그 버튼 */}
+          <button
+            onClick={() => setShowDebugLog(true)}
+            className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-xl text-sm text-white transition"
+          >
+            🐛 디버그 로그 보기
+          </button>
+
+          {error && (
+            <div className="text-red-400 text-sm text-center">{error}</div>
+          )}
         </div>
-
-        <button
-          onClick={handleDeposit}
-          disabled={isLoading}
-          className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
-        >
-          {isLoading ? '처리 중...' : '입금하기'}
-        </button>
-
-        {error && (
-          <div className="text-red-400 text-sm text-center">{error}</div>
-        )}
       </div>
-    </div>
+
+      {/* 디버그 로그 모달 */}
+      <DebugLogModal isOpen={showDebugLog} onClose={() => setShowDebugLog(false)} />
+    </>
   );
 }
