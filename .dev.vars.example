@@ -1,0 +1,34 @@
+# Wrangler 로컬 개발용 환경변수
+# 이 파일을 .dev.vars로 복사하고 실제 값을 입력하세요
+# .dev.vars는 절대 커밋하지 마세요! (.gitignore에 추가됨)
+
+# ===== SECRET 변수 =====
+# TonCenter API Key (https://toncenter.com에서 발급)
+TONCENTER_API_KEY=your_toncenter_api_key_here
+
+# 게임 운영 지갑 니모닉 (24단어)
+GAME_WALLET_MNEMONIC=word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24
+
+# ===== PUBLIC 변수 =====
+# 게임 운영 지갑 주소
+GAME_WALLET_ADDRESS=UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd
+
+# CSPIN Jetton Master 주소
+CSPIN_JETTON_MASTER=EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV
+
+# 게임의 Jetton Wallet 주소
+CSPIN_JETTON_WALLET=EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs
+
+# ===== 사용 방법 =====
+# 1. 이 파일을 .dev.vars로 복사:
+#    cp .dev.vars.example .dev.vars
+#
+# 2. .dev.vars 파일을 열고 실제 값 입력
+#
+# 3. 로컬 개발 서버 실행:
+#    npx wrangler dev
+#
+# 4. 환경변수는 env 객체로 접근:
+#    env.TONCENTER_API_KEY
+#    env.GAME_WALLET_MNEMONIC
+#    등등

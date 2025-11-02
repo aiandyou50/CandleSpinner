@@ -10,11 +10,11 @@ import { Buffer } from 'buffer';
 export interface Env {
   ASSETS: Fetcher;
   CREDIT_KV: KVNamespace;
-  GAME_WALLET_MNEMONIC: string;  // ✅ 수정: MNEMONI → MNEMONIC
+  GAME_WALLET_MNEMONIC: string;
   GAME_WALLET_ADDRESS: string;
   CSPIN_JETTON_MASTER: string;
-  // CSPIN_JETTON_WALLET 제거 (동적 계산으로 대체)
-  TONCENTER_API_KEY?: string;  // ✅ Cloudflare 환경 변수명과 일치
+  CSPIN_JETTON_WALLET: string;  // ✅ 게임의 Jetton Wallet 주소
+  TONCENTER_API_KEY?: string;
 }
 
 export default {
@@ -26,6 +26,7 @@ export default {
     console.log('[Env Check] GAME_WALLET_MNEMONIC exists:', !!env.GAME_WALLET_MNEMONIC);
     console.log('[Env Check] GAME_WALLET_ADDRESS:', env.GAME_WALLET_ADDRESS || 'NOT SET');
     console.log('[Env Check] CSPIN_JETTON_MASTER:', env.CSPIN_JETTON_MASTER || 'NOT SET');
+    console.log('[Env Check] CSPIN_JETTON_WALLET:', env.CSPIN_JETTON_WALLET || 'NOT SET');
     
     // CORS 헤더 (TON Connect 호환)
     const corsHeaders = {
