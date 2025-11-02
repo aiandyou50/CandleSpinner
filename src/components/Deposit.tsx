@@ -19,10 +19,9 @@ interface DepositProps {
 
 /**
  * Jetton Transfer Payload 구성 (TEP-74 표준 준수)
- * forward_ton_amount = 0.005 TON (5,000,000 nanoton)
- * - Jetton Wallet 간 메시지 전달 비용
- * - 알림(notification) 전송 비용
- * - 최소 권장값: 0.05 TON이지만 0.005 TON으로 최적화
+ * forward_ton_amount = 1 nanoton (MVP 검증된 값)
+ * - Jetton Wallet 간 메시지 전달에 필요한 최소 비용
+ * - TON 표준 준수: 1 nanoton이면 충분
  * 
  * @see https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
  */
@@ -38,7 +37,7 @@ function buildJettonTransferPayload(
     .storeAddress(destination)     // destination:MsgAddress
     .storeAddress(responseTo)      // response_destination:MsgAddress
     .storeBit(0)                   // custom_payload:(Maybe ^Cell) = none
-    .storeCoins(toNano('0.005'))   // ✅ forward_ton_amount = 0.005 TON (5,000,000 nanoton)
+    .storeCoins(BigInt(1))         // ✅ forward_ton_amount = 1 nanoton (MVP 검증값)
     .storeBit(0)                   // forward_payload:(Either Cell ^Cell) = none
     .endCell();
   return cell.toBoc().toString('base64');
@@ -157,15 +156,17 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       }
 
       // 주소 파싱 및 변환
-      // ✅ destination: 게임의 Jetton Wallet 주소 (게임의 TON 지갑이 아님!)
-      let gameJettonWalletAddress: Address;
+      // ✅ destination: 게임의 TON 지갑 주소 (MVP 검증된 방식)
+      //    - Jetton Transfer의 destination은 수신자의 TON 지갑 주소
+      //    - Jetton Wallet 컨트랙트가 자동으로 수신자의 Jetton Wallet을 찾아 전송
+      let gameWalletAddress: Address;
       let responseAddress: Address;
       
       try {
-        gameJettonWalletAddress = Address.parse(GAME_JETTON_WALLET);
+        gameWalletAddress = Address.parse(GAME_WALLET_ADDRESS);  // ✅ 게임의 TON 지갑
         responseAddress = Address.parse(walletAddress);
         
-        logger.debug('파싱된 게임 Jetton 지갑:', gameJettonWalletAddress.toString());
+        logger.debug('파싱된 게임 TON 지갑:', gameWalletAddress.toString());
         logger.debug('파싱된 응답 지갑 (사용자):', responseAddress.toString());
       } catch (err) {
         logger.error('주소 파싱 오류:', err);
@@ -173,26 +174,27 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       }
 
       // Jetton Transfer 페이로드 생성
-      // destination: 게임의 Jetton Wallet (EQAjtIvLT_...)
+      // destination: 게임의 TON 지갑 (UQBFPDdSlPgq...)
       // response_destination: 사용자 지갑 (잉여 TON 반환용)
       const payloadBase64 = buildJettonTransferPayload(
         amountNano,
-        gameJettonWalletAddress,  // ✅ 게임의 Jetton Wallet
+        gameWalletAddress,  // ✅ 게임의 TON 지갑 (MVP 검증 방식)
         responseAddress
       );
       logger.debug(`페이로드 생성 완료 (base64): ${payloadBase64.substring(0, 50)}...`);
 
       // TON Connect 트랜잭션
-      // ✅ 사용자의 Jetton Wallet으로 전송 (게임 운영 지갑의 Jetton Wallet이 아님!)
-      // - 전체 비용: 0.03 TON (최적화)
-      //   * 0.025 TON: Jetton Wallet 컨트랙트 실행 비용
-      //   * 0.005 TON: forward_ton_amount (메시지 전달 비용)
+      // ✅ 사용자의 Jetton Wallet으로 메시지 전송 (MVP 검증 방식)
+      // - address: 사용자의 Jetton Wallet (메시지를 받는 컨트랙트)
+      // - payload 내부의 destination: 게임의 TON 지갑 (실제 토큰 수신자의 TON 주소)
+      // - Jetton Wallet 컨트랙트가 자동으로 destination의 Jetton Wallet을 찾아 전송
+      // - 전체 비용: 0.2 TON (MVP 검증된 안전한 값)
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5분
         messages: [
           {
             address: userJettonWalletRaw, // ✅ 사용자의 Jetton Wallet 주소
-            amount: toNano('0.03').toString(), // ✅ 0.025 + 0.005 = 0.03 TON
+            amount: toNano('0.2').toString(), // ✅ 0.2 TON (MVP 검증값)
             payload: payloadBase64,
           },
         ],
