@@ -71,15 +71,48 @@ export async function spin(walletAddress: string): Promise<{
  * 인출 요청
  */
 export async function withdraw(data: WithdrawRequest): Promise<WithdrawResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
+  // logger를 사용하기 위해 동적 import
+  const { logger } = await import('@/utils/logger');
   
-  if (!response.ok) {
-    throw new Error('Failed to withdraw');
+  logger.info('📡 API 요청 시작:', `${API_BASE_URL}/api/withdraw`);
+  logger.debug('요청 헤더:', { 'Content-Type': 'application/json' });
+  logger.debug('요청 본문:', data);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    
+    logger.info(`API 응답 상태: ${response.status} ${response.statusText}`);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error('❌ API 오류 응답:', errorText);
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        logger.error('파싱된 오류:', errorJson);
+        throw new Error(errorJson.error || 'Failed to withdraw');
+      } catch (parseError) {
+        logger.error('오류 파싱 실패, 원본 텍스트 사용');
+        throw new Error(`Failed to withdraw: ${errorText}`);
+      }
+    }
+    
+    const result = await response.json() as WithdrawResponse;
+    logger.info('✅ API 응답 성공:', result);
+    
+    return result;
+  } catch (error) {
+    logger.error('❌ API 요청 실패:', error);
+    
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      logger.error('네트워크 오류: 서버에 연결할 수 없습니다.');
+      throw new Error('Network error: Cannot connect to server');
+    }
+    
+    throw error;
   }
-  
-  return response.json();
 }
