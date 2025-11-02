@@ -1,10 +1,12 @@
 /**
  * 관리자 인출 관리 대시보드
  * 대기 중인 인출 목록 표시 및 일괄 처리
+ * 게임 운영자 지갑만 접근 가능
  */
 
 import { useState, useEffect } from 'react';
-import { useTonConnectUI } from '@tonconnect/ui-react';
+import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
+import { useTonConnect } from '@/hooks/useTonConnect';
 import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '@/constants';
 
@@ -19,9 +21,14 @@ interface Withdrawal {
 
 export function AdminWithdrawals() {
   const [tonConnectUI] = useTonConnectUI();
+  const { isConnected, walletAddress } = useTonConnect();
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
+
+  // ✅ 게임 운영자 지갑 확인
+  const isAdminWallet = isConnected && 
+    walletAddress?.toLowerCase() === GAME_WALLET_ADDRESS.toLowerCase();
 
   // 대기 중인 인출 목록 조회
   const fetchPendingWithdrawals = async () => {
@@ -45,11 +52,13 @@ export function AdminWithdrawals() {
   };
 
   useEffect(() => {
-    fetchPendingWithdrawals();
-    // 30초마다 자동 새로고침
-    const interval = setInterval(fetchPendingWithdrawals, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isAdminWallet) {
+      fetchPendingWithdrawals();
+      // 30초마다 자동 새로고침
+      const interval = setInterval(fetchPendingWithdrawals, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAdminWallet]);
 
   // 개별 인출 처리
   const handleProcessWithdrawal = async (withdrawal: Withdrawal) => {
@@ -159,43 +168,84 @@ export function AdminWithdrawals() {
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-900 to-red-900 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-8 border border-white/20 shadow-2xl">
+          {/* 헤더 */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold text-white">
               🏦 인출 관리 대시보드
             </h2>
-            <button
-              onClick={fetchPendingWithdrawals}
-              disabled={isLoading}
-              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white transition disabled:opacity-50"
-            >
-              {isLoading ? '로딩 중...' : '🔄 새로고침'}
-            </button>
+            <TonConnectButton />
           </div>
 
-          {/* 통계 */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-              <p className="text-gray-400 text-sm">대기 중</p>
-              <p className="text-2xl font-bold text-white">{withdrawals.length}건</p>
+          {/* ✅ 게임 운영자 지갑 확인 */}
+          {!isConnected ? (
+            <div className="text-center py-12">
+              <div className="mb-6">
+                <p className="text-xl text-white mb-2">🔐 관리자 인증 필요</p>
+                <p className="text-gray-400">게임 운영자 지갑을 연결해주세요</p>
+              </div>
+              <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-sm text-yellow-200">
+                  게임 운영자 지갑 주소:
+                </p>
+                <p className="text-xs text-yellow-300 font-mono mt-2 break-all">
+                  {GAME_WALLET_ADDRESS}
+                </p>
+              </div>
             </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-              <p className="text-gray-400 text-sm">총 금액</p>
-              <p className="text-2xl font-bold text-white">
-                {withdrawals.reduce((sum, w) => sum + w.amount, 0).toFixed(2)} CSPIN
-              </p>
+          ) : !isAdminWallet ? (
+            <div className="text-center py-12">
+              <div className="mb-6">
+                <p className="text-xl text-red-400 mb-2">❌ 접근 권한 없음</p>
+                <p className="text-gray-400">이 지갑은 게임 운영자 지갑이 아닙니다</p>
+              </div>
+              <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 max-w-md mx-auto">
+                <p className="text-sm text-red-200 mb-2">현재 연결된 지갑:</p>
+                <p className="text-xs text-red-300 font-mono break-all mb-4">
+                  {walletAddress}
+                </p>
+                <p className="text-sm text-red-200 mb-2">필요한 지갑:</p>
+                <p className="text-xs text-red-300 font-mono break-all">
+                  {GAME_WALLET_ADDRESS}
+                </p>
+              </div>
             </div>
-            <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-              <p className="text-gray-400 text-sm">예상 비용</p>
-              <p className="text-2xl font-bold text-white">
-                {(withdrawals.length * 0.2).toFixed(2)} TON
-              </p>
-            </div>
-          </div>
+          ) : (
+            <>
+              {/* 새로고침 버튼 */}
+              <div className="mb-6 flex justify-end">
+                <button
+                  onClick={fetchPendingWithdrawals}
+                  disabled={isLoading}
+                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white transition disabled:opacity-50"
+                >
+                  {isLoading ? '로딩 중...' : '🔄 새로고침'}
+                </button>
+              </div>
 
-          {/* 일괄 처리 버튼 */}
-          {withdrawals.length > 0 && (
-            <button
-              onClick={handleBatchProcess}
+              {/* 통계 */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <p className="text-gray-400 text-sm">대기 중</p>
+                  <p className="text-2xl font-bold text-white">{withdrawals.length}건</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <p className="text-gray-400 text-sm">총 금액</p>
+                  <p className="text-2xl font-bold text-white">
+                    {withdrawals.reduce((sum, w) => sum + w.amount, 0).toFixed(2)} CSPIN
+                  </p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <p className="text-gray-400 text-sm">예상 비용</p>
+                  <p className="text-2xl font-bold text-white">
+                    {(withdrawals.length * 0.2).toFixed(2)} TON
+                  </p>
+                </div>
+              </div>
+
+              {/* 일괄 처리 버튼 */}
+              {withdrawals.length > 0 && (
+                <button
+                  onClick={handleBatchProcess}
               disabled={isLoading || processing !== null}
               className="w-full mb-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
             >
@@ -262,6 +312,8 @@ export function AdminWithdrawals() {
               <li>• 처리 완료 후 대기열에서 자동 제거</li>
             </ul>
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
