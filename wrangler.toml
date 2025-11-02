@@ -1,22 +1,22 @@
-***REMOVED***Cloudflare Workers 설정 (프론트엔드 + 백엔드 통합)
+# Cloudflare Workers 설정 (프론트엔드 + 백엔드 통합)
 name = "candlespinner-workers"
 compatibility_date = "2024-11-01"
 main = "src/index.ts"
 node_compat = true
 
-***REMOVED***Assets (React 빌드 결과물)
+# Assets (React 빌드 결과물)
 [assets]
 directory = "./dist"
 
-***REMOVED***KV Namespace (크레딧 저장소)
+# KV Namespace (크레딧 저장소)
 [[kv_namespaces]]
 binding = "CREDIT_KV"
 id = "0190e4e479144180a5e0ee7bd47b959b"
 
-***REMOVED***환경 변수 (Secrets는 Dashboard에서 설정됨)
-***REMOVED***✅ Cloudflare Dashboard → Workers & Pages → candlespinner-workers → Settings → Variables
-***REMOVED***GAME_WALLET_MNEMONIC (수정: MNEMONI → MNEMONIC)
-***REMOVED***GAME_WALLET_ADDRESS
-***REMOVED***CSPIN_JETTON_MASTER
-***REMOVED***TONCENTER_API_KEY (TonCenter API Key)
+# 환경 변수 (Secrets는 Dashboard에서 설정됨)
+# ✅ Cloudflare Dashboard → Workers & Pages → candlespinner-workers → Settings → Variables
+# GAME_WALLET_MNEMONIC (수정: MNEMONI → MNEMONIC)
+# GAME_WALLET_ADDRESS
+# CSPIN_JETTON_MASTER
+# TONCENTER_API_KEY (TonCenter API Key)
 
