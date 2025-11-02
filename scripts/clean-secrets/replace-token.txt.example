@@ -1,0 +1,16 @@
+# Git Filter-Repo Replace Text File Example
+# 
+# Format: OLD_SECRET==>NEW_TEXT
+# 
+# 이 파일을 복사하여 replace-token.txt로 저장하고
+# 실제 노출된 토큰 값으로 OLD_SECRET을 교체하세요
+
+# 텔레그램 봇 토큰 예시
+# YOUR_EXPOSED_TOKEN_HERE==>[REDACTED_TELEGRAM_BOT_TOKEN]
+
+# 실제 사용 예시 (이미 발견된 토큰):
+8312991368:AAF5csKvKGhVC_67Teb2Yb8Su37JQMbjfw4==>[REDACTED_TELEGRAM_BOT_TOKEN]
+
+# 추가 토큰이 있다면 줄을 추가하세요:
+# ANOTHER_SECRET_KEY==>[REDACTED_API_KEY]
+# sk-proj-xxxxxxxxxxxxx==>[REDACTED_OPENAI_KEY]
