@@ -1,0 +1,34 @@
+# Cloudflare Workers 설정 (프론트엔드 + 백엔드 통합)
+name = "candlespinner-workers"
+compatibility_date = "2024-11-01"
+main = "src/index.ts"
+compatibility_flags = ["nodejs_compat"]
+
+# Assets (React 빌드 결과물) - Workers Assets 기능
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+# KV Namespace (크레딧 저장소)
+[[kv_namespaces]]
+binding = "CREDIT_KV"
+id = "0190e4e479144180a5e0ee7bd47b959b"
+
+# ✅ 환경 변수 (Secrets) - Cloudflare Dashboard에서 설정
+# Dashboard → Workers & Pages → candlespinner-workers → Settings → Variables
+# 
+# 필수 변수:
+# - GAME_WALLET_MNEMONIC: 게임 운영 지갑 니모닉 (24단어)
+# - GAME_WALLET_ADDRESS: 게임 운영 지갑 주소
+# - CSPIN_JETTON_MASTER: CSPIN Jetton Master 주소
+# - CSPIN_JETTON_WALLET: 게임의 Jetton Wallet 주소
+# - TONCENTER_API_KEY: TonCenter API Key
+#
+# ⚠️ 주의: secrets는 wrangler.toml에 직접 작성하지 않고,
+#           'npx wrangler secret put <NAME>' 명령어 또는 Dashboard에서 설정
+
+[vars]
+# 공개 가능한 변수 (하드코딩)
+# GAME_WALLET_ADDRESS_PUBLIC = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
+# CSPIN_JETTON_MASTER_PUBLIC = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
+

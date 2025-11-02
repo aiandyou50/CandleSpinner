@@ -1,0 +1,55 @@
+***REMOVED***dependencies
+/node_modules
+/contracts/node_modules
+contracts/node_modules
+**/node_modules
+
+***REMOVED***local env files
+.env
+.env.local
+.env.production.local
+.env.*.local
+.dev.vars  # Wrangler 로컬 개발용 환경변수 (절대 커밋하지 말 것!)
+
+***REMOVED***build output
+/dist
+
+***REMOVED***logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+***REMOVED***misc
+.DS_Store
+
+***REMOVED***TON docs (downloaded for analysis, not to be committed)
+ton-docs/
+
+***REMOVED***Jetton token contract (downloaded for analysis, not to be committed)
+token-contract/
+
+***REMOVED***Latest Jetton contract (downloaded for analysis, not to be committed)
+jetton-contract/
+
+***REMOVED***TON Connect SDK (downloaded for analysis, not to be committed)
+sdk/
+
+***REMOVED***Telegram TT SDK (cloned for analysis, not to be committed)
+temp_telegram_tt/
+
+***REMOVED***Security - Never commit private keys or sensitive data
+wallet-tools/.env*
+*.private
+*.secret
+*.key
+SECURITY.md.local
+
+***REMOVED***Terminal history files
+.bash_history
+.zsh_history
+.ps_history
+
+***REMOVED***IDE
+.idea/
+.vscode/settings.json
+
