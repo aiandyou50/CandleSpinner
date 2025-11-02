@@ -109,6 +109,8 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
       });
     }
 
+    console.log('[CheckBalance] Request:', body.jettonWalletAddress);
+
     // TonCenter API 호출 (runGetMethod: get_wallet_data)
     const tonCenterUrl = 'https://toncenter.com/api/v2/runGetMethod';
     const apiKey = env.TONCENTER_API_KEY || '';
@@ -125,6 +127,8 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
         stack: []
       }),
     });
+
+    console.log('[CheckBalance] TonCenter status:', tonCenterResponse.status);
 
     if (!tonCenterResponse.ok) {
       const errorText = await tonCenterResponse.text();
@@ -145,9 +149,25 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
       result: {
         stack: Array<{ type: string; value: string }>;
       };
+      error?: string;
     };
 
+    console.log('[CheckBalance] TonCenter response:', JSON.stringify(tonCenterData));
+
     if (!tonCenterData.ok) {
+      // Jetton Wallet이 초기화되지 않은 경우 (CSPIN을 한 번도 받지 않음)
+      if (tonCenterData.error && tonCenterData.error.includes('exit code -13')) {
+        return new Response(JSON.stringify({ 
+          error: 'Jetton Wallet not initialized',
+          balance: '0',
+          balanceCSPIN: 0,
+          message: 'CSPIN 토큰을 한 번도 받지 않은 지갑입니다'
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       return new Response(JSON.stringify({ 
         error: 'Invalid TonCenter response',
         data: tonCenterData
@@ -172,6 +192,8 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
 
     const balance = balanceItem.value;
     const balanceCSPIN = Number(balance) / 1_000_000_000;
+
+    console.log('[CheckBalance] Success:', { balance, balanceCSPIN });
 
     return new Response(JSON.stringify({
       success: true,

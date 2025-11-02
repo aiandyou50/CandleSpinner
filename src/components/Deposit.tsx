@@ -100,38 +100,59 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
           body: JSON.stringify({ jettonWalletAddress: userJettonWalletRaw }),
         });
 
-        if (!balanceResponse.ok) {
-          const errorData = await balanceResponse.json() as { error?: string };
-          throw new Error(errorData.error || '잔액 확인 실패');
-        }
-
         const balanceData = await balanceResponse.json() as {
-          success: boolean;
-          balance: string;
-          balanceCSPIN: number;
+          success?: boolean;
+          balance?: string;
+          balanceCSPIN?: number;
+          error?: string;
+          message?: string;
         };
 
-        logger.info(`현재 CSPIN 잔액: ${balanceData.balanceCSPIN} CSPIN`);
+        logger.debug('잔액 확인 응답:', balanceData);
 
-        if (Number(balanceData.balance) < Number(amountNano)) {
+        // Jetton Wallet이 초기화되지 않은 경우
+        if (balanceData.error === 'Jetton Wallet not initialized') {
+          throw new Error(
+            `❌ CSPIN 토큰을 보유하고 있지 않습니다.\n\n` +
+            `먼저 CSPIN 토큰을 구매하거나 받아야 합니다.\n` +
+            `현재 잔액: 0 CSPIN\n\n` +
+            `💡 CSPIN 토큰 구매 방법:\n` +
+            `1. DEX(탈중앙화 거래소)에서 구매\n` +
+            `2. 다른 사용자에게서 전송 받기`
+          );
+        }
+
+        if (!balanceResponse.ok || !balanceData.success) {
+          throw new Error(balanceData.error || '잔액 확인 실패');
+        }
+
+        const currentBalance = Number(balanceData.balance || 0);
+        const balanceCSPIN = balanceData.balanceCSPIN || 0;
+
+        logger.info(`현재 CSPIN 잔액: ${balanceCSPIN} CSPIN`);
+
+        if (currentBalance < Number(amountNano)) {
           throw new Error(
             `❌ CSPIN 잔액이 부족합니다.\n\n` +
             `필요: ${depositAmount} CSPIN\n` +
-            `현재: ${balanceData.balanceCSPIN} CSPIN\n` +
-            `부족: ${depositAmount - balanceData.balanceCSPIN} CSPIN`
+            `현재: ${balanceCSPIN} CSPIN\n` +
+            `부족: ${depositAmount - balanceCSPIN} CSPIN`
           );
         }
 
         logger.info('✅ CSPIN 잔액 충분');
       } catch (balanceError) {
-        logger.warn('잔액 확인 실패:', balanceError);
+        logger.error('잔액 확인 실패:', balanceError);
 
-        if (balanceError instanceof Error && balanceError.message.includes('부족')) {
-          throw balanceError;  // 잔액 부족 에러는 그대로 전달
+        if (balanceError instanceof Error) {
+          // 잔액 부족이나 토큰 미보유 에러는 사용자에게 명확히 표시
+          if (balanceError.message.includes('부족') || balanceError.message.includes('보유하고 있지 않습니다')) {
+            throw balanceError;
+          }
         }
 
-        // 잔액 확인 실패 시에도 트랜잭션은 진행 (지갑에서 최종 검증)
-        logger.warn('⚠️ 잔액 확인 실패, 트랜잭션은 계속 진행');
+        // 기타 네트워크 에러는 경고만 표시하고 진행
+        logger.warn('⚠️ 잔액 확인 실패, 트랜잭션은 계속 진행 (지갑에서 최종 검증)');
       }
 
       // 주소 파싱 및 변환
