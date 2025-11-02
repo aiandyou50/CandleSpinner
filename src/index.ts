@@ -7,6 +7,9 @@
 import { Buffer } from 'buffer';
 (globalThis as any).Buffer = Buffer;
 
+// 인출 핸들러 import
+import { processWithdrawal } from '../functions/src/withdraw-handler';
+
 export interface Env {
   ASSETS: Fetcher;
   CREDIT_KV: KVNamespace;
@@ -82,6 +85,8 @@ export default {
         // API 라우트 처리
         if (url.pathname === '/api/credit') {
           return handleGetCredit(request, env, corsHeaders);
+        } else if (url.pathname === '/api/check-api-key') {
+          return handleCheckApiKey(request, env, corsHeaders);
         } else if (url.pathname === '/api/check-balance' && request.method === 'POST') {
           return handleCheckBalance(request, env, corsHeaders);
         } else if (url.pathname === '/api/verify-deposit' && request.method === 'POST') {
@@ -135,6 +140,90 @@ async function handleGetCredit(request: Request, env: Env, corsHeaders: Record<s
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * TONCENTER_API_KEY 확인 (민감 정보 노출 없이)
+ * 실제 API 호출로 유효성 검증
+ */
+async function handleCheckApiKey(
+  request: Request,
+  env: Env,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  console.log('[CheckApiKey] API 키 확인 시작');
+  
+  const apiKey = env.TONCENTER_API_KEY;
+  
+  // 1. 환경변수 존재 여부
+  const exists = !!apiKey;
+  console.log(`[CheckApiKey] 환경변수 존재: ${exists}`);
+  
+  if (!exists) {
+    return new Response(JSON.stringify({
+      exists: false,
+      valid: false,
+      message: 'TONCENTER_API_KEY 환경변수가 설정되지 않았습니다.',
+      recommendation: 'Cloudflare Dashboard에서 환경변수를 추가하세요.'
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
+  // 2. 실제 API 호출로 유효성 검증
+  console.log('[CheckApiKey] TonCenter API 테스트 호출...');
+  
+  try {
+    const testResponse = await fetch(
+      'https://toncenter.com/api/v2/getAddressState?address=EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADdU',
+      {
+        headers: {
+          'X-API-Key': apiKey,
+        }
+      }
+    );
+    
+    const testData = await testResponse.json() as { ok: boolean; error?: string };
+    
+    if (!testResponse.ok || !testData.ok) {
+      console.error('[CheckApiKey] API 호출 실패:', testData);
+      return new Response(JSON.stringify({
+        exists: true,
+        valid: false,
+        message: 'API 키가 존재하지만 유효하지 않습니다.',
+        error: testData.error || 'Unknown error',
+        recommendation: 'TonCenter에서 새로운 API 키를 발급받으세요: https://toncenter.com'
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    console.log('[CheckApiKey] ✅ API 키 정상');
+    
+    return new Response(JSON.stringify({
+      exists: true,
+      valid: true,
+      message: '✅ TONCENTER_API_KEY가 정상적으로 설정되어 있습니다.',
+      rateLimit: 'API Key 사용 중 (Rate Limit 없음)'
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+    
+  } catch (error) {
+    console.error('[CheckApiKey] 오류:', error);
+    return new Response(JSON.stringify({
+      exists: true,
+      valid: false,
+      message: 'API 키 검증 중 오류 발생',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 }
 
 /**
@@ -347,33 +436,63 @@ async function handleSpin(request: Request, env: Env, corsHeaders: Record<string
 }
 
 async function handleWithdraw(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
-  const body = await request.json() as { walletAddress: string; amount: number };
-  
-  // TODO: Jetton Transfer 구현
-  // 임시 구현: 크레딧만 차감
-  const key = `credit:${body.walletAddress}`;
-  const current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
-  
-  if (!current || current.credit < body.amount) {
-    return new Response(JSON.stringify({ error: 'Insufficient credit' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  try {
+    const body = await request.json() as { walletAddress: string; amount: number };
+    
+    console.log('[Withdraw] 인출 요청 시작');
+    console.log(`[Withdraw] 사용자: ${body.walletAddress}`);
+    console.log(`[Withdraw] 금액: ${body.amount} CSPIN`);
+    
+    // 1. 크레딧 확인
+    const key = `credit:${body.walletAddress}`;
+    const current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
+    
+    if (!current || current.credit < body.amount) {
+      console.error('[Withdraw] 크레딧 부족');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Insufficient credit'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    console.log(`[Withdraw] 현재 크레딧: ${current.credit}`);
+    
+    // 2. 인출 처리 (RPC)
+    console.log('[Withdraw] processWithdrawal 호출...');
+    const result = await processWithdrawal(env, body.walletAddress, body.amount);
+    console.log(`[Withdraw] processWithdrawal 완료: ${result.txHash}`);
+    
+    // 3. 크레딧 차감 (성공 후)
+    const newCredit = current.credit - body.amount;
+    await env.CREDIT_KV.put(key, JSON.stringify({
+      credit: newCredit,
+      lastUpdated: new Date().toISOString()
+    }));
+    
+    console.log(`[Withdraw] 크레딧 차감 완료: ${current.credit} → ${newCredit}`);
+    console.log('[Withdraw] ✅ 인출 완료');
+    
+    return new Response(JSON.stringify({
+      success: true,
+      txHash: result.txHash,  // ✅ 실제 트랜잭션 해시!
+      amount: body.amount,
+      credit: newCredit
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+    
+  } catch (error) {
+    console.error('[Withdraw] 오류 발생:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Withdrawal failed'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
-  
-  const newCredit = current.credit - body.amount;
-  await env.CREDIT_KV.put(key, JSON.stringify({
-    credit: newCredit,
-    lastUpdated: new Date().toISOString()
-  }));
-  
-  return new Response(JSON.stringify({
-    success: true,
-    txHash: 'temp_tx_hash',
-    amount: body.amount,
-    credit: newCredit
-  }), {
-    status: 200,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
 }
