@@ -9,6 +9,7 @@ contracts/node_modules
 .env.local
 .env.production.local
 .env.*.local
+.dev.vars  # Wrangler 로컬 개발용 환경변수 (절대 커밋하지 말 것!)
 
 ***REMOVED***build output
 /dist
