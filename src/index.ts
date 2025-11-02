@@ -93,10 +93,12 @@ export default {
           return handleVerifyDeposit(request, env, corsHeaders);
         } else if (url.pathname === '/api/spin' && request.method === 'POST') {
           return handleSpin(request, env, corsHeaders);
-        } else if (url.pathname === '/api/withdraw' && request.method === 'POST') {
-          return handleWithdraw(request, env, corsHeaders);
-        } else if (url.pathname === '/api/withdraw-confirm' && request.method === 'POST') {
-          return handleWithdrawConfirm(request, env, corsHeaders);
+        } else if (url.pathname === '/api/withdraw-request' && request.method === 'POST') {
+          return handleWithdrawRequest(request, env, corsHeaders);
+        } else if (url.pathname === '/api/admin/pending-withdrawals' && request.method === 'GET') {
+          return handleGetPendingWithdrawals(request, env, corsHeaders);
+        } else if (url.pathname === '/api/admin/mark-processed' && request.method === 'POST') {
+          return handleMarkProcessed(request, env, corsHeaders);
         }
         
         return new Response(JSON.stringify({ error: 'API endpoint not found' }), {
@@ -437,34 +439,22 @@ async function handleSpin(request: Request, env: Env, corsHeaders: Record<string
   });
 }
 
-// ❌ handleWithdraw - 백엔드 RPC 방식 (사용 안함 - "window is not defined" 오류)
-async function handleWithdraw(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
-  return new Response(JSON.stringify({
-    success: false,
-    error: 'This endpoint is deprecated. Use /api/withdraw-confirm instead.'
-  }), {
-    status: 410,  // Gone
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-  });
-}
-
-// ✅ handleWithdrawConfirm - 프론트엔드 TON Connect 방식 (크레딧 차감만)
-async function handleWithdrawConfirm(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+// ✅ handleWithdrawRequest - 수동 인출 요청 (크레딧 차감 + 대기열 추가)
+async function handleWithdrawRequest(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
   try {
     const body = await request.json() as {
       walletAddress: string;
       amount: number;
-      txHash: string;
     };
     
-    console.log('[WithdrawConfirm] 요청:', body);
+    console.log('[WithdrawRequest] 인출 요청:', body);
     
     // 1. 크레딧 확인
-    const key = `credit:${body.walletAddress}`;
-    const current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
+    const creditKey = `credit:${body.walletAddress}`;
+    const current = await env.CREDIT_KV.get(creditKey, 'json') as { credit: number } | null;
     
     if (!current || current.credit < body.amount) {
-      console.error('[WithdrawConfirm] 크레딧 부족');
+      console.error('[WithdrawRequest] 크레딧 부족');
       return new Response(JSON.stringify({
         success: false,
         error: 'Insufficient credit'
@@ -474,38 +464,179 @@ async function handleWithdrawConfirm(request: Request, env: Env, corsHeaders: Re
       });
     }
     
-    console.log(`[WithdrawConfirm] 현재 크레딧: ${current.credit}`);
-    
-    // TODO: txHash 검증 추가 가능 (선택사항)
-    // - TonCenter API로 트랜잭션 존재 확인
-    // - 중복 방지 로직 (처리된 txHash 저장)
+    console.log(`[WithdrawRequest] 현재 크레딧: ${current.credit}`);
     
     // 2. 크레딧 차감
     const newCredit = current.credit - body.amount;
-    await env.CREDIT_KV.put(key, JSON.stringify({
+    await env.CREDIT_KV.put(creditKey, JSON.stringify({
       credit: newCredit,
-      lastUpdated: new Date().toISOString(),
-      lastWithdraw: {
-        amount: body.amount,
-        txHash: body.txHash,
-        timestamp: new Date().toISOString()
-      }
+      lastUpdated: new Date().toISOString()
     }));
     
-    console.log(`[WithdrawConfirm] 크레딧 차감 완료: ${current.credit} → ${newCredit}`);
-    console.log('[WithdrawConfirm] ✅ 인출 완료');
+    console.log(`[WithdrawRequest] 크레딧 차감 완료: ${current.credit} → ${newCredit}`);
+    
+    // 3. 대기열에 추가
+    const withdrawalId = `withdraw_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const withdrawal = {
+      id: withdrawalId,
+      walletAddress: body.walletAddress,
+      amount: body.amount,
+      status: 'pending',
+      requestedAt: new Date().toISOString(),
+      estimatedProcessTime: '12~24시간 이내'
+    };
+    
+    // KV에 개별 인출 건 저장
+    await env.CREDIT_KV.put(`withdrawal:${withdrawalId}`, JSON.stringify(withdrawal));
+    
+    // 대기열 목록에 추가
+    const queueKey = 'withdrawals:pending';
+    const queue = await env.CREDIT_KV.get(queueKey, 'json') as string[] | null;
+    const updatedQueue = queue ? [...queue, withdrawalId] : [withdrawalId];
+    await env.CREDIT_KV.put(queueKey, JSON.stringify(updatedQueue));
+    
+    console.log(`[WithdrawRequest] 대기열 추가 완료: ${withdrawalId}`);
+    console.log('[WithdrawRequest] ✅ 인출 요청 완료');
     
     return new Response(JSON.stringify({
       success: true,
       credit: newCredit,
-      message: '인출이 완료되었습니다'
+      withdrawalId,
+      estimatedProcessTime: '12~24시간 이내',
+      message: '인출 요청이 접수되었습니다'
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
     
   } catch (error) {
-    console.error('[WithdrawConfirm] 오류:', error);
+    console.error('[WithdrawRequest] 오류:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Internal server error'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// ✅ handleGetPendingWithdrawals - 대기 중인 인출 목록 조회 (관리자용)
+async function handleGetPendingWithdrawals(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+  try {
+    console.log('[GetPendingWithdrawals] 대기열 조회 시작');
+    
+    // 대기열 목록 조회
+    const queueKey = 'withdrawals:pending';
+    const queue = await env.CREDIT_KV.get(queueKey, 'json') as string[] | null;
+    
+    if (!queue || queue.length === 0) {
+      console.log('[GetPendingWithdrawals] 대기 중인 인출 없음');
+      return new Response(JSON.stringify({
+        success: true,
+        withdrawals: [],
+        count: 0
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // 각 인출 건의 상세 정보 조회
+    const withdrawals = await Promise.all(
+      queue.map(async (id) => {
+        const data = await env.CREDIT_KV.get(`withdrawal:${id}`, 'json');
+        return data;
+      })
+    );
+    
+    const validWithdrawals = withdrawals.filter(w => w !== null);
+    
+    console.log(`[GetPendingWithdrawals] ✅ 조회 완료: ${validWithdrawals.length}건`);
+    
+    return new Response(JSON.stringify({
+      success: true,
+      withdrawals: validWithdrawals,
+      count: validWithdrawals.length
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+    
+  } catch (error) {
+    console.error('[GetPendingWithdrawals] 오류:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : 'Internal server error'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// ✅ handleMarkProcessed - 인출 처리 완료 표시 (관리자용)
+async function handleMarkProcessed(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+  try {
+    const body = await request.json() as {
+      withdrawalId: string;
+      txHash?: string;
+    };
+    
+    console.log('[MarkProcessed] 처리 완료 표시:', body);
+    
+    // 인출 건 조회
+    const withdrawalKey = `withdrawal:${body.withdrawalId}`;
+    const withdrawal = await env.CREDIT_KV.get(withdrawalKey, 'json') as any;
+    
+    if (!withdrawal) {
+      console.error('[MarkProcessed] 인출 건을 찾을 수 없음');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Withdrawal not found'
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // 상태 업데이트
+    withdrawal.status = 'processed';
+    withdrawal.processedAt = new Date().toISOString();
+    if (body.txHash) {
+      withdrawal.txHash = body.txHash;
+    }
+    
+    await env.CREDIT_KV.put(withdrawalKey, JSON.stringify(withdrawal));
+    
+    // 대기열에서 제거
+    const queueKey = 'withdrawals:pending';
+    const queue = await env.CREDIT_KV.get(queueKey, 'json') as string[] | null;
+    
+    if (queue) {
+      const updatedQueue = queue.filter(id => id !== body.withdrawalId);
+      await env.CREDIT_KV.put(queueKey, JSON.stringify(updatedQueue));
+    }
+    
+    // 처리 완료 목록에 추가
+    const processedKey = 'withdrawals:processed';
+    const processed = await env.CREDIT_KV.get(processedKey, 'json') as string[] | null;
+    const updatedProcessed = processed ? [...processed, body.withdrawalId] : [body.withdrawalId];
+    await env.CREDIT_KV.put(processedKey, JSON.stringify(updatedProcessed));
+    
+    console.log(`[MarkProcessed] ✅ 처리 완료: ${body.withdrawalId}`);
+    
+    return new Response(JSON.stringify({
+      success: true,
+      message: '인출 처리가 완료되었습니다',
+      withdrawal
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+    
+  } catch (error) {
+    console.error('[MarkProcessed] 오류:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : 'Internal server error'
