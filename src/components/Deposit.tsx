@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
-import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '@/constants';
+import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS, GAME_JETTON_WALLET } from '@/constants';
 import { logger } from '@/utils/logger';
 import { DebugLogModal } from './DebugLogModal';
 
@@ -64,7 +64,8 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       logger.info('=== Deposit 시작 ===');
       logger.info(`입금 금액: ${depositAmount} CSPIN`);
       logger.info(`사용자 지갑: ${walletAddress}`);
-      logger.info(`게임 지갑: ${GAME_WALLET_ADDRESS}`);
+      logger.info(`게임 TON 지갑: ${GAME_WALLET_ADDRESS}`);
+      logger.info(`게임 Jetton 지갑: ${GAME_JETTON_WALLET}`);
       logger.info(`CSPIN Token Master: ${CSPIN_TOKEN_ADDRESS}`);
 
       // ✅ 사용자의 CSPIN Jetton Wallet 주소를 동적으로 계산
@@ -156,24 +157,27 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       }
 
       // 주소 파싱 및 변환
-      let gameWalletAddress: Address;
+      // ✅ destination: 게임의 Jetton Wallet 주소 (게임의 TON 지갑이 아님!)
+      let gameJettonWalletAddress: Address;
       let responseAddress: Address;
       
       try {
-        gameWalletAddress = Address.parse(GAME_WALLET_ADDRESS);
+        gameJettonWalletAddress = Address.parse(GAME_JETTON_WALLET);
         responseAddress = Address.parse(walletAddress);
         
-        logger.debug('파싱된 게임 지갑 (기본):', gameWalletAddress.toString());
-        logger.debug('파싱된 응답 지갑 (기본):', responseAddress.toString());
+        logger.debug('파싱된 게임 Jetton 지갑:', gameJettonWalletAddress.toString());
+        logger.debug('파싱된 응답 지갑 (사용자):', responseAddress.toString());
       } catch (err) {
         logger.error('주소 파싱 오류:', err);
         throw new Error('주소 형식이 올바르지 않습니다');
       }
 
       // Jetton Transfer 페이로드 생성
+      // destination: 게임의 Jetton Wallet (EQAjtIvLT_...)
+      // response_destination: 사용자 지갑 (잉여 TON 반환용)
       const payloadBase64 = buildJettonTransferPayload(
         amountNano,
-        gameWalletAddress,
+        gameJettonWalletAddress,  // ✅ 게임의 Jetton Wallet
         responseAddress
       );
       logger.debug(`페이로드 생성 완료 (base64): ${payloadBase64.substring(0, 50)}...`);
