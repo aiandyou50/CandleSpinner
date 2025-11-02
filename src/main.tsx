@@ -8,8 +8,13 @@ import App from './App';
 import './styles/index.css';
 
 // TON Connect Manifest URL
-// ✅ MVP v1 방식: 고정된 배포 URL 사용 (로컬/프로덕션 모두)
-const manifestUrl = 'https://aiandyou.me/tonconnect-manifest.json';
+// ✅ 배포 도메인 기준으로 동적 생성 (로컬에서는 배포 URL 사용)
+const isLocalhost = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+
+const manifestUrl = isLocalhost
+  ? 'https://candlespinner-workers.pages.dev/tonconnect-manifest.json'
+  : `${window.location.origin}/tonconnect-manifest.json`;
 
 console.log('🔗 TON Connect Manifest URL:', manifestUrl);
 
