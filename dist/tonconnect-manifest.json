@@ -1,7 +1,7 @@
 {
   "url": "https://candlespinner-workers.pages.dev",
   "name": "CandleSpinner",
-  "iconUrl": "https://candlespinner-workers.pages.dev/icon-512.svg",
+  "iconUrl": "https://raw.githubusercontent.com/aiandyou50/CandleSpinner/main/public/icon-512.svg",
   "termsOfUseUrl": "https://candlespinner-workers.pages.dev/terms",
-  "privacyPolicyUrl": "https://candlespinner-workers.pages.dev/privacy"
+  "privacyUrl": "https://candlespinner-workers.pages.dev/privacy"
 }

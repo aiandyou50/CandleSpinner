@@ -39,6 +39,33 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // ✅ TON Connect Manifest 파일 특별 처리
+    if (url.pathname === '/tonconnect-manifest.json') {
+      console.log('[Manifest] Serving tonconnect-manifest.json');
+      
+      // ASSETS에서 파일 가져오기
+      const response = await env.ASSETS.fetch(request);
+      
+      // 응답이 성공적이면 CORS 헤더 추가
+      if (response.ok) {
+        const newHeaders = new Headers(response.headers);
+        newHeaders.set('Access-Control-Allow-Origin', '*');
+        newHeaders.set('Content-Type', 'application/json');
+        newHeaders.set('Cache-Control', 'public, max-age=3600');
+        
+        return new Response(response.body, {
+          status: response.status,
+          headers: newHeaders,
+        });
+      }
+      
+      console.error('[Manifest] File not found in ASSETS');
+      return new Response(JSON.stringify({ error: 'Manifest not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // API 라우팅
     if (url.pathname.startsWith('/api/')) {
       try {
