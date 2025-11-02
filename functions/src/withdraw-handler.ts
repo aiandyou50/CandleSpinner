@@ -1,7 +1,14 @@
 /**
  * 인출 핸들러
  * RPC 방식으로 게임 지갑에서 사용자에게 Jetton Transfer
+ * Cloudflare Workers 환경에서 동작하도록 최적화
  */
+
+// Buffer 폴리필 (Cloudflare Workers용)
+import { Buffer } from 'buffer';
+if (typeof globalThis.Buffer === 'undefined') {
+  (globalThis as any).Buffer = Buffer;
+}
 
 import {
   WalletContractV5R1,
