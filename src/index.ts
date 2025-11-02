@@ -118,13 +118,41 @@ export default {
 
     // ✅ SPA 라우팅: /admin 등 모든 페이지를 index.html로 리디렉션
     // React Router가 클라이언트에서 처리
-    if (!url.pathname.startsWith('/api')) {
-      const indexRequest = new Request(new URL('/', url), request);
-      return env.ASSETS.fetch(indexRequest);
+    console.log('[SPA] pathname:', url.pathname);
+    console.log('[SPA] startsWith /api:', url.pathname.startsWith('/api'));
+    
+    // ✅ ASSETS가 있는 경우 (Workers Assets 사용)
+    if (env.ASSETS) {
+      if (!url.pathname.startsWith('/api') && !url.pathname.startsWith('/assets/')) {
+        console.log('[SPA] Redirecting to index.html:', url.pathname);
+        const indexRequest = new Request(new URL('/', url), request);
+        return env.ASSETS.fetch(indexRequest);
+      }
+      console.log('[SPA] Serving static file:', url.pathname);
+      return env.ASSETS.fetch(request);
     }
-
-    // 정적 파일 서빙 (React 앱)
-    return env.ASSETS.fetch(request);
+    
+    // ❌ ASSETS가 없는 경우 - 에러 페이지 반환
+    console.error('[FATAL] ASSETS binding not configured!');
+    return new Response(
+      `<!DOCTYPE html>
+      <html>
+      <head>
+        <title>Configuration Error</title>
+      </head>
+      <body>
+        <h1>Workers Configuration Error</h1>
+        <p>ASSETS binding is not configured.</p>
+        <p>Please deploy using: <code>npx wrangler deploy</code></p>
+        <hr>
+        <p>Requested: ${url.pathname}</p>
+      </body>
+      </html>`,
+      {
+        status: 500,
+        headers: { 'Content-Type': 'text/html; charset=utf-8' }
+      }
+    );
   },
 };
 
