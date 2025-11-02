@@ -68,20 +68,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
         throw new Error('크레딧이 부족합니다');
       }
 
-      // ⚠️ 현재: 백엔드 RPC 방식은 "window is not defined" 오류로 실패
-      // ✅ 해결: 입금처럼 프론트엔드 TON Connect 사용
-      logger.warn('⚠️ [임시] 인출 기능은 아직 구현 중입니다');
-      logger.info('프론트엔드 TON Connect 기반 인출로 변경 필요');
-      logger.info('입금의 역방향 트랜잭션 생성 예정');
-      
-      throw new Error(
-        '⚠️ 인출 기능은 현재 개발 중입니다.\n\n' +
-        '문제: 백엔드 RPC 방식이 Cloudflare Workers에서 "window is not defined" 오류 발생\n' +
-        '해결: 프론트엔드 TON Connect 기반으로 재구현 예정 (입금과 동일한 방식)'
-      );
-
-      // TODO: 아래 코드로 교체 필요
-      /*
+      // ✅ 프론트엔드 TON Connect 방식으로 구현
       logger.info('사용자 Jetton Wallet 계산 중...');
       
       const tonClient = new TonClient({
@@ -123,25 +110,35 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
         ],
       };
 
-      logger.debug('트랜잭션 전송:', transaction);
+      logger.info('트랜잭션 전송 중...');
+      logger.debug('Transaction:', transaction);
 
       const result = await tonConnectUI.sendTransaction(transaction);
-      logger.info('트랜잭션 결과:', result);
+      logger.info('✅ 트랜잭션 전송 성공:', result);
       
       const txHash = result.boc;
+      logger.info(`트랜잭션 해시: ${txHash}`);
 
       // 백엔드에 크레딧 차감 요청
       logger.info('백엔드 크레딧 차감 요청...');
-      await fetch('/api/withdraw-confirm', {
+      const confirmResponse = await fetch('/api/withdraw-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress, amount: withdrawAmount, txHash }),
       });
 
+      if (!confirmResponse.ok) {
+        const errorData = await confirmResponse.json() as { error?: string };
+        throw new Error(errorData.error || '크레딧 차감 실패');
+      }
+
+      const confirmData = await confirmResponse.json();
+      logger.info('✅ 크레딧 차감 완료:', confirmData);
+
       logger.info('=== 인출 완료 ===');
       alert(`${withdrawAmount} CSPIN 인출이 완료되었습니다!`);
+      setAmount('');
       onSuccess();
-      */
     } catch (err) {
       logger.error('❌ 인출 실패:', err);
       
@@ -161,6 +158,16 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
     <>
       <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
         <h3 className="text-2xl font-bold text-white mb-4">💸 CSPIN 인출</h3>
+        
+        {/* 안내 메시지 */}
+        <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+          <p className="text-sm text-yellow-200">
+            ℹ️ 인출 시 네트워크 수수료 <strong>0.2 TON</strong>이 필요합니다.
+          </p>
+          <p className="text-xs text-yellow-300 mt-1">
+            지갑에 충분한 TON이 있는지 확인해주세요.
+          </p>
+        </div>
         
         <div className="space-y-4">
           <div>

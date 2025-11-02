@@ -95,6 +95,8 @@ export default {
           return handleSpin(request, env, corsHeaders);
         } else if (url.pathname === '/api/withdraw' && request.method === 'POST') {
           return handleWithdraw(request, env, corsHeaders);
+        } else if (url.pathname === '/api/withdraw-confirm' && request.method === 'POST') {
+          return handleWithdrawConfirm(request, env, corsHeaders);
         }
         
         return new Response(JSON.stringify({ error: 'API endpoint not found' }), {
@@ -435,20 +437,34 @@ async function handleSpin(request: Request, env: Env, corsHeaders: Record<string
   });
 }
 
+// ❌ handleWithdraw - 백엔드 RPC 방식 (사용 안함 - "window is not defined" 오류)
 async function handleWithdraw(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+  return new Response(JSON.stringify({
+    success: false,
+    error: 'This endpoint is deprecated. Use /api/withdraw-confirm instead.'
+  }), {
+    status: 410,  // Gone
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+// ✅ handleWithdrawConfirm - 프론트엔드 TON Connect 방식 (크레딧 차감만)
+async function handleWithdrawConfirm(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
   try {
-    const body = await request.json() as { walletAddress: string; amount: number };
+    const body = await request.json() as {
+      walletAddress: string;
+      amount: number;
+      txHash: string;
+    };
     
-    console.log('[Withdraw] 인출 요청 시작');
-    console.log(`[Withdraw] 사용자: ${body.walletAddress}`);
-    console.log(`[Withdraw] 금액: ${body.amount} CSPIN`);
+    console.log('[WithdrawConfirm] 요청:', body);
     
     // 1. 크레딧 확인
     const key = `credit:${body.walletAddress}`;
     const current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
     
     if (!current || current.credit < body.amount) {
-      console.error('[Withdraw] 크레딧 부족');
+      console.error('[WithdrawConfirm] 크레딧 부족');
       return new Response(JSON.stringify({
         success: false,
         error: 'Insufficient credit'
@@ -458,38 +474,41 @@ async function handleWithdraw(request: Request, env: Env, corsHeaders: Record<st
       });
     }
     
-    console.log(`[Withdraw] 현재 크레딧: ${current.credit}`);
+    console.log(`[WithdrawConfirm] 현재 크레딧: ${current.credit}`);
     
-    // 2. 인출 처리 (RPC)
-    console.log('[Withdraw] processWithdrawal 호출...');
-    const result = await processWithdrawal(env, body.walletAddress, body.amount);
-    console.log(`[Withdraw] processWithdrawal 완료: ${result.txHash}`);
+    // TODO: txHash 검증 추가 가능 (선택사항)
+    // - TonCenter API로 트랜잭션 존재 확인
+    // - 중복 방지 로직 (처리된 txHash 저장)
     
-    // 3. 크레딧 차감 (성공 후)
+    // 2. 크레딧 차감
     const newCredit = current.credit - body.amount;
     await env.CREDIT_KV.put(key, JSON.stringify({
       credit: newCredit,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      lastWithdraw: {
+        amount: body.amount,
+        txHash: body.txHash,
+        timestamp: new Date().toISOString()
+      }
     }));
     
-    console.log(`[Withdraw] 크레딧 차감 완료: ${current.credit} → ${newCredit}`);
-    console.log('[Withdraw] ✅ 인출 완료');
+    console.log(`[WithdrawConfirm] 크레딧 차감 완료: ${current.credit} → ${newCredit}`);
+    console.log('[WithdrawConfirm] ✅ 인출 완료');
     
     return new Response(JSON.stringify({
       success: true,
-      txHash: result.txHash,  // ✅ 실제 트랜잭션 해시!
-      amount: body.amount,
-      credit: newCredit
+      credit: newCredit,
+      message: '인출이 완료되었습니다'
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
     
   } catch (error) {
-    console.error('[Withdraw] 오류 발생:', error);
+    console.error('[WithdrawConfirm] 오류:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : 'Withdrawal failed'
+      error: error instanceof Error ? error.message : 'Internal server error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
