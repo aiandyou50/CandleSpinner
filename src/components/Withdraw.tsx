@@ -1,13 +1,10 @@
 /**
  * 인출 컴포넌트
- * 입금의 역방향: 게임 → 사용자
- * 백엔드 RPC 대신 프론트엔드 TON Connect 사용 (더 안정적)
+ * 수동 인출 방식: 크레딧 차감 + 대기열 추가 → 관리자가 일괄 처리
+ * 게임 니모닉 서명이 필요하므로 즉시 처리 불가
  */
 
 import { useState } from 'react';
-import { useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
-import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '@/constants';
 import { logger } from '@/utils/logger';
 import { DebugLogModal } from './DebugLogModal';
 
@@ -17,30 +14,7 @@ interface WithdrawProps {
   onSuccess: () => void;
 }
 
-/**
- * Jetton Transfer Payload 생성 (TEP-74 표준)
- * 입금과 동일, destination만 게임 → 사용자로 변경
- */
-function buildJettonTransferPayload(
-  amount: bigint,
-  destination: Address,  // ← 게임 TON 지갑
-  responseTo: Address    // ← 사용자 TON 지갑
-): string {
-  const cell = beginCell()
-    .storeUint(0xf8a7ea5, 32)      // Jetton transfer opcode
-    .storeUint(0, 64)              // query_id
-    .storeCoins(amount)            // amount
-    .storeAddress(destination)     // ✅ 게임 TON 지갑 (인출 목적지)
-    .storeAddress(responseTo)      // 사용자 지갑 (응답)
-    .storeBit(0)                   // custom_payload
-    .storeCoins(BigInt(1))         // forward_ton_amount: 1 nanoton
-    .storeBit(0)                   // forward_payload
-    .endCell();
-  return cell.toBoc().toString('base64');
-}
-
 export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawProps) {
-  const [tonConnectUI] = useTonConnectUI();
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +25,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       setIsLoading(true);
       setError(null);
 
-      logger.info('=== 인출 시작 (프론트엔드 방식) ===');
+      logger.info('=== 인출 요청 시작 (수동 처리 방식) ===');
       logger.info(`사용자 지갑: ${walletAddress}`);
       logger.info(`현재 크레딧: ${currentCredit} CSPIN`);
 
@@ -68,75 +42,40 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
         throw new Error('크레딧이 부족합니다');
       }
 
-      // ✅ 프론트엔드 TON Connect 방식으로 구현
-      logger.info('사용자 Jetton Wallet 계산 중...');
-      
-      const tonClient = new TonClient({
-        endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-      });
-
-      const userAddress = Address.parse(walletAddress);
-      const masterAddress = Address.parse(CSPIN_TOKEN_ADDRESS);
-      const jettonMaster = tonClient.open(JettonMaster.create(masterAddress));
-      
-      const userJettonWalletAddress = await jettonMaster.getWalletAddress(userAddress);
-      const userJettonWalletRaw = userJettonWalletAddress.toString({ 
-        urlSafe: true, 
-        bounceable: true
-      });
-
-      logger.info(`✅ 사용자 Jetton Wallet: ${userJettonWalletRaw}`);
-
-      const amountNano = BigInt(Math.floor(withdrawAmount * 1_000_000_000));
-      logger.debug(`nano 단위 금액: ${amountNano.toString()}`);
-
-      const gameWalletAddress = Address.parse(GAME_WALLET_ADDRESS);
-      const responseAddress = Address.parse(walletAddress);
-
-      const payloadBase64 = buildJettonTransferPayload(
-        amountNano,
-        gameWalletAddress,  // ✅ 게임 TON 지갑 (인출 목적지)
-        responseAddress
-      );
-
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 300,
-        messages: [
-          {
-            address: userJettonWalletRaw,  // 사용자 Jetton Wallet
-            amount: toNano('0.2').toString(),
-            payload: payloadBase64,
-          },
-        ],
-      };
-
-      logger.info('트랜잭션 전송 중...');
-      logger.debug('Transaction:', transaction);
-
-      const result = await tonConnectUI.sendTransaction(transaction);
-      logger.info('✅ 트랜잭션 전송 성공:', result);
-      
-      const txHash = result.boc;
-      logger.info(`트랜잭션 해시: ${txHash}`);
-
-      // 백엔드에 크레딧 차감 요청
-      logger.info('백엔드 크레딧 차감 요청...');
-      const confirmResponse = await fetch('/api/withdraw-confirm', {
+      // ✅ 수동 인출: 크레딧 차감 + 대기열 추가
+      logger.info('백엔드에 인출 요청 전송 중...');
+      const response = await fetch('/api/withdraw-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress, amount: withdrawAmount, txHash }),
+        body: JSON.stringify({ walletAddress, amount: withdrawAmount }),
       });
 
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json() as { error?: string };
-        throw new Error(errorData.error || '크레딧 차감 실패');
+      if (!response.ok) {
+        const errorData = await response.json() as { error?: string };
+        logger.error('❌ 인출 요청 실패:', errorData);
+        throw new Error(errorData.error || '인출 요청에 실패했습니다');
       }
 
-      const confirmData = await confirmResponse.json();
-      logger.info('✅ 크레딧 차감 완료:', confirmData);
+      const result = await response.json() as { 
+        success: boolean; 
+        credit: number; 
+        withdrawalId: string;
+        estimatedProcessTime: string;
+      };
+      
+      logger.info('✅ 인출 요청 완료:', result);
+      logger.info(`대기열 ID: ${result.withdrawalId}`);
+      logger.info(`예상 처리 시간: ${result.estimatedProcessTime}`);
 
-      logger.info('=== 인출 완료 ===');
-      alert(`${withdrawAmount} CSPIN 인출이 완료되었습니다!`);
+      logger.info('=== 인출 요청 완료 ===');
+      
+      alert(
+        `${withdrawAmount} CSPIN 인출 요청이 완료되었습니다!\n\n` +
+        `예상 처리 시간: ${result.estimatedProcessTime}\n` +
+        `요청 ID: ${result.withdrawalId.substring(0, 8)}...\n\n` +
+        `처리가 완료되면 지갑으로 CSPIN이 전송됩니다.`
+      );
+      
       setAmount('');
       onSuccess();
     } catch (err) {
@@ -159,13 +98,19 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
         <h3 className="text-2xl font-bold text-white mb-4">💸 CSPIN 인출</h3>
         
-        {/* 안내 메시지 */}
-        <div className="mb-4 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
-          <p className="text-sm text-yellow-200">
-            ℹ️ 인출 시 네트워크 수수료 <strong>0.2 TON</strong>이 필요합니다.
+        {/* 안내 메시지 - 수동 처리 안내 */}
+        <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
+          <p className="text-sm text-blue-200 font-semibold mb-1">
+            📋 수동 인출 방식
           </p>
-          <p className="text-xs text-yellow-300 mt-1">
-            지갑에 충분한 TON이 있는지 확인해주세요.
+          <p className="text-xs text-blue-300">
+            • 인출 요청 후 <strong>12~24시간 이내</strong> 처리됩니다
+          </p>
+          <p className="text-xs text-blue-300">
+            • 크레딧은 즉시 차감되며, 처리 완료 시 지갑으로 전송됩니다
+          </p>
+          <p className="text-xs text-blue-300">
+            • 네트워크 수수료는 게임이 부담합니다 (무료)
           </p>
         </div>
         
