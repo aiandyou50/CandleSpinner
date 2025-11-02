@@ -88,6 +88,64 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
 
       logger.info(`✅ 사용자 Jetton Wallet: ${userJettonWalletRaw}`);
 
+      // 입금 금액 계산 (nano 단위)
+      const amountNano = BigInt(Math.floor(depositAmount * 1_000_000_000));
+      logger.debug(`nano 단위 금액: ${amountNano.toString()}`);
+
+      // ✅ 사용자의 CSPIN 잔액 확인
+      logger.info('CSPIN 잔액 확인 중...');
+      try {
+        const result = await tonClient.runMethod(userJettonWalletAddress, 'get_wallet_data');
+        const balance = result.stack.readBigNumber();
+        const balanceCSPIN = Number(balance) / 1_000_000_000;
+        
+        logger.info(`현재 CSPIN 잔액: ${balanceCSPIN} CSPIN`);
+        
+        if (Number(balance) < Number(amountNano)) {
+          throw new Error(
+            `❌ CSPIN 잔액이 부족합니다.\n\n` +
+            `필요: ${depositAmount} CSPIN\n` +
+            `현재: ${balanceCSPIN} CSPIN\n` +
+            `부족: ${depositAmount - balanceCSPIN} CSPIN`
+          );
+        }
+        
+        logger.info('✅ CSPIN 잔액 충분');
+      } catch (balanceError) {
+        logger.warn('잔액 확인 실패:', balanceError);
+        
+        if (balanceError instanceof Error && balanceError.message.includes('부족')) {
+          throw balanceError;  // 잔액 부족 에러는 그대로 전달
+        }
+        
+        // Jetton Wallet이 초기화되지 않은 경우
+        logger.error('❌ Jetton Wallet 미초기화 (CSPIN을 한 번도 받지 않음)');
+        throw new Error(
+          `❌ CSPIN 토큰을 보유하고 있지 않습니다.\n\n` +
+          `먼저 CSPIN 토큰을 구매하거나 받아야 합니다.\n` +
+          `현재 잔액: 0 CSPIN`
+        );
+      }
+
+      // TON 잔액 확인
+      logger.info('TON 잔액 확인 중...');
+      const tonBalance = await tonClient.getBalance(userAddress);
+      const tonBalanceTON = Number(tonBalance) / 1_000_000_000;
+      const requiredTON = 0.03;
+      
+      logger.info(`현재 TON 잔액: ${tonBalanceTON} TON`);
+      
+      if (tonBalanceTON < requiredTON) {
+        throw new Error(
+          `❌ TON 잔액이 부족합니다.\n\n` +
+          `트랜잭션 비용: ${requiredTON} TON\n` +
+          `현재 잔액: ${tonBalanceTON.toFixed(4)} TON\n` +
+          `필요 금액: ${(requiredTON - tonBalanceTON).toFixed(4)} TON`
+        );
+      }
+      
+      logger.info('✅ TON 잔액 충분');
+
       // 주소 파싱 및 변환
       let gameWalletAddress: Address;
       let responseAddress: Address;
@@ -103,10 +161,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         throw new Error('주소 형식이 올바르지 않습니다');
       }
 
-      // Jetton Transfer 페이로드 생성 (MVP v1 방식)
-      const amountNano = BigInt(Math.floor(depositAmount * 1_000_000_000));
-      logger.debug(`nano 단위 금액: ${amountNano.toString()}`);
-
+      // Jetton Transfer 페이로드 생성
       const payloadBase64 = buildJettonTransferPayload(
         amountNano,
         gameWalletAddress,
