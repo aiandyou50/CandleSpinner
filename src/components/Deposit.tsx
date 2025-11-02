@@ -70,10 +70,9 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       // ✅ 사용자의 CSPIN Jetton Wallet 주소를 동적으로 계산
       logger.info('사용자의 Jetton Wallet 계산 중...');
       
-      // TonClient 생성 (API Key 포함 - Rate Limit 방지)
+      // TonClient 생성 (Jetton Wallet 주소 계산용)
       const tonClient = new TonClient({
         endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-        apiKey: import.meta.env.VITE_TON_API_KEY || undefined,
       });
 
       const userAddress = Address.parse(walletAddress);
@@ -83,7 +82,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       const userJettonWalletAddress = await jettonMaster.getWalletAddress(userAddress);
       const userJettonWalletRaw = userJettonWalletAddress.toString({ 
         urlSafe: true, 
-        bounceable: false 
+        bounceable: true  // ✅ Jetton Transfer는 bounceable 주소 사용 필수!
       });
 
       logger.info(`✅ 사용자 Jetton Wallet: ${userJettonWalletRaw}`);
