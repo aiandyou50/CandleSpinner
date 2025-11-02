@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { TonConnectButton } from '@tonconnect/ui-react';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
@@ -6,8 +7,9 @@ import { WalletConnect } from '@/components/WalletConnect';
 import { Deposit } from '@/components/Deposit';
 import { SlotMachine } from '@/components/SlotMachine';
 import { Withdraw } from '@/components/Withdraw';
+import { AdminWithdrawals } from '@/components/AdminWithdrawals';
 
-function App() {
+function GamePage() {
   const { isConnected, walletAddress } = useTonConnect();
   const { credit, isLoading, refreshCredit } = useCredit(walletAddress);
 
@@ -67,6 +69,17 @@ function App() {
         <p>MVP v2.0.0 - TON 블록체인 기반</p>
       </footer>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<GamePage />} />
+        <Route path="/admin" element={<AdminWithdrawals />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
