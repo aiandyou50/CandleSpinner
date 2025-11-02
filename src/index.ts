@@ -27,21 +27,26 @@ export default {
     console.log('[Env Check] GAME_WALLET_ADDRESS:', env.GAME_WALLET_ADDRESS || 'NOT SET');
     console.log('[Env Check] CSPIN_JETTON_MASTER:', env.CSPIN_JETTON_MASTER || 'NOT SET');
     
-    // CORS 헤더
+    // CORS 헤더 (TON Connect 호환)
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, HEAD',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept, Origin, User-Agent',
+      'Access-Control-Max-Age': '86400',
     };
 
     // OPTIONS 요청 (CORS Preflight)
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
+      return new Response(null, { 
+        status: 204,
+        headers: corsHeaders 
+      });
     }
 
     // ✅ TON Connect Manifest 파일 특별 처리
     if (url.pathname === '/tonconnect-manifest.json') {
-      console.log('[Manifest] Serving tonconnect-manifest.json');
+      console.log('[Manifest] Serving tonconnect-manifest.json from:', url.hostname);
+      console.log('[Manifest] Request origin:', request.headers.get('Origin'));
       
       // ASSETS에서 파일 가져오기
       const response = await env.ASSETS.fetch(request);
@@ -50,8 +55,12 @@ export default {
       if (response.ok) {
         const newHeaders = new Headers(response.headers);
         newHeaders.set('Access-Control-Allow-Origin', '*');
-        newHeaders.set('Content-Type', 'application/json');
+        newHeaders.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        newHeaders.set('Content-Type', 'application/json; charset=utf-8');
         newHeaders.set('Cache-Control', 'public, max-age=3600');
+        newHeaders.set('X-Content-Type-Options', 'nosniff');
+        
+        console.log('[Manifest] Successfully served with CORS headers');
         
         return new Response(response.body, {
           status: response.status,
