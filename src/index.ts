@@ -10,11 +10,11 @@ import { Buffer } from 'buffer';
 export interface Env {
   ASSETS: Fetcher;
   CREDIT_KV: KVNamespace;
-  GAME_WALLET_MNEMONI: string;
+  GAME_WALLET_MNEMONIC: string;  // ✅ 수정: MNEMONI → MNEMONIC
   GAME_WALLET_ADDRESS: string;
   CSPIN_JETTON_MASTER: string;
   // CSPIN_JETTON_WALLET 제거 (동적 계산으로 대체)
-  TONCENTER_API_KEY?: string;
+  TONCENTER_API_KEY?: string;  // ✅ Cloudflare 환경 변수명과 일치
 }
 
 export default {
