@@ -447,17 +447,65 @@ async function handleSpin(request: Request, env: Env, corsHeaders: Record<string
 }
 
 // ✅ handleWithdrawRequest - 수동 인출 요청 (크레딧 차감 + 대기열 추가)
+// 보안: 타임스탬프 + 논스로 리플레이 공격 방지
 async function handleWithdrawRequest(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
   try {
     const body = await request.json() as {
-      walletAddress: string;
+      action: string;
       amount: number;
+      userAddress: string;
+      timestamp: number;
+      nonce: string;
     };
     
     console.log('[WithdrawRequest] 인출 요청:', body);
     
+    // ✅ 보안 검증: action 확인
+    if (body.action !== 'withdraw') {
+      console.error('[WithdrawRequest] 잘못된 요청 타입:', body.action);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Invalid action'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // ✅ 보안 검증: 타임스탬프 (5분 이내)
+    const age = Date.now() - body.timestamp;
+    if (age > 300000 || age < 0) {  // 5분 = 300초
+      console.error('[WithdrawRequest] 만료된 요청:', { age, timestamp: body.timestamp });
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Request expired or invalid timestamp'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // ✅ 보안 검증: 논스 중복 확인 (리플레이 공격 방지)
+    const nonceKey = `nonce:${body.nonce}`;
+    const existingNonce = await env.CREDIT_KV.get(nonceKey);
+    if (existingNonce) {
+      console.error('[WithdrawRequest] 중복된 논스 (리플레이 공격):', body.nonce);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Duplicate request'
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // 논스 저장 (10분 TTL)
+    await env.CREDIT_KV.put(nonceKey, 'used', { expirationTtl: 600 });
+    
+    console.log('[WithdrawRequest] ✅ 보안 검증 통과');
+    
     // 1. 크레딧 확인
-    const creditKey = `credit:${body.walletAddress}`;
+    const creditKey = `credit:${body.userAddress}`;
     const current = await env.CREDIT_KV.get(creditKey, 'json') as { credit: number } | null;
     
     if (!current || current.credit < body.amount) {
@@ -486,8 +534,9 @@ async function handleWithdrawRequest(request: Request, env: Env, corsHeaders: Re
     const withdrawalId = `withdraw_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const withdrawal = {
       id: withdrawalId,
-      walletAddress: body.walletAddress,
+      walletAddress: body.userAddress,
       amount: body.amount,
+      nonce: body.nonce,  // 추적용
       status: 'pending',
       requestedAt: new Date().toISOString(),
       estimatedProcessTime: '12~24시간 이내'
