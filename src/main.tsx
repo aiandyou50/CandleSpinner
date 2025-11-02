@@ -8,8 +8,8 @@ import App from './App';
 import './styles/index.css';
 
 // TON Connect Manifest URL
-// ✅ 고정된 manifest URL 사용 (aiandyou.me)
-const manifestUrl = 'https://aiandyou.me/tonconnect-manifest.json';
+// ✅ Workers 직접 주소 사용 (CORS 헤더 적용 보장)
+const manifestUrl = 'https://candlespinner-workers.x00518.workers.dev/tonconnect-manifest.json';
 
 console.log('🔗 TON Connect Manifest URL:', manifestUrl);
 
