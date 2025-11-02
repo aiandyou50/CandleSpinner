@@ -127,25 +127,6 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         );
       }
 
-      // TON 잔액 확인
-      logger.info('TON 잔액 확인 중...');
-      const tonBalance = await tonClient.getBalance(userAddress);
-      const tonBalanceTON = Number(tonBalance) / 1_000_000_000;
-      const requiredTON = 0.03;
-      
-      logger.info(`현재 TON 잔액: ${tonBalanceTON} TON`);
-      
-      if (tonBalanceTON < requiredTON) {
-        throw new Error(
-          `❌ TON 잔액이 부족합니다.\n\n` +
-          `트랜잭션 비용: ${requiredTON} TON\n` +
-          `현재 잔액: ${tonBalanceTON.toFixed(4)} TON\n` +
-          `필요 금액: ${(requiredTON - tonBalanceTON).toFixed(4)} TON`
-        );
-      }
-      
-      logger.info('✅ TON 잔액 충분');
-
       // 주소 파싱 및 변환
       let gameWalletAddress: Address;
       let responseAddress: Address;
