@@ -6,7 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
   readonly VITE_API_URL: string;
   readonly VITE_GAME_WALLET_ADDRESS: string;
-  readonly VITE_CSPIN_JETTON_WALLET: string;
+  // VITE_CSPIN_JETTON_WALLET 제거 (동적 계산으로 대체)
   readonly VITE_TON_CONNECT_MANIFEST_URL: string;
   readonly VITE_TON_RPC_URL: string;
   readonly VITE_TON_API_KEY: string;
