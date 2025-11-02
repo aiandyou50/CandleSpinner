@@ -39,6 +39,8 @@ export default {
         // API 라우트 처리
         if (url.pathname === '/api/credit') {
           return handleGetCredit(request, env, corsHeaders);
+        } else if (url.pathname === '/api/check-balance' && request.method === 'POST') {
+          return handleCheckBalance(request, env, corsHeaders);
         } else if (url.pathname === '/api/verify-deposit' && request.method === 'POST') {
           return handleVerifyDeposit(request, env, corsHeaders);
         } else if (url.pathname === '/api/spin' && request.method === 'POST') {
@@ -90,6 +92,104 @@ async function handleGetCredit(request: Request, env: Env, corsHeaders: Record<s
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+/**
+ * TonCenter API를 사용한 Jetton 잔액 확인
+ * API Key를 사용하여 Rate Limit 회피
+ */
+async function handleCheckBalance(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+  try {
+    const body = await request.json() as { jettonWalletAddress: string };
+    
+    if (!body.jettonWalletAddress) {
+      return new Response(JSON.stringify({ error: 'Missing jettonWalletAddress' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // TonCenter API 호출 (runGetMethod: get_wallet_data)
+    const tonCenterUrl = 'https://toncenter.com/api/v2/runGetMethod';
+    const apiKey = env.TONCENTER_API_KEY || '';
+    
+    const tonCenterResponse = await fetch(tonCenterUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,  // ✅ API Key 추가
+      },
+      body: JSON.stringify({
+        address: body.jettonWalletAddress,
+        method: 'get_wallet_data',
+        stack: []
+      }),
+    });
+
+    if (!tonCenterResponse.ok) {
+      const errorText = await tonCenterResponse.text();
+      console.error('[TonCenter Error]', tonCenterResponse.status, errorText);
+      
+      return new Response(JSON.stringify({ 
+        error: 'TonCenter API error',
+        status: tonCenterResponse.status,
+        details: errorText
+      }), {
+        status: tonCenterResponse.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const tonCenterData = await tonCenterResponse.json() as {
+      ok: boolean;
+      result: {
+        stack: Array<{ type: string; value: string }>;
+      };
+    };
+
+    if (!tonCenterData.ok) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid TonCenter response',
+        data: tonCenterData
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // get_wallet_data 결과 파싱
+    // stack[0] = balance (number)
+    const balanceItem = tonCenterData.result.stack[0];
+    if (!balanceItem || balanceItem.type !== 'num') {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid balance format',
+        stack: tonCenterData.result.stack
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const balance = balanceItem.value;
+    const balanceCSPIN = Number(balance) / 1_000_000_000;
+
+    return new Response(JSON.stringify({
+      success: true,
+      balance: balance,  // nano 단위
+      balanceCSPIN: balanceCSPIN,  // CSPIN 단위
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('[CheckBalance Error]', error);
+    return new Response(JSON.stringify({
+      error: error instanceof Error ? error.message : 'Internal Server Error'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 }
 
 async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
