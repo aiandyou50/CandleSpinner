@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell, toNano } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
-import { GAME_WALLET_ADDRESS, CSPIN_JETTON_WALLET } from '@/constants';
+import { GAME_WALLET_ADDRESS, CSPIN_JETTON_WALLET, CSPIN_TOKEN_ADDRESS } from '@/constants';
 import { logger } from '@/utils/logger';
 import { DebugLogModal } from './DebugLogModal';
 
@@ -62,25 +62,18 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       logger.info(`입금 금액: ${depositAmount} CSPIN`);
       logger.info(`사용자 지갑: ${walletAddress}`);
       logger.info(`게임 지갑: ${GAME_WALLET_ADDRESS}`);
-      logger.info(`CSPIN Token Master: ${import.meta.env.VITE_CSPIN_TOKEN_ADDRESS}`);
+      logger.info(`CSPIN Token Master: ${CSPIN_TOKEN_ADDRESS}`);
+      logger.info(`CSPIN Jetton Wallet: ${CSPIN_JETTON_WALLET}`);
 
-      // ⚠️ 긴급: Jetton Wallet 주소 확인
+      // Jetton Wallet 주소 확인
       if (!CSPIN_JETTON_WALLET || CSPIN_JETTON_WALLET.length === 0) {
         const errorMsg = 
           '❌ 입금 기능이 아직 설정되지 않았습니다.\n\n' +
-          '관리자가 다음 작업을 완료해야 합니다:\n' +
-          '1. 게임 지갑의 CSPIN Jetton Wallet 주소 계산\n' +
-          '2. VITE_CSPIN_JETTON_WALLET 환경변수 설정\n\n' +
-          '계산 방법:\n' +
-          `- Jetton Master: ${import.meta.env.VITE_CSPIN_TOKEN_ADDRESS}\n` +
-          `- Owner Address: ${GAME_WALLET_ADDRESS}\n` +
-          '- get_wallet_address() 메서드 호출';
+          '관리자가 VITE_CSPIN_JETTON_WALLET 환경변수를 설정해야 합니다.';
         
         logger.error('Jetton Wallet 주소 미설정');
         throw new Error(errorMsg);
       }
-
-      logger.info(`CSPIN Jetton Wallet: ${CSPIN_JETTON_WALLET}`);
 
       // 주소 파싱 및 변환
       let gameWalletAddress: Address;
