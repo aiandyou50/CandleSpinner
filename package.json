@@ -17,7 +17,8 @@
     "@tonconnect/ui-react": "^2.0.9",
     "buffer": "^6.0.3",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.9.5"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251014.0",

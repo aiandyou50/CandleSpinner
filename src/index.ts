@@ -116,6 +116,13 @@ export default {
       }
     }
 
+    // ✅ SPA 라우팅: /admin 등 모든 페이지를 index.html로 리디렉션
+    // React Router가 클라이언트에서 처리
+    if (!url.pathname.startsWith('/api')) {
+      const indexRequest = new Request(new URL('/', url), request);
+      return env.ASSETS.fetch(indexRequest);
+    }
+
     // 정적 파일 서빙 (React 앱)
     return env.ASSETS.fetch(request);
   },
