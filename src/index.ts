@@ -21,6 +21,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     
+    // ✅ 환경 변수 디버깅 (배포 후 확인용)
+    console.log('[Env Check] TONCENTER_API_KEY exists:', !!env.TONCENTER_API_KEY);
+    console.log('[Env Check] GAME_WALLET_MNEMONIC exists:', !!env.GAME_WALLET_MNEMONIC);
+    console.log('[Env Check] GAME_WALLET_ADDRESS:', env.GAME_WALLET_ADDRESS || 'NOT SET');
+    console.log('[Env Check] CSPIN_JETTON_MASTER:', env.CSPIN_JETTON_MASTER || 'NOT SET');
+    
     // CORS 헤더
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
@@ -113,7 +119,21 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
 
     // TonCenter API 호출 (runGetMethod: get_wallet_data)
     const tonCenterUrl = 'https://toncenter.com/api/v2/runGetMethod';
-    const apiKey = env.TONCENTER_API_KEY || '';
+    const apiKey = env.TONCENTER_API_KEY;
+    
+    // ✅ API Key 확인
+    if (!apiKey) {
+      console.error('[CheckBalance] TONCENTER_API_KEY is not set!');
+      return new Response(JSON.stringify({ 
+        error: 'TonCenter API Key not configured',
+        message: 'Please set TONCENTER_API_KEY in Cloudflare Dashboard'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    console.log('[CheckBalance] Using API Key:', apiKey.substring(0, 10) + '...');
     
     const tonCenterResponse = await fetch(tonCenterUrl, {
       method: 'POST',

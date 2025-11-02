@@ -8,7 +8,10 @@ import App from './App';
 import './styles/index.css';
 
 // TON Connect Manifest URL
-const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
+// ✅ MVP v1 방식: 고정된 배포 URL 사용 (로컬/프로덕션 모두)
+const manifestUrl = 'https://aiandyou.me/tonconnect-manifest.json';
+
+console.log('🔗 TON Connect Manifest URL:', manifestUrl);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
