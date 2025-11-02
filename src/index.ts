@@ -13,7 +13,7 @@ export interface Env {
   GAME_WALLET_MNEMONI: string;
   GAME_WALLET_ADDRESS: string;
   CSPIN_JETTON_MASTER: string;
-  CSPIN_JETTON_WALLET: string;
+  // CSPIN_JETTON_WALLET 제거 (동적 계산으로 대체)
   TONCENTER_API_KEY?: string;
 }
 
