@@ -17,13 +17,13 @@ interface WithdrawProps {
 }
 
 export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawProps) {
-  const [amount, setAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDebugLog, setShowDebugLog] = useState(false);
   const [tonConnectUI] = useTonConnectUI();
 
-  const handleWithdraw = async () => {
+  const handleWithdrawRequest = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -32,16 +32,16 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       logger.info(`사용자 지갑: ${walletAddress}`);
       logger.info(`현재 크레딧: ${currentCredit} CSPIN`);
 
-      const withdrawAmount = parseFloat(amount);
-      if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
-        logger.error('❌ 잘못된 금액:', amount);
+      const withdrawAmountValue = parseFloat(withdrawAmount);
+      if (isNaN(withdrawAmountValue) || withdrawAmountValue <= 0) {
+        logger.error('❌ 잘못된 금액:', withdrawAmount);
         throw new Error('잘못된 금액입니다');
       }
 
-      logger.info(`인출 금액: ${withdrawAmount} CSPIN`);
+      logger.info(`인출 금액: ${withdrawAmountValue} CSPIN`);
 
-      if (withdrawAmount > currentCredit) {
-        logger.error(`❌ 크레딧 부족: 필요 ${withdrawAmount}, 보유 ${currentCredit}`);
+      if (withdrawAmountValue > currentCredit) {
+        logger.error(`❌ 크레딧 부족: 필요 ${withdrawAmountValue}, 보유 ${currentCredit}`);
         throw new Error('크레딧이 부족합니다');
       }
 
@@ -49,9 +49,9 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       logger.info('📝 보안 토큰 생성 중...');
       const timestamp = Date.now();
       const nonce = crypto.randomUUID();
-      const withdrawRequest = {
+      const withdrawRequestPayload = {
         action: 'withdraw',
-        amount: withdrawAmount,
+        amount: withdrawAmountValue,
         userAddress: walletAddress,
         timestamp,
         nonce
@@ -64,7 +64,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       const response = await fetch('/api/withdraw-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(withdrawRequest),
+        body: JSON.stringify(withdrawRequestPayload),
       });
 
       if (!response.ok) {
@@ -87,24 +87,24 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       logger.info('=== 인출 요청 완료 ===');
       
       alert(
-        `${withdrawAmount} CSPIN 인출 요청이 완료되었습니다!\n\n` +
+        `${withdrawAmountValue} CSPIN 인출 요청이 완료되었습니다!\n\n` +
         `예상 처리 시간: ${result.estimatedProcessTime}\n` +
         `요청 ID: ${result.withdrawalId.substring(0, 8)}...\n\n` +
         `처리가 완료되면 지갑으로 CSPIN이 전송됩니다.`
       );
       
-      setAmount('');
+      setWithdrawAmount('');
       onSuccess();
-    } catch (err) {
-      logger.error('❌ 인출 실패:', err);
+    } catch (error) {
+      logger.error('❌ 인출 실패:', error);
       
-      if (err instanceof Error) {
-        logger.error('오류 메시지:', err.message);
-        logger.error('오류 스택:', err.stack);
+      if (error instanceof Error) {
+        logger.error('오류 메시지:', error.message);
+        logger.error('오류 스택:', error.stack);
       }
       
-      console.error('Withdraw failed:', err);
-      setError(err instanceof Error ? err.message : 'Withdraw failed');
+      console.error('Withdraw failed:', error);
+      setError(error instanceof Error ? error.message : 'Withdraw failed');
     } finally {
       setIsLoading(false);
     }
@@ -138,8 +138,8 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
             </label>
             <input
               type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(e.target.value)}
               max={currentCredit}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
               placeholder="0"
@@ -147,7 +147,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
           </div>
 
           <button
-            onClick={handleWithdraw}
+            onClick={handleWithdrawRequest}
             disabled={isLoading || currentCredit === 0}
             className="w-full py-3 bg-gradient-to-r from-pink-500 to-red-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
           >

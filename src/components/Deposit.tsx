@@ -45,23 +45,23 @@ function buildJettonTransferPayload(
 
 export function Deposit({ walletAddress, onSuccess }: DepositProps) {
   const [tonConnectUI] = useTonConnectUI();
-  const [amount, setAmount] = useState('10');
+  const [depositAmount, setDepositAmount] = useState('10');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDebugLog, setShowDebugLog] = useState(false);
 
-  const handleDeposit = async () => {
+  const handleDepositTransaction = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      const depositAmount = parseFloat(amount);
-      if (isNaN(depositAmount) || depositAmount <= 0) {
+      const depositAmountValue = parseFloat(depositAmount);
+      if (isNaN(depositAmountValue) || depositAmountValue <= 0) {
         throw new Error('잘못된 금액입니다');
       }
 
       logger.info('=== Deposit 시작 ===');
-      logger.info(`입금 금액: ${depositAmount} CSPIN`);
+      logger.info(`입금 금액: ${depositAmountValue} CSPIN`);
       logger.info(`사용자 지갑: ${walletAddress}`);
       logger.info(`게임 TON 지갑: ${GAME_WALLET_ADDRESS}`);
       logger.info(`게임 Jetton 지갑: ${GAME_JETTON_WALLET}`);
@@ -88,7 +88,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       logger.info(`✅ 사용자 Jetton Wallet: ${userJettonWalletRaw}`);
 
       // 입금 금액 계산 (nano 단위)
-      const amountNano = BigInt(Math.floor(depositAmount * 1_000_000_000));
+      const amountNano = BigInt(Math.floor(depositAmountValue * 1_000_000_000));
       logger.debug(`nano 단위 금액: ${amountNano.toString()}`);
 
       // ✅ 백엔드 API를 통한 CSPIN 잔액 확인 (TonCenter API Key 사용)
@@ -134,9 +134,9 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         if (currentBalance < Number(amountNano)) {
           throw new Error(
             `❌ CSPIN 잔액이 부족합니다.\n\n` +
-            `필요: ${depositAmount} CSPIN\n` +
+            `필요: ${depositAmountValue} CSPIN\n` +
             `현재: ${balanceCSPIN} CSPIN\n` +
-            `부족: ${depositAmount - balanceCSPIN} CSPIN`
+            `부족: ${depositAmountValue - balanceCSPIN} CSPIN`
           );
         }
 
@@ -208,22 +208,22 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         amount: transaction.messages[0]?.amount || '0',
       });
 
-      const result = await tonConnectUI.sendTransaction(transaction);
-      logger.info('트랜잭션 결과:', result);
+      const transactionResult = await tonConnectUI.sendTransaction(transaction);
+      logger.info('트랜잭션 결과:', transactionResult);
       
       // 트랜잭션 해시
-      const txHash = result.boc;
+      const txHash = transactionResult.boc;
 
       // 백엔드에 입금 확인 요청
       logger.info('백엔드 입금 확인 요청...');
       await verifyDeposit({ walletAddress, txHash });
 
       logger.info('=== Deposit 완료 ===');
-      alert(`${depositAmount} CSPIN 입금이 완료되었습니다!`);
+      alert(`${depositAmountValue} CSPIN 입금이 완료되었습니다!`);
       onSuccess();
-    } catch (err) {
-      logger.error('Deposit 실패:', err);
-      setError(err instanceof Error ? err.message : '입금에 실패했습니다');
+    } catch (error) {
+      logger.error('Deposit 실패:', error);
+      setError(error instanceof Error ? error.message : '입금에 실패했습니다');
     } finally {
       setIsLoading(false);
     }
@@ -239,15 +239,15 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
             <label className="block text-sm text-gray-300 mb-2">금액 (CSPIN)</label>
             <input
               type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
               placeholder="10"
             />
           </div>
 
           <button
-            onClick={handleDeposit}
+            onClick={handleDepositTransaction}
             disabled={isLoading}
             className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
           >

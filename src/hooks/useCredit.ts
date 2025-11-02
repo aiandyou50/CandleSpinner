@@ -17,28 +17,28 @@ export function useCredit(walletAddress: string | null) {
       return;
     }
 
-    loadCredit();
+    fetchUserCredit();
   }, [walletAddress]);
 
-  const loadCredit = async () => {
+  const fetchUserCredit = async () => {
     if (!walletAddress) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const creditData = await fetchCredit(walletAddress);
-      setCredit(creditData.credit);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load credit');
-      console.error('Failed to load credit:', err);
+      const creditResponse = await fetchCredit(walletAddress);
+      setCredit(creditResponse.credit);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to load credit');
+      console.error('Failed to load credit:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const refreshCredit = () => {
-    loadCredit();
+    fetchUserCredit();
   };
 
   return { credit, isLoading, error, refreshCredit };

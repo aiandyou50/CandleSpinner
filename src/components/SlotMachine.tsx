@@ -20,7 +20,7 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastWin, setLastWin] = useState<number | null>(null);
 
-  const handleSpin = async () => {
+  const handleSlotMachineSpin = async () => {
     if (currentCredit < 1) {
       alert('크레딧이 부족합니다! 먼저 CSPIN을 입금해주세요.');
       return;
@@ -31,7 +31,7 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
       setLastWin(null);
 
       // 애니메이션 효과 (랜덤 심볼 표시)
-      const interval = setInterval(() => {
+      const animationInterval = setInterval(() => {
         setSymbols(prevSymbols => 
           prevSymbols.map(row => 
             row.map(() => {
@@ -43,18 +43,18 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
       }, 100);
 
       // API 호출
-      const result = await spinApi(walletAddress);
+      const spinResult = await spinApi(walletAddress);
 
       // 애니메이션 멈추고 결과 표시
       setTimeout(() => {
-        clearInterval(interval);
-        setSymbols(result.result);
-        setLastWin(result.winAmount);
+        clearInterval(animationInterval);
+        setSymbols(spinResult.result);
+        setLastWin(spinResult.winAmount);
         setIsSpinning(false);
         onSuccess();
 
-        if (result.winAmount > 0) {
-          alert(`🎉 ${result.winAmount} CSPIN 당첨!`);
+        if (spinResult.winAmount > 0) {
+          alert(`🎉 ${spinResult.winAmount} CSPIN 당첨!`);
         }
       }, 2000);
     } catch (error) {
@@ -91,7 +91,7 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
       </div>
 
       <button
-        onClick={handleSpin}
+        onClick={handleSlotMachineSpin}
         disabled={isSpinning || currentCredit < 1}
         className="w-full py-4 bg-gradient-to-r from-yellow-500 to-pink-500 rounded-xl font-bold text-xl text-white hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
       >

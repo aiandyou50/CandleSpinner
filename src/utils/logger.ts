@@ -15,14 +15,14 @@ class Logger {
   private maxLogs = 100;
 
   log(level: LogEntry['level'], message: string, data?: any) {
-    const entry: LogEntry = {
+    const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
       data,
     };
 
-    this.logs.push(entry);
+    this.logs.push(logEntry);
     
     // 최대 로그 수 제한
     if (this.logs.length > this.maxLogs) {
@@ -30,14 +30,14 @@ class Logger {
     }
 
     // 콘솔에도 출력
-    const consoleMethod = level === 'error' ? console.error : 
+    const consoleLogMethod = level === 'error' ? console.error : 
                          level === 'warn' ? console.warn : 
                          console.log;
     
     if (data !== undefined) {
-      consoleMethod(`[${level.toUpperCase()}] ${message}`, data);
+      consoleLogMethod(`[${level.toUpperCase()}] ${message}`, data);
     } else {
-      consoleMethod(`[${level.toUpperCase()}] ${message}`);
+      consoleLogMethod(`[${level.toUpperCase()}] ${message}`);
     }
   }
 
@@ -64,8 +64,8 @@ class Logger {
   getLogsAsText(): string {
     return this.logs
       .map(log => {
-        const dataStr = log.data ? `\n${JSON.stringify(log.data, null, 2)}` : '';
-        return `[${log.timestamp}] [${log.level.toUpperCase()}] ${log.message}${dataStr}`;
+        const dataString = log.data ? `\n${JSON.stringify(log.data, null, 2)}` : '';
+        return `[${log.timestamp}] [${log.level.toUpperCase()}] ${log.message}${dataString}`;
       })
       .join('\n\n');
   }

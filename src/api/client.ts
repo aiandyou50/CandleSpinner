@@ -31,11 +31,11 @@ export async function fetchCredit(walletAddress: string): Promise<CreditResponse
 /**
  * 입금 확인
  */
-export async function verifyDeposit(data: VerifyDepositRequest): Promise<CreditResponse> {
+export async function verifyDeposit(depositRequest: VerifyDepositRequest): Promise<CreditResponse> {
   const response = await fetch(`${API_BASE_URL}/api/verify-deposit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify(depositRequest),
   });
   
   if (!response.ok) {
@@ -70,41 +70,41 @@ export async function spin(walletAddress: string): Promise<{
 /**
  * 인출 요청
  */
-export async function withdraw(data: WithdrawRequest): Promise<WithdrawResponse> {
+export async function withdraw(withdrawalRequest: WithdrawRequest): Promise<WithdrawResponse> {
   // logger를 사용하기 위해 동적 import
   const { logger } = await import('@/utils/logger');
   
   logger.info('📡 API 요청 시작:', `${API_BASE_URL}/api/withdraw`);
   logger.debug('요청 헤더:', { 'Content-Type': 'application/json' });
-  logger.debug('요청 본문:', data);
+  logger.debug('요청 본문:', withdrawalRequest);
   
   try {
     const response = await fetch(`${API_BASE_URL}/api/withdraw`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(withdrawalRequest),
     });
     
     logger.info(`API 응답 상태: ${response.status} ${response.statusText}`);
     
     if (!response.ok) {
-      const errorText = await response.text();
-      logger.error('❌ API 오류 응답:', errorText);
+      const errorResponseBody = await response.text();
+      logger.error('❌ API 오류 응답:', errorResponseBody);
       
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(errorResponseBody);
         logger.error('파싱된 오류:', errorJson);
         throw new Error(errorJson.error || 'Failed to withdraw');
       } catch (parseError) {
         logger.error('오류 파싱 실패, 원본 텍스트 사용');
-        throw new Error(`Failed to withdraw: ${errorText}`);
+        throw new Error(`Failed to withdraw: ${errorResponseBody}`);
       }
     }
     
-    const result = await response.json() as WithdrawResponse;
-    logger.info('✅ API 응답 성공:', result);
+    const withdrawResponse = await response.json() as WithdrawResponse;
+    logger.info('✅ API 응답 성공:', withdrawResponse);
     
-    return result;
+    return withdrawResponse;
   } catch (error) {
     logger.error('❌ API 요청 실패:', error);
     

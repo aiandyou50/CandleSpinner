@@ -24,14 +24,14 @@ export function AdminWithdrawals() {
   const { isConnected, walletAddress } = useTonConnect();
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [processing, setProcessing] = useState<string | null>(null);
+  const [processingWithdrawalId, setProcessingWithdrawalId] = useState<string | null>(null);
 
   // ✅ 게임 운영자 지갑 확인
   const isAdminWallet = isConnected && 
     walletAddress?.toLowerCase() === GAME_WALLET_ADDRESS.toLowerCase();
 
   // 대기 중인 인출 목록 조회
-  const fetchPendingWithdrawals = async () => {
+  const loadPendingWithdrawals = async () => {
     try {
       setIsLoading(true);
       const response = await fetch('/api/admin/pending-withdrawals');
@@ -53,17 +53,17 @@ export function AdminWithdrawals() {
 
   useEffect(() => {
     if (isAdminWallet) {
-      fetchPendingWithdrawals();
+      loadPendingWithdrawals();
       // 30초마다 자동 새로고침
-      const interval = setInterval(fetchPendingWithdrawals, 30000);
+      const interval = setInterval(loadPendingWithdrawals, 30000);
       return () => clearInterval(interval);
     }
   }, [isAdminWallet]);
 
   // 개별 인출 처리
-  const handleProcessWithdrawal = async (withdrawal: Withdrawal) => {
+  const processWithdrawal = async (withdrawal: Withdrawal) => {
     try {
-      setProcessing(withdrawal.id);
+      setProcessingWithdrawalId(withdrawal.id);
       
       console.log('🔄 인출 처리 시작:', withdrawal);
       
@@ -139,24 +139,24 @@ export function AdminWithdrawals() {
       alert(`${withdrawal.amount} CSPIN 인출이 처리되었습니다!\nTX: ${txHash.substring(0, 10)}...`);
       
       // 목록 새로고침
-      await fetchPendingWithdrawals();
+      await loadPendingWithdrawals();
       
     } catch (error) {
       console.error('❌ 인출 처리 실패:', error);
       alert(`인출 처리 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
     } finally {
-      setProcessing(null);
+      setProcessingWithdrawalId(null);
     }
   };
 
   // 일괄 처리
-  const handleBatchProcess = async () => {
+  const processBatchWithdrawals = async () => {
     if (!confirm(`${withdrawals.length}건의 인출을 일괄 처리하시겠습니까?`)) {
       return;
     }
 
     for (const withdrawal of withdrawals) {
-      await handleProcessWithdrawal(withdrawal);
+      await processWithdrawal(withdrawal);
       // 각 트랜잭션 사이 1초 대기
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
@@ -214,7 +214,7 @@ export function AdminWithdrawals() {
               {/* 새로고침 버튼 */}
               <div className="mb-6 flex justify-end">
                 <button
-                  onClick={fetchPendingWithdrawals}
+                  onClick={loadPendingWithdrawals}
                   disabled={isLoading}
                   className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white transition disabled:opacity-50"
                 >
@@ -245,8 +245,8 @@ export function AdminWithdrawals() {
               {/* 일괄 처리 버튼 */}
               {withdrawals.length > 0 && (
                 <button
-                  onClick={handleBatchProcess}
-              disabled={isLoading || processing !== null}
+                  onClick={processBatchWithdrawals}
+              disabled={isLoading || processingWithdrawalId !== null}
               className="w-full mb-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
             >
               🚀 모두 처리 ({withdrawals.length}건)
@@ -288,11 +288,11 @@ export function AdminWithdrawals() {
                       <p className="mt-1">ID: {withdrawal.id.substring(0, 16)}...</p>
                     </div>
                     <button
-                      onClick={() => handleProcessWithdrawal(withdrawal)}
-                      disabled={processing !== null}
+                      onClick={() => processWithdrawal(withdrawal)}
+                      disabled={processingWithdrawalId !== null}
                       className="px-4 py-2 bg-gradient-to-r from-pink-500 to-red-500 rounded-lg text-white font-semibold hover:shadow-lg transition disabled:opacity-50"
                     >
-                      {processing === withdrawal.id ? '처리 중...' : '✅ 처리'}
+                      {processingWithdrawalId === withdrawal.id ? '처리 중...' : '✅ 처리'}
                     </button>
                   </div>
                 </div>
