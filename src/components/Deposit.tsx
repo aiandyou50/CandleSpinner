@@ -6,9 +6,9 @@
 
 import { useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
-import { Address, beginCell, toNano } from '@ton/ton';
+import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
-import { GAME_WALLET_ADDRESS, CSPIN_JETTON_WALLET, CSPIN_TOKEN_ADDRESS } from '@/constants';
+import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '@/constants';
 import { logger } from '@/utils/logger';
 import { DebugLogModal } from './DebugLogModal';
 
@@ -66,17 +66,24 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       logger.info(`사용자 지갑: ${walletAddress}`);
       logger.info(`게임 지갑: ${GAME_WALLET_ADDRESS}`);
       logger.info(`CSPIN Token Master: ${CSPIN_TOKEN_ADDRESS}`);
-      logger.info(`CSPIN Jetton Wallet: ${CSPIN_JETTON_WALLET}`);
 
-      // Jetton Wallet 주소 확인
-      if (!CSPIN_JETTON_WALLET || CSPIN_JETTON_WALLET.length === 0) {
-        const errorMsg = 
-          '❌ 입금 기능이 아직 설정되지 않았습니다.\n\n' +
-          '관리자가 VITE_CSPIN_JETTON_WALLET 환경변수를 설정해야 합니다.';
-        
-        logger.error('Jetton Wallet 주소 미설정');
-        throw new Error(errorMsg);
-      }
+      // ✅ 사용자의 CSPIN Jetton Wallet 주소를 동적으로 계산
+      logger.info('사용자의 Jetton Wallet 계산 중...');
+      const tonClient = new TonClient({
+        endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+      });
+
+      const userAddress = Address.parse(walletAddress);
+      const masterAddress = Address.parse(CSPIN_TOKEN_ADDRESS);
+      const jettonMaster = tonClient.open(JettonMaster.create(masterAddress));
+      
+      const userJettonWalletAddress = await jettonMaster.getWalletAddress(userAddress);
+      const userJettonWalletRaw = userJettonWalletAddress.toString({ 
+        urlSafe: true, 
+        bounceable: false 
+      });
+
+      logger.info(`✅ 사용자 Jetton Wallet: ${userJettonWalletRaw}`);
 
       // 주소 파싱 및 변환
       let gameWalletAddress: Address;
@@ -104,41 +111,17 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       );
       logger.debug(`페이로드 생성 완료 (base64): ${payloadBase64.substring(0, 50)}...`);
 
-      // ✅ TON Connect는 raw format (non-bounceable, URL-safe) 주소 요구
-      // ⚠️ 임시: Jetton Wallet 주소 검증 및 변환
-      let jettonWalletRaw: string;
-      
-      try {
-        // 먼저 주소 파싱 시도
-        const jettonAddr = Address.parse(CSPIN_JETTON_WALLET);
-        jettonWalletRaw = jettonAddr.toString({ urlSafe: true, bounceable: false });
-        
-        logger.info('TON Connect 주소 형식:', {
-          original: CSPIN_JETTON_WALLET,
-          converted: jettonWalletRaw,
-        });
-      } catch (addrError) {
-        logger.error('Jetton Wallet 주소 파싱 실패:', addrError);
-        
-        // ⚠️ 긴급 대안: 사용자의 Jetton Wallet을 동적으로 계산해야 함
-        // 현재는 게임 지갑 주소를 사용 (임시)
-        throw new Error(
-          'CSPIN Jetton Wallet 주소가 올바르지 않습니다.\n' +
-          '관리자에게 문의하세요.\n' +
-          `오류: ${addrError instanceof Error ? addrError.message : String(addrError)}`
-        );
-      }
-
       // TON Connect 트랜잭션
-      // - 전체 비용: 0.055 TON
-      //   * 0.05 TON: Jetton Wallet 컨트랙트 실행 비용
+      // ✅ 사용자의 Jetton Wallet으로 전송 (게임 운영 지갑의 Jetton Wallet이 아님!)
+      // - 전체 비용: 0.03 TON (최적화)
+      //   * 0.025 TON: Jetton Wallet 컨트랙트 실행 비용
       //   * 0.005 TON: forward_ton_amount (메시지 전달 비용)
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5분
         messages: [
           {
-            address: jettonWalletRaw, // ✅ raw format 사용
-            amount: toNano('0.055').toString(), // ✅ 0.05 + 0.005 = 0.055 TON
+            address: userJettonWalletRaw, // ✅ 사용자의 Jetton Wallet 주소
+            amount: toNano('0.03').toString(), // ✅ 0.025 + 0.005 = 0.03 TON
             payload: payloadBase64,
           },
         ],
@@ -148,7 +131,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         validUntil: transaction.validUntil,
         currentTime: Math.floor(Date.now() / 1000),
         timeDiff: transaction.validUntil - Math.floor(Date.now() / 1000),
-        address: jettonWalletRaw,
+        address: userJettonWalletRaw,
         amount: transaction.messages[0]?.amount || '0',
       });
 
