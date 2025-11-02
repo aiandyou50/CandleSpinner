@@ -14,9 +14,9 @@ binding = "CREDIT_KV"
 id = "0190e4e479144180a5e0ee7bd47b959b"
 
 # 환경 변수 (Secrets는 Dashboard에서 설정됨)
-# GAME_WALLET_MNEMONI
+# ✅ Cloudflare Dashboard → Workers & Pages → candlespinner-workers → Settings → Variables
+# GAME_WALLET_MNEMONIC (수정: MNEMONI → MNEMONIC)
 # GAME_WALLET_ADDRESS
 # CSPIN_JETTON_MASTER
-# CSPIN_JETTON_WALLET
-# TONCENTER_API_KEY
+# TONCENTER_API_KEY (TonCenter API Key)
 
