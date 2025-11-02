@@ -19,7 +19,10 @@ interface DepositProps {
 
 /**
  * Jetton Transfer Payload 구성 (TEP-74 표준 준수)
- * MVP v1 방식: forward_ton_amount = 1 nanoton
+ * forward_ton_amount = 0.005 TON (5,000,000 nanoton)
+ * - Jetton Wallet 간 메시지 전달 비용
+ * - 알림(notification) 전송 비용
+ * - 최소 권장값: 0.05 TON이지만 0.005 TON으로 최적화
  * 
  * @see https://github.com/ton-blockchain/TEPs/blob/master/text/0074-jettons-standard.md
  */
@@ -35,7 +38,7 @@ function buildJettonTransferPayload(
     .storeAddress(destination)     // destination:MsgAddress
     .storeAddress(responseTo)      // response_destination:MsgAddress
     .storeBit(0)                   // custom_payload:(Maybe ^Cell) = none
-    .storeCoins(BigInt(1))         // ✅ forward_ton_amount = 1 nanoton (MVP v1 표준)
+    .storeCoins(toNano('0.005'))   // ✅ forward_ton_amount = 0.005 TON (5,000,000 nanoton)
     .storeBit(0)                   // forward_payload:(Either Cell ^Cell) = none
     .endCell();
   return cell.toBoc().toString('base64');
@@ -126,13 +129,16 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
         );
       }
 
-      // TON Connect 트랜잭션 (MVP v1 방식)
+      // TON Connect 트랜잭션
+      // - 전체 비용: 0.055 TON
+      //   * 0.05 TON: Jetton Wallet 컨트랙트 실행 비용
+      //   * 0.005 TON: forward_ton_amount (메시지 전달 비용)
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5분
         messages: [
           {
             address: jettonWalletRaw, // ✅ raw format 사용
-            amount: toNano('0.05').toString(),
+            amount: toNano('0.055').toString(), // ✅ 0.05 + 0.005 = 0.055 TON
             payload: payloadBase64,
           },
         ],
