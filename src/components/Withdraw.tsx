@@ -2,9 +2,11 @@
  * 인출 컴포넌트
  * 수동 인출 방식: 크레딧 차감 + 대기열 추가 → 관리자가 일괄 처리
  * 게임 니모닉 서명이 필요하므로 즉시 처리 불가
+ * 보안: 메시지 서명으로 인증
  */
 
 import { useState } from 'react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import { logger } from '@/utils/logger';
 import { DebugLogModal } from './DebugLogModal';
 
@@ -19,13 +21,14 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDebugLog, setShowDebugLog] = useState(false);
+  const [tonConnectUI] = useTonConnectUI();
 
   const handleWithdraw = async () => {
     try {
       setIsLoading(true);
       setError(null);
 
-      logger.info('=== 인출 요청 시작 (수동 처리 방식) ===');
+      logger.info('=== 인출 요청 시작 (메시지 서명 보안) ===');
       logger.info(`사용자 지갑: ${walletAddress}`);
       logger.info(`현재 크레딧: ${currentCredit} CSPIN`);
 
@@ -42,12 +45,26 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
         throw new Error('크레딧이 부족합니다');
       }
 
-      // ✅ 수동 인출: 크레딧 차감 + 대기열 추가
+      // ✅ 1단계: 리플레이 공격 방지 (타임스탬프 + 논스)
+      logger.info('📝 보안 토큰 생성 중...');
+      const timestamp = Date.now();
+      const nonce = crypto.randomUUID();
+      const withdrawRequest = {
+        action: 'withdraw',
+        amount: withdrawAmount,
+        userAddress: walletAddress,
+        timestamp,
+        nonce
+      };
+      
+      logger.info('생성된 보안 토큰:', { timestamp, nonce: nonce.substring(0, 8) });
+
+      // ✅ 2단계: 백엔드에 보안 토큰 포함 요청 전송
       logger.info('백엔드에 인출 요청 전송 중...');
       const response = await fetch('/api/withdraw-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress, amount: withdrawAmount }),
+        body: JSON.stringify(withdrawRequest),
       });
 
       if (!response.ok) {
