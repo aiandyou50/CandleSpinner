@@ -2,11 +2,12 @@
 name = "candlespinner-workers"
 compatibility_date = "2024-11-01"
 main = "src/index.ts"
-node_compat = true
+compatibility_flags = ["nodejs_compat"]
 
-# Assets (React 빌드 결과물)
+# Assets (React 빌드 결과물) - Workers Assets 기능
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 
 # KV Namespace (크레딧 저장소)
 [[kv_namespaces]]
