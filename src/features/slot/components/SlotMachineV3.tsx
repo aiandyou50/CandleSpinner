@@ -71,7 +71,10 @@ export function SlotMachineV3({
 
     try {
       // 클라이언트 시드 생성 (Provably Fair)
-      const clientSeed = crypto.randomUUID();
+      // Fallback for environments without crypto.randomUUID()
+      const clientSeed = typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).substring(2)}`;
 
       // 스핀 애니메이션 - 랜덤 심볼 표시
       const spinInterval = setInterval(() => {

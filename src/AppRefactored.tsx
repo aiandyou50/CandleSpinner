@@ -72,7 +72,9 @@ function GamePageNew() {
                       </div>
                       <div className="text-3xl md:text-4xl font-display font-bold text-white">
                         {isLoading ? (
-                          <span className="animate-pulse">{t('header.loading')}</span>
+                          <span className="animate-pulse" role="status" aria-live="polite" aria-label={t('header.loading')}>
+                            {t('header.loading')}
+                          </span>
                         ) : (
                           <span className="text-gradient">{credit}</span>
                         )}{' '}

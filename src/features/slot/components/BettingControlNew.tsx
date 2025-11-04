@@ -75,7 +75,7 @@ export function BettingControlNew({
           step={10}
           value={betAmount}
           onChange={handleSliderChange}
-          className="w-full h-2 rounded-full appearance-none cursor-pointer"
+          className="betting-slider"
           style={{
             background: `linear-gradient(to right, 
               #4A00E0 0%, 
@@ -85,28 +85,6 @@ export function BettingControlNew({
               #4B5563 100%)`,
           }}
         />
-        <style>
-          {`
-            input[type="range"]::-webkit-slider-thumb {
-              appearance: none;
-              width: 24px;
-              height: 24px;
-              border-radius: 50%;
-              background: linear-gradient(135deg, #4A00E0, #FFD700);
-              cursor: pointer;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            }
-            input[type="range"]::-moz-range-thumb {
-              width: 24px;
-              height: 24px;
-              border-radius: 50%;
-              background: linear-gradient(135deg, #4A00E0, #FFD700);
-              cursor: pointer;
-              border: none;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-            }
-          `}
-        </style>
       </div>
 
       {/* 퀵 베팅 버튼들 */}

@@ -3,7 +3,7 @@
  * public/jackpot_video.mp4 재생
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface JackpotVideoNewProps {
@@ -13,17 +13,24 @@ interface JackpotVideoNewProps {
 
 export function JackpotVideoNew({ isPlaying, onComplete }: JackpotVideoNewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     if (isPlaying) {
+      setHasError(false);
+      
       // 비디오 재생
       video.currentTime = 0;
       video.play().catch((error) => {
         console.error('Video playback failed:', error);
-        onComplete();
+        setHasError(true);
+        // 에러 시 3초 후 자동으로 완료 처리
+        setTimeout(() => {
+          onComplete();
+        }, 3000);
       });
 
       // 비디오 종료 시 콜백
@@ -31,10 +38,21 @@ export function JackpotVideoNew({ isPlaying, onComplete }: JackpotVideoNewProps)
         onComplete();
       };
 
+      // 비디오 에러 핸들러
+      const handleError = () => {
+        console.error('Video loading error');
+        setHasError(true);
+        setTimeout(() => {
+          onComplete();
+        }, 3000);
+      };
+
       video.addEventListener('ended', handleEnded);
+      video.addEventListener('error', handleError);
 
       return () => {
         video.removeEventListener('ended', handleEnded);
+        video.removeEventListener('error', handleError);
         video.pause();
       };
     }
@@ -68,17 +86,23 @@ export function JackpotVideoNew({ isPlaying, onComplete }: JackpotVideoNewProps)
             </motion.div>
           </motion.div>
 
-          {/* 비디오 */}
-          <video
-            ref={videoRef}
-            className="max-w-full max-h-full w-auto h-auto"
-            autoPlay
-            playsInline
-            muted={false}
-          >
-            <source src="/jackpot_video.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          {/* 비디오 또는 폴백 */}
+          {!hasError ? (
+            <video
+              ref={videoRef}
+              className="max-w-full max-h-full w-auto h-auto"
+              autoPlay
+              playsInline
+              muted={false}
+            >
+              <source src="/jackpot_video.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          ) : (
+            <div className="text-center text-white">
+              <p className="text-2xl">Celebrating your JACKPOT win! 🎉</p>
+            </div>
+          )}
 
           {/* 파티클 효과 (선택적) */}
           <motion.div
