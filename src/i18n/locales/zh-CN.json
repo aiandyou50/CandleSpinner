@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "蜡烛旋转器",
+    "subtitle": "TON区块链老虎机",
+    "version": "v2.0.0",
+    "footer": "MVP v2.0.0 - 由TON区块链提供支持"
+  },
+  "header": {
+    "balance": "您的余额",
+    "credit": "可用积分",
+    "loading": "加载中..."
+  },
+  "wallet": {
+    "connect": "连接钱包",
+    "disconnect": "断开连接",
+    "connectPrompt": "连接您的TON钱包开始游戏！",
+    "address": "钱包地址"
+  },
+  "game": {
+    "title": "老虎机",
+    "subtitle": "可证明公平的游戏",
+    "slotTitle": "3轴老虎机",
+    "newVersion": "体验新版本（可证明公平）",
+    "oldVersion": "返回经典版本"
+  },
+  "betting": {
+    "title": "下注",
+    "amount": "下注金额",
+    "min": "最小",
+    "max": "最大",
+    "quickBet": "快速下注",
+    "insufficientFunds": "余额不足",
+    "betRange": "下注范围：{{min}} - {{max}} CSPIN"
+  },
+  "buttons": {
+    "spin": "旋转",
+    "spinning": "旋转中...",
+    "deposit": "存款",
+    "withdraw": "提款",
+    "max": "最大",
+    "confirm": "确认",
+    "cancel": "取消",
+    "close": "关闭",
+    "accept": "接受",
+    "decline": "拒绝"
+  },
+  "deposit": {
+    "title": "存入CSPIN",
+    "description": "存入CSPIN代币开始游戏",
+    "amount": "存入金额",
+    "min": "最低：{{amount}} CSPIN",
+    "success": "存款成功！",
+    "error": "存款失败",
+    "processing": "处理中..."
+  },
+  "withdraw": {
+    "title": "提取CSPIN",
+    "description": "提取您的CSPIN代币",
+    "amount": "提取金额",
+    "available": "可用：{{amount}} CSPIN",
+    "success": "提款成功！",
+    "error": "提款失败",
+    "processing": "处理中..."
+  },
+  "results": {
+    "win": "赢了！",
+    "jackpot": "大奖！",
+    "congratulations": "恭喜！",
+    "youWon": "您赢得了 {{amount}} CSPIN",
+    "betterLuck": "下次好运！",
+    "reelPayout": "轴 {{number}}",
+    "totalWin": "总赢额"
+  },
+  "doubleup": {
+    "title": "加倍挑战",
+    "description": "将您的奖金翻倍或全部失去！",
+    "currentWin": "当前赢额",
+    "chooseColor": "选择颜色：",
+    "red": "红色",
+    "blue": "蓝色",
+    "success": "恭喜！您的奖金翻倍了！",
+    "failure": "很遗憾，加倍失败了。",
+    "finalAmount": "最终金额",
+    "chance": "50%机会"
+  },
+  "symbols": {
+    "star": "星星",
+    "planet": "行星",
+    "comet": "彗星",
+    "rocket": "火箭",
+    "alien": "外星人",
+    "diamond": "钻石",
+    "crown": "皇冠"
+  },
+  "rarity": {
+    "common": "普通",
+    "uncommon": "罕见",
+    "rare": "稀有",
+    "legend": "传说"
+  },
+  "stats": {
+    "title": "统计",
+    "rtp": "玩家回报率（RTP）",
+    "totalGames": "总游戏数",
+    "totalBets": "总下注额",
+    "totalWins": "总赢额",
+    "recentWins": "最近赢额",
+    "jackpots": "今日大奖"
+  },
+  "history": {
+    "title": "游戏历史",
+    "date": "日期",
+    "bet": "下注",
+    "result": "结果",
+    "win": "赢",
+    "empty": "暂无游戏历史",
+    "loadMore": "加载更多"
+  },
+  "errors": {
+    "generic": "发生错误",
+    "networkError": "网络错误。请重试。",
+    "insufficientBalance": "余额不足",
+    "invalidAmount": "无效金额",
+    "transactionFailed": "交易失败",
+    "walletNotConnected": "请先连接钱包"
+  },
+  "language": {
+    "select": "选择语言",
+    "current": "当前语言"
+  },
+  "provably": {
+    "title": "可证明公平",
+    "description": "验证游戏公平性",
+    "serverSeed": "服务器种子哈希",
+    "clientSeed": "客户端种子",
+    "nonce": "随机数",
+    "verify": "验证结果"
+  }
+}

@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { logger } from '@/utils/logger';
 import { DebugLogModal } from './DebugLogModal';
@@ -17,6 +18,7 @@ interface WithdrawProps {
 }
 
 export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawProps) {
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +44,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
 
       if (withdrawAmount > currentCredit) {
         logger.error(`❌ 크레딧 부족: 필요 ${withdrawAmount}, 보유 ${currentCredit}`);
-        throw new Error('크레딧이 부족합니다');
+        throw new Error(t('errors.insufficientBalance'));
       }
 
       // ✅ 1단계: 리플레이 공격 방지 (타임스탬프 + 논스)
@@ -70,7 +72,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       if (!response.ok) {
         const errorData = await response.json() as { error?: string };
         logger.error('❌ 인출 요청 실패:', errorData);
-        throw new Error(errorData.error || '인출 요청에 실패했습니다');
+        throw new Error(errorData.error || t('withdraw.error'));
       }
 
       const result = await response.json() as { 
@@ -86,12 +88,10 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
 
       logger.info('=== 인출 요청 완료 ===');
       
-      alert(
-        `${withdrawAmount} CSPIN 인출 요청이 완료되었습니다!\n\n` +
-        `예상 처리 시간: ${result.estimatedProcessTime}\n` +
-        `요청 ID: ${result.withdrawalId.substring(0, 8)}...\n\n` +
-        `처리가 완료되면 지갑으로 CSPIN이 전송됩니다.`
-      );
+      const successMsg = `${t('withdraw.success')}\n\n` +
+        `ID: ${result.withdrawalId.substring(0, 8)}...\n` +
+        `${result.estimatedProcessTime}`;
+      alert(successMsg);
       
       setAmount('');
       onSuccess();
@@ -104,7 +104,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       }
       
       console.error('Withdraw failed:', err);
-      setError(err instanceof Error ? err.message : 'Withdraw failed');
+      setError(err instanceof Error ? err.message : t('withdraw.error'));
     } finally {
       setIsLoading(false);
     }
@@ -113,25 +113,19 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
   return (
     <>
       <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
-        <h3 className="text-2xl font-bold text-white mb-4">💸 CSPIN 인출</h3>
+        <h3 className="text-2xl font-bold text-white mb-4">💸 {t('withdraw.title')}</h3>
         
         {/* 안내 메시지 - 수동 처리 안내 */}
         <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
           <p className="text-sm text-blue-200 font-semibold mb-1">
-            📋 수동 인출 방식
-          </p>
-          <p className="text-xs text-blue-300">
-            • 인출 요청 후 <strong>12~24시간 이내</strong> 처리됩니다
-          </p>
-          <p className="text-xs text-blue-300">
-            • 크레딧은 즉시 차감되며, 처리 완료 시 지갑으로 전송됩니다
+            📋 {t('withdraw.description')}
           </p>
         </div>
         
         <div className="space-y-4">
           <div>
             <label className="block text-sm text-gray-300 mb-2">
-              금액 (보유: {currentCredit} CSPIN)
+              {t('withdraw.available', { amount: currentCredit })}
             </label>
             <input
               type="number"
@@ -148,7 +142,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
             disabled={isLoading || currentCredit === 0}
             className="w-full py-3 bg-gradient-to-r from-pink-500 to-red-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
           >
-            {isLoading ? '처리 중...' : '인출하기'}
+            {isLoading ? t('withdraw.processing') : t('buttons.withdraw')}
           </button>
 
           {error && (
