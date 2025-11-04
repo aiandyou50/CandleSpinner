@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
@@ -44,6 +45,7 @@ function buildJettonTransferPayload(
 }
 
 export function Deposit({ walletAddress, onSuccess }: DepositProps) {
+  const { t } = useTranslation();
   const [tonConnectUI] = useTonConnectUI();
   const [amount, setAmount] = useState('10');
   const [isLoading, setIsLoading] = useState(false);
@@ -219,11 +221,12 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       await verifyDeposit({ walletAddress, txHash });
 
       logger.info('=== Deposit 완료 ===');
-      alert(`${depositAmount} CSPIN 입금이 완료되었습니다!`);
+      const successMsg = t('deposit.success').replace('{{amount}}', depositAmount.toString());
+      alert(successMsg);
       onSuccess();
     } catch (err) {
       logger.error('Deposit 실패:', err);
-      setError(err instanceof Error ? err.message : '입금에 실패했습니다');
+      setError(err instanceof Error ? err.message : t('deposit.error'));
     } finally {
       setIsLoading(false);
     }
@@ -232,11 +235,11 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
   return (
     <>
       <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
-        <h3 className="text-2xl font-bold text-white mb-4">💰 CSPIN 입금</h3>
+        <h3 className="text-2xl font-bold text-white mb-4">💰 {t('deposit.title')}</h3>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">금액 (CSPIN)</label>
+            <label className="block text-sm text-gray-300 mb-2">{t('deposit.amount')}</label>
             <input
               type="number"
               value={amount}
@@ -251,7 +254,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
             disabled={isLoading}
             className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
           >
-            {isLoading ? '처리 중...' : '입금하기'}
+            {isLoading ? t('deposit.processing') : t('buttons.deposit')}
           </button>
 
           {/* 디버그 로그 버튼 */}
