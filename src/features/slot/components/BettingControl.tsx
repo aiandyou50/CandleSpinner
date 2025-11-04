@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface BettingControlProps {
   betAmount: number;
@@ -20,6 +21,7 @@ export function BettingControl({
   onSpin,
   isSpinning,
 }: BettingControlProps) {
+  const { t } = useTranslation();
   const [localBet, setLocalBet] = useState(betAmount);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export function BettingControl({
     <div className="betting-control">
       {/* 베팅 금액 표시 */}
       <div className="bet-display">
-        <span className="bet-label">베팅 금액</span>
+        <span className="bet-label">{t('betting.amount')}</span>
         <span className="bet-amount">{localBet} CSPIN</span>
       </div>
 
@@ -100,7 +102,7 @@ export function BettingControl({
           disabled={isSpinning || maxCredit < 10}
           className="quick-bet-btn max"
         >
-          MAX
+          {t('buttons.max')}
         </button>
       </div>
 
@@ -116,7 +118,7 @@ export function BettingControl({
           <span className="spin-icon">🎰</span>
         )}
         <span className="spin-text">
-          {isSpinning ? '회전 중...' : 'SPIN'}
+          {isSpinning ? t('buttons.spinning') : t('buttons.spin')}
         </span>
       </button>
 
@@ -124,9 +126,9 @@ export function BettingControl({
       {!canSpin && !isSpinning && (
         <div className="bet-error">
           {maxCredit < betAmount
-            ? '크레딧이 부족합니다!'
+            ? t('errors.insufficientBalance')
             : betAmount < 10
-            ? '최소 베팅은 10 CSPIN입니다'
+            ? t('betting.betRange', { min: 10, max: 1000 })
             : ''}
         </div>
       )}

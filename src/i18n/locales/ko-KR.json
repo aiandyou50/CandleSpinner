@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "캔들스피너",
+    "subtitle": "TON 블록체인 슬롯머신",
+    "version": "v2.0.0",
+    "footer": "MVP v2.0.0 - TON 블록체인 기반"
+  },
+  "header": {
+    "balance": "보유 잔액",
+    "credit": "사용 가능 크레딧",
+    "loading": "로딩 중..."
+  },
+  "wallet": {
+    "connect": "지갑 연결",
+    "disconnect": "연결 해제",
+    "connectPrompt": "TON 지갑을 연결하여 게임을 시작하세요!",
+    "address": "지갑 주소"
+  },
+  "game": {
+    "title": "슬롯머신",
+    "subtitle": "공정한 게임",
+    "slotTitle": "3-릴 슬롯머신",
+    "newVersion": "신버전 체험하기 (Provably Fair)",
+    "oldVersion": "구버전으로 돌아가기"
+  },
+  "betting": {
+    "title": "베팅하기",
+    "amount": "베팅 금액",
+    "min": "최소",
+    "max": "최대",
+    "quickBet": "빠른 베팅",
+    "insufficientFunds": "잔액 부족",
+    "betRange": "베팅 범위: {{min}} - {{max}} CSPIN"
+  },
+  "buttons": {
+    "spin": "스핀",
+    "spinning": "회전 중...",
+    "deposit": "입금",
+    "withdraw": "출금",
+    "max": "최대",
+    "confirm": "확인",
+    "cancel": "취소",
+    "close": "닫기",
+    "accept": "수락",
+    "decline": "거절"
+  },
+  "deposit": {
+    "title": "CSPIN 입금",
+    "description": "CSPIN 토큰을 입금하여 게임을 시작하세요",
+    "amount": "입금할 금액",
+    "min": "최소: {{amount}} CSPIN",
+    "success": "입금 성공!",
+    "error": "입금 실패",
+    "processing": "처리 중..."
+  },
+  "withdraw": {
+    "title": "CSPIN 출금",
+    "description": "CSPIN 토큰을 출금하세요",
+    "amount": "출금할 금액",
+    "available": "사용 가능: {{amount}} CSPIN",
+    "success": "출금 성공!",
+    "error": "출금 실패",
+    "processing": "처리 중..."
+  },
+  "results": {
+    "win": "당첨!",
+    "jackpot": "잭팟!",
+    "congratulations": "축하합니다!",
+    "youWon": "{{amount}} CSPIN을 획득했습니다",
+    "betterLuck": "다음 기회에!",
+    "reelPayout": "릴 {{number}}",
+    "totalWin": "총 당첨금"
+  },
+  "doubleup": {
+    "title": "더블업 챌린지",
+    "description": "당첨금을 두 배로 늘릴 기회입니다!",
+    "currentWin": "현재 당첨금",
+    "chooseColor": "색상을 선택하세요:",
+    "red": "빨강",
+    "blue": "파랑",
+    "success": "축하합니다! 당첨금이 두 배가 되었습니다!",
+    "failure": "아쉽게도 더블업에 실패했습니다.",
+    "finalAmount": "최종 금액",
+    "chance": "50% 확률"
+  },
+  "symbols": {
+    "star": "별",
+    "planet": "행성",
+    "comet": "혜성",
+    "rocket": "로켓",
+    "alien": "외계인",
+    "diamond": "다이아몬드",
+    "crown": "왕관"
+  },
+  "rarity": {
+    "common": "일반",
+    "uncommon": "고급",
+    "rare": "희귀",
+    "legend": "전설"
+  },
+  "stats": {
+    "title": "통계",
+    "rtp": "환수율 (RTP)",
+    "totalGames": "총 게임 수",
+    "totalBets": "총 베팅액",
+    "totalWins": "총 당첨액",
+    "recentWins": "최근 당첨",
+    "jackpots": "오늘의 잭팟"
+  },
+  "history": {
+    "title": "게임 기록",
+    "date": "날짜",
+    "bet": "베팅",
+    "result": "결과",
+    "win": "당첨",
+    "empty": "게임 기록이 없습니다",
+    "loadMore": "더 보기"
+  },
+  "errors": {
+    "generic": "오류가 발생했습니다",
+    "networkError": "네트워크 오류. 다시 시도해주세요.",
+    "insufficientBalance": "잔액이 부족합니다",
+    "invalidAmount": "잘못된 금액입니다",
+    "transactionFailed": "거래 실패",
+    "walletNotConnected": "먼저 지갑을 연결해주세요"
+  },
+  "language": {
+    "select": "언어 선택",
+    "current": "현재 언어"
+  },
+  "provably": {
+    "title": "공정성 검증",
+    "description": "게임 공정성 확인",
+    "serverSeed": "서버 시드 해시",
+    "clientSeed": "클라이언트 시드",
+    "nonce": "논스",
+    "verify": "결과 검증"
+  }
+}
