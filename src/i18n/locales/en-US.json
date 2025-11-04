@@ -49,7 +49,7 @@
     "description": "Deposit CSPIN tokens to start playing",
     "amount": "Amount to Deposit",
     "min": "Minimum: {{amount}} CSPIN",
-    "success": "Deposit successful!",
+    "success": "Deposit of {{amount}} CSPIN successful!",
     "error": "Deposit failed",
     "processing": "Processing..."
   },

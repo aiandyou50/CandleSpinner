@@ -49,7 +49,7 @@
     "description": "CSPIN 토큰을 입금하여 게임을 시작하세요",
     "amount": "입금할 금액",
     "min": "최소: {{amount}} CSPIN",
-    "success": "입금 성공!",
+    "success": "{{amount}} CSPIN 입금 성공!",
     "error": "입금 실패",
     "processing": "처리 중..."
   },

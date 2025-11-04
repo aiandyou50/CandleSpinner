@@ -221,8 +221,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       await verifyDeposit({ walletAddress, txHash });
 
       logger.info('=== Deposit 완료 ===');
-      const successMsg = t('deposit.success').replace('{{amount}}', depositAmount.toString());
-      alert(successMsg);
+      alert(t('deposit.success', { amount: depositAmount }));
       onSuccess();
     } catch (err) {
       logger.error('Deposit 실패:', err);
