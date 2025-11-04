@@ -2,6 +2,9 @@
  * CandleSpinner 메인 스타일시트
  */
 
+/* Design System - Must come first */
+@import './styles/design-system.css';
+
 /* Tailwind directives */
 @tailwind base;
 @tailwind components;
