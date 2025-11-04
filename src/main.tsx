@@ -7,6 +7,9 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import App from './App';
 import './index.css';
 
+// i18n 초기화
+import './i18n/config';
+
 // TON Connect Manifest URL
 // ✅ Workers 직접 주소 사용 (CORS 헤더 적용 보장)
 const manifestUrl = 'https://candlespinner-workers.x00518.workers.dev/tonconnect-manifest.json';

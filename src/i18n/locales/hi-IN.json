@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "CandleSpinner",
+    "subtitle": "TON ब्लॉकचेन स्लॉट मशीन",
+    "version": "v2.0.0",
+    "footer": "MVP v2.0.0 - TON ब्लॉकचेन द्वारा संचालित"
+  },
+  "header": {
+    "balance": "आपकी शेष राशि",
+    "credit": "उपलब्ध क्रेडिट",
+    "loading": "लोड हो रहा है..."
+  },
+  "wallet": {
+    "connect": "वॉलेट कनेक्ट करें",
+    "disconnect": "डिस्कनेक्ट करें",
+    "connectPrompt": "खेलना शुरू करने के लिए अपना TON वॉलेट कनेक्ट करें!",
+    "address": "वॉलेट पता"
+  },
+  "game": {
+    "title": "स्लॉट मशीन",
+    "subtitle": "साबित रूप से निष्पक्ष खेल",
+    "slotTitle": "3-रील स्लॉट मशीन",
+    "newVersion": "नया संस्करण आज़माएं (साबित रूप से निष्पक्ष)",
+    "oldVersion": "क्लासिक संस्करण पर वापस जाएं"
+  },
+  "betting": {
+    "title": "अपनी बेट लगाएं",
+    "amount": "बेट राशि",
+    "min": "न्यूनतम",
+    "max": "अधिकतम",
+    "quickBet": "त्वरित बेट",
+    "insufficientFunds": "अपर्याप्त शेष राशि",
+    "betRange": "बेट रेंज: {{min}} - {{max}} CSPIN"
+  },
+  "buttons": {
+    "spin": "स्पिन",
+    "spinning": "स्पिन हो रहा है...",
+    "deposit": "जमा करें",
+    "withdraw": "निकालें",
+    "max": "अधिकतम",
+    "confirm": "पुष्टि करें",
+    "cancel": "रद्द करें",
+    "close": "बंद करें",
+    "accept": "स्वीकार करें",
+    "decline": "अस्वीकार करें"
+  },
+  "deposit": {
+    "title": "CSPIN जमा करें",
+    "description": "खेलना शुरू करने के लिए CSPIN टोकन जमा करें",
+    "amount": "जमा राशि",
+    "min": "न्यूनतम: {{amount}} CSPIN",
+    "success": "जमा सफल!",
+    "error": "जमा विफल",
+    "processing": "प्रोसेस हो रहा है..."
+  },
+  "withdraw": {
+    "title": "CSPIN निकालें",
+    "description": "अपने CSPIN टोकन निकालें",
+    "amount": "निकासी राशि",
+    "available": "उपलब्ध: {{amount}} CSPIN",
+    "success": "निकासी सफल!",
+    "error": "निकासी विफल",
+    "processing": "प्रोसेस हो रहा है..."
+  },
+  "results": {
+    "win": "जीत!",
+    "jackpot": "जैकपॉट!",
+    "congratulations": "बधाई हो!",
+    "youWon": "आपने {{amount}} CSPIN जीते",
+    "betterLuck": "अगली बार बेहतर किस्मत!",
+    "reelPayout": "रील {{number}}",
+    "totalWin": "कुल जीत"
+  },
+  "doubleup": {
+    "title": "डबल अप चैलेंज",
+    "description": "अपनी जीत को दोगुना करें या सब कुछ खो दें!",
+    "currentWin": "वर्तमान जीत",
+    "chooseColor": "एक रंग चुनें:",
+    "red": "लाल",
+    "blue": "नीला",
+    "success": "बधाई हो! आपकी जीत दोगुनी हो गई!",
+    "failure": "क्षमा करें, आप डबल अप हार गए।",
+    "finalAmount": "अंतिम राशि",
+    "chance": "50% संभावना"
+  },
+  "symbols": {
+    "star": "तारा",
+    "planet": "ग्रह",
+    "comet": "धूमकेतु",
+    "rocket": "रॉकेट",
+    "alien": "एलियन",
+    "diamond": "हीरा",
+    "crown": "मुकुट"
+  },
+  "rarity": {
+    "common": "सामान्य",
+    "uncommon": "असामान्य",
+    "rare": "दुर्लभ",
+    "legend": "महान"
+  },
+  "stats": {
+    "title": "आंकड़े",
+    "rtp": "खिलाड़ी को वापसी (RTP)",
+    "totalGames": "कुल खेल",
+    "totalBets": "कुल बेट",
+    "totalWins": "कुल जीत",
+    "recentWins": "हाल की जीत",
+    "jackpots": "आज के जैकपॉट"
+  },
+  "history": {
+    "title": "खेल इतिहास",
+    "date": "तारीख",
+    "bet": "बेट",
+    "result": "परिणाम",
+    "win": "जीत",
+    "empty": "अभी तक कोई खेल इतिहास नहीं",
+    "loadMore": "और लोड करें"
+  },
+  "errors": {
+    "generic": "एक त्रुटि हुई",
+    "networkError": "नेटवर्क त्रुटि। कृपया पुनः प्रयास करें।",
+    "insufficientBalance": "अपर्याप्त शेष राशि",
+    "invalidAmount": "अमान्य राशि",
+    "transactionFailed": "लेन-देन विफल",
+    "walletNotConnected": "कृपया पहले अपना वॉलेट कनेक्ट करें"
+  },
+  "language": {
+    "select": "भाषा चुनें",
+    "current": "वर्तमान भाषा"
+  },
+  "provably": {
+    "title": "साबित रूप से निष्पक्ष",
+    "description": "खेल की निष्पक्षता सत्यापित करें",
+    "serverSeed": "सर्वर सीड हैश",
+    "clientSeed": "क्लाइंट सीड",
+    "nonce": "नॉन्स",
+    "verify": "परिणाम सत्यापित करें"
+  }
+}

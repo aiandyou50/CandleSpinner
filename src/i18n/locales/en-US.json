@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "CandleSpinner",
+    "subtitle": "TON Blockchain Slot Machine",
+    "version": "v2.0.0",
+    "footer": "MVP v2.0.0 - Powered by TON Blockchain"
+  },
+  "header": {
+    "balance": "Your Balance",
+    "credit": "Available Credit",
+    "loading": "Loading..."
+  },
+  "wallet": {
+    "connect": "Connect Wallet",
+    "disconnect": "Disconnect",
+    "connectPrompt": "Connect your TON wallet to start playing!",
+    "address": "Wallet Address"
+  },
+  "game": {
+    "title": "Slot Machine",
+    "subtitle": "Provably Fair Game",
+    "slotTitle": "3-Reel Slot Machine",
+    "newVersion": "Try New Version (Provably Fair)",
+    "oldVersion": "Return to Classic Version"
+  },
+  "betting": {
+    "title": "Place Your Bet",
+    "amount": "Bet Amount",
+    "min": "Min",
+    "max": "Max",
+    "quickBet": "Quick Bet",
+    "insufficientFunds": "Insufficient Balance",
+    "betRange": "Bet range: {{min}} - {{max}} CSPIN"
+  },
+  "buttons": {
+    "spin": "SPIN",
+    "spinning": "Spinning...",
+    "deposit": "Deposit",
+    "withdraw": "Withdraw",
+    "max": "MAX",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "close": "Close",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
+  "deposit": {
+    "title": "Deposit CSPIN",
+    "description": "Deposit CSPIN tokens to start playing",
+    "amount": "Amount to Deposit",
+    "min": "Minimum: {{amount}} CSPIN",
+    "success": "Deposit successful!",
+    "error": "Deposit failed",
+    "processing": "Processing..."
+  },
+  "withdraw": {
+    "title": "Withdraw CSPIN",
+    "description": "Withdraw your CSPIN tokens",
+    "amount": "Amount to Withdraw",
+    "available": "Available: {{amount}} CSPIN",
+    "success": "Withdrawal successful!",
+    "error": "Withdrawal failed",
+    "processing": "Processing..."
+  },
+  "results": {
+    "win": "WIN!",
+    "jackpot": "JACKPOT!",
+    "congratulations": "Congratulations!",
+    "youWon": "You won {{amount}} CSPIN",
+    "betterLuck": "Better luck next time!",
+    "reelPayout": "Reel {{number}}",
+    "totalWin": "Total Win"
+  },
+  "doubleup": {
+    "title": "Double Up Challenge",
+    "description": "Double your winnings or lose it all!",
+    "currentWin": "Current Win",
+    "chooseColor": "Choose a color:",
+    "red": "Red",
+    "blue": "Blue",
+    "success": "Congratulations! You doubled your winnings!",
+    "failure": "Sorry, you lost the double up.",
+    "finalAmount": "Final Amount",
+    "chance": "50% chance"
+  },
+  "symbols": {
+    "star": "Star",
+    "planet": "Planet",
+    "comet": "Comet",
+    "rocket": "Rocket",
+    "alien": "Alien",
+    "diamond": "Diamond",
+    "crown": "Crown"
+  },
+  "rarity": {
+    "common": "Common",
+    "uncommon": "Uncommon",
+    "rare": "Rare",
+    "legend": "Legend"
+  },
+  "stats": {
+    "title": "Statistics",
+    "rtp": "Return to Player (RTP)",
+    "totalGames": "Total Games",
+    "totalBets": "Total Bets",
+    "totalWins": "Total Wins",
+    "recentWins": "Recent Wins",
+    "jackpots": "Jackpots Today"
+  },
+  "history": {
+    "title": "Game History",
+    "date": "Date",
+    "bet": "Bet",
+    "result": "Result",
+    "win": "Win",
+    "empty": "No game history yet",
+    "loadMore": "Load More"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "networkError": "Network error. Please try again.",
+    "insufficientBalance": "Insufficient balance",
+    "invalidAmount": "Invalid amount",
+    "transactionFailed": "Transaction failed",
+    "walletNotConnected": "Please connect your wallet first"
+  },
+  "language": {
+    "select": "Select Language",
+    "current": "Current Language"
+  },
+  "provably": {
+    "title": "Provably Fair",
+    "description": "Verify game fairness",
+    "serverSeed": "Server Seed Hash",
+    "clientSeed": "Client Seed",
+    "nonce": "Nonce",
+    "verify": "Verify Result"
+  }
+}

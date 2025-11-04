@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Reel } from './Reel';
 import { BettingControl } from './BettingControl';
 import { DoubleUpModal } from './DoubleUpModal';
@@ -24,6 +25,8 @@ export function SlotMachineV2({
   currentCredit,
   onCreditChange,
 }: SlotMachineV2Props) {
+  const { t } = useTranslation();
+  
   // 베팅 상태
   const [betAmount, setBetAmount] = useState(10);
 
@@ -52,7 +55,7 @@ export function SlotMachineV2({
   // 스핀 핸들러
   const handleSpin = async () => {
     if (currentCredit < betAmount) {
-      alert('크레딧이 부족합니다!');
+      alert(t('errors.insufficientBalance'));
       return;
     }
 
@@ -122,7 +125,7 @@ export function SlotMachineV2({
       }
     } catch (error) {
       console.error('Spin failed:', error);
-      alert(error instanceof Error ? error.message : '게임 실행 실패');
+      alert(error instanceof Error ? error.message : t('errors.generic'));
     } finally {
       setIsSpinning(false);
     }
@@ -140,9 +143,9 @@ export function SlotMachineV2({
       <div className="slot-header">
         <h2 className="slot-title">
           <span className="slot-title-emoji">🎰</span>
-          <span className="slot-title-text">슬롯머신</span>
+          <span className="slot-title-text">{t('game.title')}</span>
         </h2>
-        <p className="slot-subtitle">Provably Fair 공정한 게임</p>
+        <p className="slot-subtitle">{t('game.subtitle')}</p>
       </div>
 
       {/* 릴 디스플레이 */}
@@ -178,7 +181,7 @@ export function SlotMachineV2({
         >
           <div className="win-icon">{isJackpot ? '🎰' : '🎉'}</div>
           <div className="win-text">
-            {isJackpot ? 'JACKPOT!' : '당첨!'}
+            {isJackpot ? t('results.jackpot') : t('results.win')}
           </div>
           <div className="win-amount">{winAmount} CSPIN</div>
         </motion.div>
@@ -189,7 +192,7 @@ export function SlotMachineV2({
         <div className="reel-payouts">
           {reelPayouts.map((payout, index) => (
             <div key={index} className="reel-payout">
-              <span className="reel-label">릴 {index + 1}</span>
+              <span className="reel-label">{t('results.reelPayout', { number: index + 1 })}</span>
               <span className="payout-amount">+{payout}</span>
             </div>
           ))}
