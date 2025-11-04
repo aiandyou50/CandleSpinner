@@ -7,7 +7,7 @@ import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import App from './App';
 import './index.css';
 
-// i18n 초기화
+// Initialize i18n
 import './i18n/config';
 
 // TON Connect Manifest URL

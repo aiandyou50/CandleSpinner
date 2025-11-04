@@ -44,9 +44,9 @@ Multi-language fonts are loaded from Google Fonts:
 ### Dependencies
 ```json
 {
-  "i18next": "^23.x",
-  "react-i18next": "^14.x",
-  "i18next-browser-languagedetector": "^7.x",
+  "i18next": "^25.6.0",
+  "react-i18next": "^16.2.4",
+  "i18next-browser-languagedetector": "^8.2.0",
   "js-cookie": "^3.x"
 }
 ```
