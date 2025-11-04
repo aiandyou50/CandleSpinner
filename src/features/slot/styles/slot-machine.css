@@ -1,0 +1,485 @@
+/**
+ * 슬롯머신 V2 스타일시트
+ * 네온 + 사이버펑크 테마
+ */
+
+/* 메인 컨테이너 */
+.slot-machine-v2 {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem;
+  background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #0f001f 100%);
+  border-radius: 30px;
+  box-shadow: 
+    0 20px 60px rgba(138, 43, 226, 0.4),
+    0 0 100px rgba(74, 0, 224, 0.2),
+    inset 0 0 100px rgba(138, 43, 226, 0.05);
+  position: relative;
+  border: 2px solid rgba(142, 45, 226, 0.3);
+  overflow: hidden;
+}
+
+/* 배경 애니메이션 효과 */
+.slot-machine-v2::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(142, 45, 226, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 헤더 */
+.slot-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  position: relative;
+  z-index: 1;
+}
+
+.slot-title {
+  font-family: 'Orbitron', 'Poppins', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 900;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  filter: drop-shadow(0 0 20px rgba(142, 45, 226, 0.8));
+}
+
+.slot-title-emoji {
+  font-size: 4rem;
+  filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.6));
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.9));
+  }
+}
+
+.slot-title-text {
+  background: linear-gradient(135deg, #FF6EC7 0%, #8E2DE2 50%, #4A00E0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  position: relative;
+}
+
+.slot-title-text::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  background: linear-gradient(135deg, #FF6EC7 0%, #8E2DE2 50%, #4A00E0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: blur(20px);
+  opacity: 0.5;
+}
+
+.slot-subtitle {
+  color: #a78bfa;
+  font-size: 1rem;
+  margin-top: 1rem;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+/* 릴 컨테이너 */
+.reels-container {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+  position: relative;
+  padding: 2rem 0;
+  z-index: 1;
+}
+
+/* 개별 릴 스타일 */
+.reel {
+  width: 140px;
+  height: 320px;
+  background: 
+    linear-gradient(180deg, rgba(26, 0, 51, 0.9) 0%, rgba(15, 0, 26, 0.9) 100%),
+    linear-gradient(90deg, transparent 0%, rgba(142, 45, 226, 0.1) 50%, transparent 100%);
+  border: 3px solid;
+  border-image: linear-gradient(180deg, #FF6EC7, #8E2DE2, #4A00E0) 1;
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 
+    0 0 30px rgba(142, 45, 226, 0.6),
+    0 0 60px rgba(74, 0, 224, 0.3),
+    inset 0 0 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 20px rgba(142, 45, 226, 0.2);
+  transform: perspective(1000px) rotateY(0deg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.reel:hover {
+  transform: perspective(1000px) rotateY(5deg) scale(1.05);
+  box-shadow: 
+    0 0 40px rgba(142, 45, 226, 0.8),
+    0 0 80px rgba(74, 0, 224, 0.5),
+    inset 0 0 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 30px rgba(142, 45, 226, 0.3);
+}
+
+.reel-inner {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 심볼 스타일 */
+.reel-symbol {
+  font-size: 6rem;
+  line-height: 1;
+  text-align: center;
+  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+  transition: all 0.3s ease;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+/* 중앙 라인 */
+.reel-center-line {
+  position: absolute;
+  top: 50%;
+  left: -15px;
+  right: -15px;
+  height: 5px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 110, 199, 0.8) 20%, 
+    rgba(142, 45, 226, 1) 50%, 
+    rgba(255, 110, 199, 0.8) 80%, 
+    transparent 100%);
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 
+    0 0 20px rgba(142, 45, 226, 1),
+    0 0 40px rgba(255, 110, 199, 0.6);
+  animation: line-pulse 2s ease-in-out infinite;
+}
+
+@keyframes line-pulse {
+  0%, 100% {
+    opacity: 0.8;
+    box-shadow: 
+      0 0 20px rgba(142, 45, 226, 1),
+      0 0 40px rgba(255, 110, 199, 0.6);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 
+      0 0 30px rgba(142, 45, 226, 1),
+      0 0 60px rgba(255, 110, 199, 0.9);
+  }
+}
+
+/* 희귀도별 효과 */
+.symbol-common {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+.symbol-uncommon {
+  filter: drop-shadow(0 0 15px rgba(74, 222, 128, 0.7));
+  animation: glow-uncommon 2s ease-in-out infinite;
+}
+
+.symbol-rare {
+  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.9));
+  animation: glow-rare 1.5s ease-in-out infinite;
+}
+
+.symbol-legend {
+  filter: drop-shadow(0 0 30px rgba(255, 110, 199, 1));
+  animation: glow-legend 1s ease-in-out infinite;
+}
+
+/* 당첨 효과 */
+.symbol-winning {
+  animation: winning-pulse 0.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 40px rgba(255, 215, 0, 1)) !important;
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+}
+
+/* 당첨 라인 */
+.win-line {
+  position: absolute;
+  top: 50%;
+  left: 3%;
+  right: 3%;
+  height: 8px;
+  background: linear-gradient(90deg, 
+    rgba(255, 215, 0, 0) 0%, 
+    rgba(255, 215, 0, 0.8) 10%,
+    rgba(255, 165, 0, 1) 50%, 
+    rgba(255, 215, 0, 0.8) 90%,
+    rgba(255, 215, 0, 0) 100%);
+  transform: translateY(-50%);
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 1),
+    0 0 60px rgba(255, 165, 0, 0.8),
+    0 0 90px rgba(255, 215, 0, 0.6);
+  z-index: 20;
+  pointer-events: none;
+  animation: win-line-glow 1s ease-in-out infinite;
+}
+
+@keyframes win-line-glow {
+  0%, 100% {
+    opacity: 0.8;
+    box-shadow: 
+      0 0 30px rgba(255, 215, 0, 1),
+      0 0 60px rgba(255, 165, 0, 0.8);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 
+      0 0 50px rgba(255, 215, 0, 1),
+      0 0 100px rgba(255, 165, 0, 1);
+  }
+}
+
+/* 당첨금 표시 */
+.win-display {
+  text-align: center;
+  margin: 2rem 0;
+  padding: 2rem;
+  background: 
+    linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.1) 100%),
+    linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  border: 3px solid;
+  border-image: linear-gradient(135deg, #FFD700, #FFA500, #FFD700) 1;
+  border-radius: 20px;
+  box-shadow: 
+    0 0 40px rgba(255, 215, 0, 0.6),
+    0 0 80px rgba(255, 165, 0, 0.3),
+    inset 0 0 30px rgba(255, 215, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.win-display::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
+  animation: rotate 10s linear infinite;
+}
+
+.win-icon {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+  animation: bounce-spin 1.5s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+}
+
+@keyframes bounce-spin {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-15px) rotate(5deg) scale(1.1);
+  }
+  50% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  75% {
+    transform: translateY(-10px) rotate(-5deg) scale(1.1);
+  }
+}
+
+.win-text {
+  font-family: 'Orbitron', 'Poppins', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FFD700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+}
+
+.win-amount {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #FFA500;
+  text-shadow: 
+    0 0 10px rgba(255, 165, 0, 0.8),
+    0 0 20px rgba(255, 215, 0, 0.6);
+  position: relative;
+  z-index: 1;
+}
+
+/* 릴별 당첨금 */
+.reel-payouts {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.reel-payout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background: rgba(74, 0, 224, 0.2);
+  border: 1px solid #4A00E0;
+  border-radius: 8px;
+}
+
+.reel-label {
+  font-size: 0.75rem;
+  color: #a78bfa;
+  margin-bottom: 0.25rem;
+}
+
+.payout-amount {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #FFD700;
+}
+
+/* 애니메이션 키프레임 */
+@keyframes glow-uncommon {
+  0%, 100% {
+    filter: drop-shadow(0 0 15px rgba(74, 222, 128, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(74, 222, 128, 1));
+  }
+}
+
+@keyframes glow-rare {
+  0%, 100% {
+    filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.9));
+  }
+  50% {
+    filter: drop-shadow(0 0 40px rgba(59, 130, 246, 1.2));
+  }
+}
+
+@keyframes glow-legend {
+  0%, 100% {
+    filter: drop-shadow(0 0 30px rgba(255, 110, 199, 1));
+  }
+  50% {
+    filter: drop-shadow(0 0 50px rgba(255, 110, 199, 1.5));
+  }
+}
+
+@keyframes winning-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+/* 스핀 중 흐릿한 효과 */
+.reel.spinning .reel-symbol {
+  filter: blur(8px);
+  opacity: 0.7;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .slot-machine-v2 {
+    padding: 1rem;
+  }
+
+  .slot-title {
+    font-size: 2rem;
+  }
+
+  .reel {
+    width: 110px;
+    height: 260px;
+  }
+
+  .reel-symbol {
+    font-size: 4.5rem;
+  }
+
+  .win-icon {
+    font-size: 3rem;
+  }
+
+  .win-text {
+    font-size: 1.5rem;
+  }
+
+  .win-amount {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .reels-container {
+    gap: 0.5rem;
+  }
+
+  .reel {
+    width: 95px;
+    height: 220px;
+    border-width: 2px;
+  }
+
+  .reel-symbol {
+    font-size: 3.5rem;
+  }
+
+  .slot-title {
+    font-size: 1.5rem;
+  }
+}

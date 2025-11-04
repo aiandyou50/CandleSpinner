@@ -16,6 +16,7 @@
     "@ton/ton": "^15.0.0",
     "@tonconnect/ui-react": "^2.0.9",
     "buffer": "^6.0.3",
+    "framer-motion": "^12.23.24",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.9.5"
