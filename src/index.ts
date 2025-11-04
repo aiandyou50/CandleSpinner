@@ -10,6 +10,17 @@ import { Buffer } from 'buffer';
 // 인출 핸들러 import
 import { processWithdrawal } from '../functions/src/withdraw-handler';
 
+// 슬롯 게임 핸들러 import
+import { 
+  handleSpin as handleSlotSpin, 
+  handleGetGameHistory, 
+  handleGetRTPStats 
+} from '../functions/src/slot/spin-handler';
+import { 
+  handleDoubleUp as handleSlotDoubleUp, 
+  handleGetDoubleUpHistory 
+} from '../functions/src/slot/doubleup-handler';
+
 export interface Env {
   ASSETS: Fetcher;
   CREDIT_KV: KVNamespace;
@@ -91,8 +102,19 @@ export default {
           return handleCheckBalance(request, env, corsHeaders);
         } else if (url.pathname === '/api/verify-deposit' && request.method === 'POST') {
           return handleVerifyDeposit(request, env, corsHeaders);
+        } else if (url.pathname === '/api/slot/spin' && request.method === 'POST') {
+          return handleSlotSpin(request, env, corsHeaders);
+        } else if (url.pathname === '/api/slot/doubleup' && request.method === 'POST') {
+          return handleSlotDoubleUp(request, env, corsHeaders);
+        } else if (url.pathname === '/api/slot/history' && request.method === 'GET') {
+          return handleGetGameHistory(request, env, corsHeaders);
+        } else if (url.pathname === '/api/slot/rtp-stats' && request.method === 'GET') {
+          return handleGetRTPStats(request, env, corsHeaders);
+        } else if (url.pathname === '/api/slot/doubleup-history' && request.method === 'GET') {
+          return handleGetDoubleUpHistory(request, env, corsHeaders);
         } else if (url.pathname === '/api/spin' && request.method === 'POST') {
-          return handleSpin(request, env, corsHeaders);
+          // 기존 간단한 슬롯 (하위 호환)
+          return handleSimpleSpin(request, env, corsHeaders);
         } else if (url.pathname === '/api/withdraw-request' && request.method === 'POST') {
           return handleWithdrawRequest(request, env, corsHeaders);
         } else if (url.pathname === '/api/admin/pending-withdrawals' && request.method === 'GET') {
@@ -423,7 +445,8 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
   });
 }
 
-async function handleSpin(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+// 기존 간단한 슬롯 (하위 호환)
+async function handleSimpleSpin(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
   const body = await request.json() as { walletAddress: string };
   
   // 크레딧 확인 및 차감

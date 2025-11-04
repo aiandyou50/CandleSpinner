@@ -5,7 +5,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
 import App from './App';
-import './styles/index.css';
+import './index.css';
 
 // TON Connect Manifest URL
 // ✅ Workers 직접 주소 사용 (CORS 헤더 적용 보장)

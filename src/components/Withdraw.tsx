@@ -126,9 +126,6 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
           <p className="text-xs text-blue-300">
             • 크레딧은 즉시 차감되며, 처리 완료 시 지갑으로 전송됩니다
           </p>
-          <p className="text-xs text-blue-300">
-            • 네트워크 수수료는 게임이 부담합니다 (무료)
-          </p>
         </div>
         
         <div className="space-y-4">
