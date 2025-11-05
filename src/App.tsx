@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { TonConnectButton } from '@tonconnect/ui-react';
 import { useTranslation } from 'react-i18next';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
@@ -29,7 +28,7 @@ function GamePage() {
             </div>
             <div className="flex items-center gap-4">
               <LanguageSelector />
-              <TonConnectButton />
+              <WalletConnect />
             </div>
           </div>
           
@@ -118,7 +117,7 @@ function SlotV2Page() {
             </div>
             <div className="flex items-center gap-4">
               <LanguageSelector />
-              <TonConnectButton />
+              <WalletConnect />
             </div>
           </div>
           

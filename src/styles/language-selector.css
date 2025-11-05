@@ -1,7 +1,94 @@
+/**
+ * Language Selector Styles
+ * Ensures dropdown appears above all other UI elements
+ */
+
 .language-selector {
+    position: relative;
     z-index: 10001;
 }
 
+.language-selector-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.language-selector-button:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.language-flag {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.language-name {
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.language-chevron {
+    transition: transform 0.2s ease;
+}
+
+.language-chevron.open {
+    transform: rotate(180deg);
+}
+
 .language-dropdown {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    min-width: 200px;
+    background: rgba(30, 30, 50, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     z-index: 10002;
+}
+
+.language-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem;
+    background: transparent;
+    border: none;
+    border-radius: 0.5rem;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.language-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.language-option.active {
+    background: rgba(138, 43, 226, 0.3);
+    border: 1px solid rgba(138, 43, 226, 0.5);
+}
+
+.language-option .language-name {
+    flex: 1;
+}
+
+.check-icon {
+    color: #8E2DE2;
+    flex-shrink: 0;
 }

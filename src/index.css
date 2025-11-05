@@ -196,3 +196,16 @@ select {
 [class*="tc-overlay"] {
   z-index: 9999 !important;
 }
+
+/* Ensure TonConnect button wrapper is always visible */
+.ton-connect-wrapper {
+  position: relative;
+  z-index: 100;
+}
+
+/* Keep TonConnect button visible even when connected */
+.ton-connect-wrapper button {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
