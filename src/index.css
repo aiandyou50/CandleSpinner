@@ -183,3 +183,16 @@ select {
     left: 1rem;
   }
 }
+
+/* TonConnect UI z-index fixes */
+/* Ensure TonConnect modal and dropdown appear above all content */
+[class*="tc-modal"],
+[class*="tc-dropdown"],
+[class*="ton-connect"],
+.tc-root {
+  z-index: 10000 !important;
+}
+
+[class*="tc-overlay"] {
+  z-index: 9999 !important;
+}
