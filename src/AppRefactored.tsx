@@ -4,11 +4,11 @@
  */
 
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { TonConnectButton } from '@tonconnect/ui-react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
+import { WalletConnect } from '@/components/WalletConnect';
 import { Deposit } from '@/components/Deposit';
 import { Withdraw } from '@/components/Withdraw';
 import { AdminWithdrawals } from '@/components/AdminWithdrawals';
@@ -52,9 +52,9 @@ function GamePageNew() {
                 </div>
 
                 {/* 언어 선택 & 지갑 연결 */}
-                <div className="flex items-center gap-4 relative z-[10000]">
+                <div className="flex items-center gap-4">
                   <LanguageSelector />
-                  <TonConnectButton />
+                  <WalletConnect />
                 </div>
               </div>
 
@@ -149,7 +149,7 @@ function GamePageNew() {
                   Connect your TON wallet to start spinning and winning!
                 </p>
                 <div className="flex justify-center">
-                  <TonConnectButton />
+                  <WalletConnect />
                 </div>
               </motion.div>
             )}
