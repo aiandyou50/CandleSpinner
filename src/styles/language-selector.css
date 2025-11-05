@@ -1,11 +1,11 @@
 /**
  * Language Selector Styles
- * Ensures dropdown appears above all other UI elements
+ * Ensures dropdown appears above all other UI elements using React Portal
  */
 
 .language-selector {
     position: relative;
-    z-index: 10001;
+    /* Remove z-index since dropdown is now rendered via portal */
 }
 
 .language-selector-button {
@@ -46,6 +46,20 @@
     transform: rotate(180deg);
 }
 
+/* Portal-based dropdown - rendered at document.body level */
+.language-dropdown-portal {
+    position: fixed;
+    min-width: 200px;
+    background: rgba(30, 30, 50, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 99999; /* Extremely high z-index since it's at body level */
+}
+
+/* Legacy dropdown class for backward compatibility (not used with portal) */
 .language-dropdown {
     position: absolute;
     top: calc(100% + 0.5rem);
