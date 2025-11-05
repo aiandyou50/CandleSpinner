@@ -30,7 +30,7 @@ function GamePageNew() {
       </div>
 
       {/* 메인 컨테이너 */}
-      <div className="relative z-10">
+      <div className="relative z-50">
         {/* 헤더 */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
@@ -52,7 +52,7 @@ function GamePageNew() {
                 </div>
 
                 {/* 언어 선택 & 지갑 연결 */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 relative z-[10000]">
                   <LanguageSelector />
                   <TonConnectButton />
                 </div>
