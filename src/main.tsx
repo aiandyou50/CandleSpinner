@@ -4,7 +4,7 @@ import './polyfills';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
-import App from './App';
+import AppRefactored from './AppRefactored';
 import './index.css';
 
 // Initialize i18n
@@ -19,7 +19,7 @@ console.log('🔗 TON Connect Manifest URL:', manifestUrl);
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <TonConnectUIProvider manifestUrl={manifestUrl}>
-      <App />
+      <AppRefactored />
     </TonConnectUIProvider>
   </React.StrictMode>,
 );

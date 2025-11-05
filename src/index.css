@@ -2,6 +2,9 @@
  * CandleSpinner 메인 스타일시트
  */
 
+/* Design System - Must come first */
+@import './styles/design-system.css';
+
 /* Tailwind directives */
 @tailwind base;
 @tailwind components;
@@ -179,4 +182,17 @@ select {
     right: 1rem;
     left: 1rem;
   }
+}
+
+/* TonConnect UI z-index fixes */
+/* Ensure TonConnect modal and dropdown appear above all content */
+[class*="tc-modal"],
+[class*="tc-dropdown"],
+[class*="ton-connect"],
+.tc-root {
+  z-index: 10000 !important;
+}
+
+[class*="tc-overlay"] {
+  z-index: 9999 !important;
 }
