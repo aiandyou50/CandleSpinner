@@ -5,7 +5,7 @@
 
 .language-selector {
   position: relative;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .language-selector-button {
@@ -97,10 +97,6 @@
   .language-selector-button {
     padding: 0.375rem 0.75rem;
     font-size: 0.8125rem;
-  }
-
-  .language-name {
-    display: none;
   }
 
   .language-dropdown {

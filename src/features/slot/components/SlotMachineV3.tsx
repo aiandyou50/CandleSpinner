@@ -188,8 +188,9 @@ export function SlotMachineV3({
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
-        <h2 className="text-5xl font-heading text-gradient mb-3">
-          🎰 {t('game.slotTitle')}
+        <h2 className="text-5xl font-heading mb-3">
+          <span className="text-white">🎰</span>{' '}
+          <span className="text-gradient">{t('game.slotTitle')}</span>
         </h2>
         <p className="text-gray-400 text-lg">{t('game.subtitle')}</p>
       </motion.div>
