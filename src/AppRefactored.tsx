@@ -42,8 +42,9 @@ function GamePageNew() {
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                 {/* 로고 및 타이틀 */}
                 <div className="text-center md:text-left">
-                  <h1 className="text-4xl md:text-5xl font-heading font-bold text-gradient mb-2">
-                    🕯️ {t('app.title')}
+                  <h1 className="text-4xl md:text-5xl font-heading font-bold mb-2">
+                    <span className="text-white">🕯️</span>{' '}
+                    <span className="text-gradient">{t('app.title')}</span>
                   </h1>
                   <p className="text-gray-300 text-sm md:text-base">
                     {t('app.subtitle')}
