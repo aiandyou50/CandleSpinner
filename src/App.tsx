@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import { TonConnectButton } from '@tonconnect/ui-react';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
 import { useLanguage } from '@/hooks/useLanguage';
-import { WalletConnect } from '@/components/WalletConnect';
 import { Deposit } from '@/components/Deposit';
 import { SlotMachine } from '@/components/SlotMachine';
 import { SlotMachineV2 } from '@/features/slot';
