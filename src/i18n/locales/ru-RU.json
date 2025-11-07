@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "CandleSpinner",
+    "subtitle": "Слот-машина на блокчейне TON",
+    "version": "v2.0.0",
+    "footer": "MVP v2.0.0 - На базе блокчейна TON"
+  },
+  "header": {
+    "balance": "Ваш баланс",
+    "credit": "Доступный кредит",
+    "loading": "Загрузка..."
+  },
+  "wallet": {
+    "connect": "Подключить кошелек",
+    "disconnect": "Отключить",
+    "connectPrompt": "Подключите свой кошелек TON, чтобы начать игру!",
+    "address": "Адрес кошелька"
+  },
+  "game": {
+    "title": "Слот-машина",
+    "subtitle": "Доказуемо честная игра",
+    "slotTitle": "3-барабанная слот-машина",
+    "newVersion": "Попробовать новую версию (Доказуемо честная)",
+    "oldVersion": "Вернуться к классической версии"
+  },
+  "betting": {
+    "title": "Сделать ставку",
+    "amount": "Сумма ставки",
+    "min": "Мин",
+    "max": "Макс",
+    "quickBet": "Быстрая ставка",
+    "insufficientFunds": "Недостаточно средств",
+    "betRange": "Диапазон ставок: {{min}} - {{max}} CSPIN"
+  },
+  "buttons": {
+    "spin": "КРУТИТЬ",
+    "spinning": "Вращение...",
+    "deposit": "Пополнить",
+    "withdraw": "Вывести",
+    "max": "МАКС",
+    "confirm": "Подтвердить",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "accept": "Принять",
+    "decline": "Отклонить"
+  },
+  "deposit": {
+    "title": "Пополнить CSPIN",
+    "description": "Пополните токены CSPIN, чтобы начать игру",
+    "amount": "Сумма пополнения",
+    "min": "Минимум: {{amount}} CSPIN",
+    "success": "Пополнение успешно!",
+    "error": "Ошибка пополнения",
+    "processing": "Обработка..."
+  },
+  "withdraw": {
+    "title": "Вывести CSPIN",
+    "description": "Выведите свои токены CSPIN",
+    "amount": "Сумма вывода",
+    "available": "Доступно: {{amount}} CSPIN",
+    "success": "Вывод успешен!",
+    "error": "Ошибка вывода",
+    "processing": "Обработка..."
+  },
+  "results": {
+    "win": "ВЫИГРЫШ!",
+    "jackpot": "ДЖЕКПОТ!",
+    "congratulations": "Поздравляем!",
+    "youWon": "Вы выиграли {{amount}} CSPIN",
+    "betterLuck": "Удачи в следующий раз!",
+    "reelPayout": "Барабан {{number}}",
+    "totalWin": "Общий выигрыш"
+  },
+  "doubleup": {
+    "title": "Удвоение",
+    "description": "Удвойте свой выигрыш или потеряйте всё!",
+    "currentWin": "Текущий выигрыш",
+    "chooseColor": "Выберите цвет:",
+    "red": "Красный",
+    "blue": "Синий",
+    "success": "Поздравляем! Вы удвоили свой выигрыш!",
+    "failure": "К сожалению, вы проиграли удвоение.",
+    "finalAmount": "Итоговая сумма",
+    "chance": "Шанс 50%"
+  },
+  "symbols": {
+    "star": "Звезда",
+    "planet": "Планета",
+    "comet": "Комета",
+    "rocket": "Ракета",
+    "alien": "Инопланетянин",
+    "diamond": "Алмаз",
+    "crown": "Корона"
+  },
+  "rarity": {
+    "common": "Обычный",
+    "uncommon": "Необычный",
+    "rare": "Редкий",
+    "legend": "Легендарный"
+  },
+  "stats": {
+    "title": "Статистика",
+    "rtp": "Возврат игроку (RTP)",
+    "totalGames": "Всего игр",
+    "totalBets": "Всего ставок",
+    "totalWins": "Всего выигрышей",
+    "recentWins": "Недавние выигрыши",
+    "jackpots": "Джекпоты сегодня"
+  },
+  "history": {
+    "title": "История игр",
+    "date": "Дата",
+    "bet": "Ставка",
+    "result": "Результат",
+    "win": "Выигрыш",
+    "empty": "История игр пока пуста",
+    "loadMore": "Загрузить еще"
+  },
+  "errors": {
+    "generic": "Произошла ошибка",
+    "networkError": "Ошибка сети. Пожалуйста, попробуйте снова.",
+    "insufficientBalance": "Недостаточно средств",
+    "invalidAmount": "Неверная сумма",
+    "transactionFailed": "Транзакция не удалась",
+    "walletNotConnected": "Сначала подключите кошелек"
+  },
+  "language": {
+    "select": "Выбрать язык",
+    "current": "Текущий язык"
+  },
+  "provably": {
+    "title": "Доказуемо честная",
+    "description": "Проверить честность игры",
+    "serverSeed": "Хеш серверного seed",
+    "clientSeed": "Клиентский seed",
+    "nonce": "Nonce",
+    "verify": "Проверить результат"
+  }
+}

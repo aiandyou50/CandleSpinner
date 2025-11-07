@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "CandleSpinner",
+    "subtitle": "Máy đánh bạc Blockchain TON",
+    "version": "v2.0.0",
+    "footer": "MVP v2.0.0 - Được hỗ trợ bởi TON Blockchain"
+  },
+  "header": {
+    "balance": "Số dư của bạn",
+    "credit": "Tín dụng khả dụng",
+    "loading": "Đang tải..."
+  },
+  "wallet": {
+    "connect": "Kết nối ví",
+    "disconnect": "Ngắt kết nối",
+    "connectPrompt": "Kết nối ví TON của bạn để bắt đầu chơi!",
+    "address": "Địa chỉ ví"
+  },
+  "game": {
+    "title": "Máy đánh bạc",
+    "subtitle": "Trò chơi công bằng có thể chứng minh",
+    "slotTitle": "Máy đánh bạc 3 trục",
+    "newVersion": "Dùng thử phiên bản mới (Provably Fair)",
+    "oldVersion": "Quay lại phiên bản cổ điển"
+  },
+  "betting": {
+    "title": "Đặt cược",
+    "amount": "Số tiền cược",
+    "min": "Tối thiểu",
+    "max": "Tối đa",
+    "quickBet": "Đặt cược nhanh",
+    "insufficientFunds": "Số dư không đủ",
+    "betRange": "Phạm vi cược: {{min}} - {{max}} CSPIN"
+  },
+  "buttons": {
+    "spin": "QUAY",
+    "spinning": "Đang quay...",
+    "deposit": "Gửi tiền",
+    "withdraw": "Rút tiền",
+    "max": "TỐI ĐA",
+    "confirm": "Xác nhận",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "accept": "Chấp nhận",
+    "decline": "Từ chối"
+  },
+  "deposit": {
+    "title": "Gửi CSPIN",
+    "description": "Gửi token CSPIN để bắt đầu chơi",
+    "amount": "Số tiền gửi",
+    "min": "Tối thiểu: {{amount}} CSPIN",
+    "success": "Gửi tiền thành công!",
+    "error": "Gửi tiền thất bại",
+    "processing": "Đang xử lý..."
+  },
+  "withdraw": {
+    "title": "Rút CSPIN",
+    "description": "Rút token CSPIN của bạn",
+    "amount": "Số tiền rút",
+    "available": "Khả dụng: {{amount}} CSPIN",
+    "success": "Rút tiền thành công!",
+    "error": "Rút tiền thất bại",
+    "processing": "Đang xử lý..."
+  },
+  "results": {
+    "win": "THẮNG!",
+    "jackpot": "ĐẠI THẮNG!",
+    "congratulations": "Chúc mừng!",
+    "youWon": "Bạn đã thắng {{amount}} CSPIN",
+    "betterLuck": "Chúc may mắn lần sau!",
+    "reelPayout": "Trục {{number}}",
+    "totalWin": "Tổng thắng"
+  },
+  "doubleup": {
+    "title": "Thử thách gấp đôi",
+    "description": "Tăng gấp đôi tiền thắng hoặc mất tất cả!",
+    "currentWin": "Tiền thắng hiện tại",
+    "chooseColor": "Chọn màu:",
+    "red": "Đỏ",
+    "blue": "Xanh",
+    "success": "Chúc mừng! Bạn đã tăng gấp đôi tiền thắng!",
+    "failure": "Rất tiếc, bạn đã thua thử thách gấp đôi.",
+    "finalAmount": "Số tiền cuối cùng",
+    "chance": "Cơ hội 50%"
+  },
+  "symbols": {
+    "star": "Ngôi sao",
+    "planet": "Hành tinh",
+    "comet": "Sao chổi",
+    "rocket": "Tên lửa",
+    "alien": "Người ngoài hành tinh",
+    "diamond": "Kim cương",
+    "crown": "Vương miện"
+  },
+  "rarity": {
+    "common": "Phổ thông",
+    "uncommon": "Không phổ biến",
+    "rare": "Hiếm",
+    "legend": "Huyền thoại"
+  },
+  "stats": {
+    "title": "Thống kê",
+    "rtp": "Tỷ lệ hoàn trả cho người chơi (RTP)",
+    "totalGames": "Tổng số trò chơi",
+    "totalBets": "Tổng số tiền cược",
+    "totalWins": "Tổng số tiền thắng",
+    "recentWins": "Thắng gần đây",
+    "jackpots": "Đại thắng hôm nay"
+  },
+  "history": {
+    "title": "Lịch sử trò chơi",
+    "date": "Ngày",
+    "bet": "Cược",
+    "result": "Kết quả",
+    "win": "Thắng",
+    "empty": "Chưa có lịch sử trò chơi",
+    "loadMore": "Tải thêm"
+  },
+  "errors": {
+    "generic": "Đã xảy ra lỗi",
+    "networkError": "Lỗi mạng. Vui lòng thử lại.",
+    "insufficientBalance": "Số dư không đủ",
+    "invalidAmount": "Số tiền không hợp lệ",
+    "transactionFailed": "Giao dịch thất bại",
+    "walletNotConnected": "Vui lòng kết nối ví trước"
+  },
+  "language": {
+    "select": "Chọn ngôn ngữ",
+    "current": "Ngôn ngữ hiện tại"
+  },
+  "provably": {
+    "title": "Công bằng có thể chứng minh",
+    "description": "Xác minh tính công bằng của trò chơi",
+    "serverSeed": "Mã băm hạt giống máy chủ",
+    "clientSeed": "Hạt giống khách hàng",
+    "nonce": "Nonce",
+    "verify": "Xác minh kết quả"
+  }
+}

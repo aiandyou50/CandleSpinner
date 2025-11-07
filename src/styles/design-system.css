@@ -1,0 +1,321 @@
+/**
+ * CandleSpinner Design System
+ * Google-inspired theme with space-themed colors
+ */
+
+:root {
+  /* Primary Colors */
+  --color-primary: #4A00E0;
+  --color-primary-light: #6B28E8;
+  --color-primary-dark: #3500B0;
+  
+  /* Secondary Colors */
+  --color-secondary: #8E2DE2;
+  --color-secondary-light: #A855F7;
+  --color-secondary-dark: #7C22D0;
+  
+  /* Accent Colors */
+  --color-accent: #FFD700;
+  --color-accent-light: #FFE44D;
+  --color-accent-dark: #D4AF37;
+  
+  /* Background Colors */
+  --color-bg-primary: #0F0F1B;
+  --color-bg-secondary: #1A1A2E;
+  --color-bg-tertiary: #2A2A3E;
+  --color-bg-glass: rgba(255, 255, 255, 0.05);
+  --color-bg-glass-hover: rgba(255, 255, 255, 0.08);
+  
+  /* Text Colors */
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #B0B0B0;
+  --color-text-tertiary: #808080;
+  --color-text-accent: #FFD700;
+  
+  /* Rarity Colors */
+  --color-common: #FFFFFF;
+  --color-uncommon: #4A90E2;
+  --color-rare: #9B59B6;
+  --color-legend: #F1C40F;
+  
+  /* Status Colors */
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+  
+  /* UI Colors */
+  --color-red-button: #DC2626;
+  --color-red-button-hover: #B91C1C;
+  --color-blue-button: #2563EB;
+  --color-blue-button-hover: #1D4ED8;
+  --color-spin-button: #4CAF50;
+  --color-spin-button-hover: #45A049;
+  --color-spin-button-disabled: #9E9E9E;
+  
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+  
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  --shadow-glow: 0 0 20px rgba(138, 43, 226, 0.5);
+  --shadow-glow-gold: 0 0 30px rgba(255, 215, 0, 0.6);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 300ms ease-in-out;
+  --transition-slow: 500ms ease-in-out;
+  
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-modal: 2000;
+  --z-jackpot-video: 3000;
+  --z-tooltip: 4000;
+}
+
+/* Typography - Optimized single import */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;600&family=Orbitron:wght@600;700&family=Noto+Sans:wght@400;600;700&family=Noto+Sans+KR:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap');
+
+/* Base Typography Classes */
+.font-heading {
+  font-family: 'Poppins', 'Noto Sans', sans-serif;
+  font-weight: 700;
+}
+
+.font-body {
+  font-family: 'Open Sans', 'Noto Sans', sans-serif;
+  font-weight: 400;
+}
+
+.font-display {
+  font-family: 'Orbitron', monospace;
+  font-weight: 600;
+}
+
+/* Language-specific fonts */
+html:lang(ko) .font-body,
+html:lang(ko) .font-heading {
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+html:lang(zh-CN) .font-body,
+html:lang(zh-CN) .font-heading {
+  font-family: 'Noto Sans SC', sans-serif;
+}
+
+html:lang(zh-TW) .font-body,
+html:lang(zh-TW) .font-heading {
+  font-family: 'Noto Sans TC', sans-serif;
+}
+
+html:lang(ja) .font-body,
+html:lang(ja) .font-heading {
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+html:lang(hi) .font-body,
+html:lang(hi) .font-heading {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+}
+
+/* Rarity-based styling */
+.rarity-common {
+  color: var(--color-common);
+  border-color: var(--color-common);
+}
+
+.rarity-uncommon {
+  color: var(--color-uncommon);
+  border-color: var(--color-uncommon);
+  box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+}
+
+.rarity-rare {
+  color: var(--color-rare);
+  border-color: var(--color-rare);
+  box-shadow: 0 0 15px rgba(155, 89, 182, 0.4);
+}
+
+.rarity-legend {
+  color: var(--color-legend);
+  border-color: var(--color-legend);
+  box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(241, 196, 15, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(241, 196, 15, 0.9);
+  }
+}
+
+/* Glass morphism effect */
+.glass {
+  background: var(--color-bg-glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-hover:hover {
+  background: var(--color-bg-glass-hover);
+}
+
+/* Spin animation */
+@keyframes spin-reel {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+.spinning {
+  animation: spin-reel 0.1s linear infinite;
+}
+
+/* Win pulse animation */
+@keyframes win-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+}
+
+.win-pulse {
+  animation: win-pulse 0.5s ease-in-out;
+}
+
+/* Jackpot shake animation */
+@keyframes jackpot-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px) rotate(-2deg); }
+  20%, 40%, 60%, 80% { transform: translateX(5px) rotate(2deg); }
+}
+
+.jackpot-shake {
+  animation: jackpot-shake 0.5s ease-in-out;
+}
+
+/* Button styles */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: var(--color-text-primary);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-spin {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  background: var(--color-spin-button);
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition-base);
+  border: none;
+  cursor: pointer;
+}
+
+.btn-spin:hover:not(:disabled) {
+  background: var(--color-spin-button-hover);
+  transform: scale(1.05);
+}
+
+.btn-spin:active:not(:disabled) {
+  animation: win-pulse 0.3s ease-in-out;
+}
+
+.btn-spin:disabled {
+  background: var(--color-spin-button-disabled);
+  cursor: not-allowed;
+}
+
+/* Utility classes */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Betting slider styles */
+.betting-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.betting-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4A00E0, #FFD700);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.betting-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.betting-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4A00E0, #FFD700);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.betting-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+}

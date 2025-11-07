@@ -1,0 +1,139 @@
+{
+  "app": {
+    "title": "CandleSpinner",
+    "subtitle": "Máquina tragamonedas Blockchain TON",
+    "version": "v2.0.0",
+    "footer": "MVP v2.0.0 - Impulsado por TON Blockchain"
+  },
+  "header": {
+    "balance": "Tu saldo",
+    "credit": "Crédito disponible",
+    "loading": "Cargando..."
+  },
+  "wallet": {
+    "connect": "Conectar billetera",
+    "disconnect": "Desconectar",
+    "connectPrompt": "¡Conecta tu billetera TON para empezar a jugar!",
+    "address": "Dirección de billetera"
+  },
+  "game": {
+    "title": "Máquina tragamonedas",
+    "subtitle": "Juego demostrablemente justo",
+    "slotTitle": "Tragamonedas de 3 carretes",
+    "newVersion": "Probar nueva versión (Demostrablemente justo)",
+    "oldVersion": "Volver a la versión clásica"
+  },
+  "betting": {
+    "title": "Hacer apuesta",
+    "amount": "Cantidad de apuesta",
+    "min": "Mín",
+    "max": "Máx",
+    "quickBet": "Apuesta rápida",
+    "insufficientFunds": "Fondos insuficientes",
+    "betRange": "Rango de apuesta: {{min}} - {{max}} CSPIN"
+  },
+  "buttons": {
+    "spin": "GIRAR",
+    "spinning": "Girando...",
+    "deposit": "Depositar",
+    "withdraw": "Retirar",
+    "max": "MÁX",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "close": "Cerrar",
+    "accept": "Aceptar",
+    "decline": "Rechazar"
+  },
+  "deposit": {
+    "title": "Depositar CSPIN",
+    "description": "Deposita tokens CSPIN para empezar a jugar",
+    "amount": "Cantidad a depositar",
+    "min": "Mínimo: {{amount}} CSPIN",
+    "success": "¡Depósito exitoso!",
+    "error": "Error al depositar",
+    "processing": "Procesando..."
+  },
+  "withdraw": {
+    "title": "Retirar CSPIN",
+    "description": "Retira tus tokens CSPIN",
+    "amount": "Cantidad a retirar",
+    "available": "Disponible: {{amount}} CSPIN",
+    "success": "¡Retiro exitoso!",
+    "error": "Error al retirar",
+    "processing": "Procesando..."
+  },
+  "results": {
+    "win": "¡GANASTE!",
+    "jackpot": "¡PREMIO MAYOR!",
+    "congratulations": "¡Felicitaciones!",
+    "youWon": "Ganaste {{amount}} CSPIN",
+    "betterLuck": "¡Mejor suerte la próxima vez!",
+    "reelPayout": "Carrete {{number}}",
+    "totalWin": "Ganancia total"
+  },
+  "doubleup": {
+    "title": "Desafío de duplicación",
+    "description": "¡Duplica tus ganancias o piérdelo todo!",
+    "currentWin": "Ganancia actual",
+    "chooseColor": "Elige un color:",
+    "red": "Rojo",
+    "blue": "Azul",
+    "success": "¡Felicitaciones! ¡Duplicaste tus ganancias!",
+    "failure": "Lo siento, perdiste la duplicación.",
+    "finalAmount": "Cantidad final",
+    "chance": "50% de probabilidad"
+  },
+  "symbols": {
+    "star": "Estrella",
+    "planet": "Planeta",
+    "comet": "Cometa",
+    "rocket": "Cohete",
+    "alien": "Extraterrestre",
+    "diamond": "Diamante",
+    "crown": "Corona"
+  },
+  "rarity": {
+    "common": "Común",
+    "uncommon": "Poco común",
+    "rare": "Raro",
+    "legend": "Legendario"
+  },
+  "stats": {
+    "title": "Estadísticas",
+    "rtp": "Retorno al jugador (RTP)",
+    "totalGames": "Total de juegos",
+    "totalBets": "Total de apuestas",
+    "totalWins": "Total de ganancias",
+    "recentWins": "Ganancias recientes",
+    "jackpots": "Premios mayores de hoy"
+  },
+  "history": {
+    "title": "Historial de juegos",
+    "date": "Fecha",
+    "bet": "Apuesta",
+    "result": "Resultado",
+    "win": "Ganancia",
+    "empty": "Aún no hay historial de juegos",
+    "loadMore": "Cargar más"
+  },
+  "errors": {
+    "generic": "Ocurrió un error",
+    "networkError": "Error de red. Por favor, inténtalo de nuevo.",
+    "insufficientBalance": "Saldo insuficiente",
+    "invalidAmount": "Cantidad inválida",
+    "transactionFailed": "Transacción fallida",
+    "walletNotConnected": "Por favor, conecta tu billetera primero"
+  },
+  "language": {
+    "select": "Seleccionar idioma",
+    "current": "Idioma actual"
+  },
+  "provably": {
+    "title": "Demostrablemente justo",
+    "description": "Verificar la equidad del juego",
+    "serverSeed": "Hash de semilla del servidor",
+    "clientSeed": "Semilla del cliente",
+    "nonce": "Nonce",
+    "verify": "Verificar resultado"
+  }
+}

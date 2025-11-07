@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { TonConnectButton } from '@tonconnect/ui-react';
+import { useTranslation } from 'react-i18next';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
 import { WalletConnect } from '@/components/WalletConnect';
@@ -9,8 +10,10 @@ import { SlotMachine } from '@/components/SlotMachine';
 import { SlotMachineV2 } from '@/features/slot';
 import { Withdraw } from '@/components/Withdraw';
 import { AdminWithdrawals } from '@/components/AdminWithdrawals';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 function GamePage() {
+  const { t } = useTranslation();
   const { isConnected, walletAddress } = useTonConnect();
   const { credit, isLoading, refreshCredit } = useCredit(walletAddress);
 
@@ -21,18 +24,21 @@ function GamePage() {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-2xl">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">🕯️ CandleSpinner</h1>
-              <p className="text-white/80">TON 블록체인 슬롯머신</p>
+              <h1 className="text-4xl font-bold text-white mb-2">🕯️ {t('app.title')}</h1>
+              <p className="text-white/80">{t('app.subtitle')}</p>
             </div>
-            <TonConnectButton />
+            <div className="flex items-center gap-4">
+              <LanguageSelector />
+              <TonConnectButton />
+            </div>
           </div>
           
           {/* 크레딧 표시 */}
           {isConnected && (
             <div className="mt-6 bg-white/20 rounded-xl p-4">
-              <div className="text-white/60 text-sm mb-1">보유 크레딧</div>
+              <div className="text-white/60 text-sm mb-1">{t('header.credit')}</div>
               <div className="text-3xl font-bold text-white">
-                {isLoading ? '...' : credit} CSPIN
+                {isLoading ? t('header.loading') : credit} CSPIN
               </div>
             </div>
           )}
@@ -62,14 +68,14 @@ function GamePage() {
                 to="/slot-v2" 
                 className="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-800 text-white font-semibold rounded-xl hover:from-purple-500 hover:to-purple-700 transition-all shadow-lg hover:shadow-purple-500/50"
               >
-                🎰 신버전 슬롯머신 체험하기 (Provably Fair)
+                🎰 {t('game.newVersion')}
               </Link>
             </div>
           </>
         ) : (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center">
             <p className="text-xl text-white/80">
-              TON 지갑을 연결하여 게임을 시작하세요!
+              {t('wallet.connectPrompt')}
             </p>
           </div>
         )}
@@ -77,7 +83,7 @@ function GamePage() {
 
       {/* 푸터 */}
       <footer className="mt-8 text-white/60 text-sm">
-        <p>MVP v2.0.0 - TON 블록체인 기반</p>
+        <p>{t('app.footer')}</p>
       </footer>
     </div>
   );
@@ -96,6 +102,7 @@ function App() {
 }
 
 function SlotV2Page() {
+  const { t } = useTranslation();
   const { isConnected, walletAddress } = useTonConnect();
   const { credit, isLoading, refreshCredit } = useCredit(walletAddress);
 
@@ -106,18 +113,21 @@ function SlotV2Page() {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-2xl">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">🎰 슬롯머신 V2</h1>
-              <p className="text-white/80">Provably Fair 공정한 게임</p>
+              <h1 className="text-4xl font-bold text-white mb-2">🎰 {t('game.title')} V2</h1>
+              <p className="text-white/80">{t('game.subtitle')}</p>
             </div>
-            <TonConnectButton />
+            <div className="flex items-center gap-4">
+              <LanguageSelector />
+              <TonConnectButton />
+            </div>
           </div>
           
           {/* 크레딧 표시 */}
           {isConnected && (
             <div className="mt-6 bg-white/20 rounded-xl p-4">
-              <div className="text-white/60 text-sm mb-1">보유 크레딧</div>
+              <div className="text-white/60 text-sm mb-1">{t('header.credit')}</div>
               <div className="text-3xl font-bold text-white">
-                {isLoading ? '...' : credit} CSPIN
+                {isLoading ? t('header.loading') : credit} CSPIN
               </div>
             </div>
           )}
@@ -147,14 +157,14 @@ function SlotV2Page() {
                 to="/" 
                 className="text-purple-400 hover:text-purple-300 underline"
               >
-                구버전 슬롯머신으로 돌아가기
+                {t('game.oldVersion')}
               </Link>
             </div>
           </>
         ) : (
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center">
             <p className="text-xl text-white/80">
-              TON 지갑을 연결하여 게임을 시작하세요!
+              {t('wallet.connectPrompt')}
             </p>
           </div>
         )}
@@ -162,7 +172,7 @@ function SlotV2Page() {
 
       {/* 푸터 */}
       <footer className="mt-8 text-white/60 text-sm">
-        <p>슬롯머신 V2.0.0 - Provably Fair 알고리즘</p>
+        <p>{t('game.title')} {t('app.version')} - {t('game.subtitle')}</p>
       </footer>
     </div>
   );
