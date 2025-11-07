@@ -7,7 +7,7 @@
 - 프론트엔드: React + TypeScript + Vite
 - 백엔드: Cloudflare Workers (Functions)
 - 블록체인 연동: TonCenter RPC (TONCENTER_RPC / TonCenter API)
-- 배포: Cloudflare Pages / Workers
+- 배포: Cloudflare Workers
 
 중요 안내: 아카이브(archive/mvp-v2-완성본)
 - `archive/mvp-v2-완성본` 폴더는 **학습 및 참조용 스냅샷**입니다.
