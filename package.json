@@ -12,6 +12,10 @@
     "wrangler:deploy": "wrangler deploy"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.5",
+    "@mui/material": "^7.3.5",
     "@ton/crypto": "^3.3.0",
     "@ton/ton": "^15.0.0",
     "@tonconnect/ui-react": "^2.0.9",
