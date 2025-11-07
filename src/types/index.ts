@@ -30,6 +30,7 @@ export interface CreditResponse {
 export interface VerifyDepositRequest {
   walletAddress: string;
   txHash: string;
+  amount?: number;  // ✅ 입금 금액 추가 (선택적)
 }
 
 // 인출 요청

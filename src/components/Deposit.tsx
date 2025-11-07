@@ -216,9 +216,13 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       // 트랜잭션 해시
       const txHash = result.boc;
 
-      // 백엔드에 입금 확인 요청
+      // 백엔드에 입금 확인 요청 (입금 금액 포함)
       logger.info('백엔드 입금 확인 요청...');
-      await verifyDeposit({ walletAddress, txHash });
+      await verifyDeposit({ 
+        walletAddress, 
+        txHash,
+        amount: depositAmount  // ✅ 입금 금액 전달
+      });
 
       logger.info('=== Deposit 완료 ===');
       alert(`✅ ${t.deposit.success}\n\n${depositAmount} CSPIN`);
