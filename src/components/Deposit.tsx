@@ -218,15 +218,28 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
 
       // 백엔드에 입금 확인 요청 (입금 금액 포함)
       logger.info('백엔드 입금 확인 요청...');
-      await verifyDeposit({ 
-        walletAddress, 
-        txHash,
-        amount: depositAmount  // ✅ 입금 금액 전달
-      });
-
-      logger.info('=== Deposit 완료 ===');
-      alert(`✅ ${t.deposit.success}\n\n${depositAmount} CSPIN`);
-      onSuccess();
+      logger.info('Request payload:', { walletAddress, txHash: txHash.substring(0, 50), amount: depositAmount });
+      
+      try {
+        await verifyDeposit({ 
+          walletAddress, 
+          txHash,
+          amount: depositAmount  // ✅ 입금 금액 전달
+        });
+        logger.info('=== Deposit 완료 ===');
+        alert(`✅ ${t.deposit.success}\n\n${depositAmount} CSPIN`);
+        onSuccess();
+      } catch (verifyError) {
+        logger.error('입금 검증 실패:', verifyError);
+        // ⚠️ 검증 실패해도 트랜잭션은 이미 전송됨
+        alert(
+          `⚠️ 트랜잭션은 전송되었으나 검증에 실패했습니다.\n\n` +
+          `${depositAmount} CSPIN이 블록체인에 전송되었습니다.\n` +
+          `잠시 후 크레딧이 자동으로 업데이트될 수 있습니다.\n\n` +
+          `문제가 지속되면 관리자에게 문의하세요.`
+        );
+        onSuccess(); // 크레딧 새로고침 시도
+      }
     } catch (err) {
       logger.error('Deposit 실패:', err);
       setError(err instanceof Error ? err.message : t.deposit.error);

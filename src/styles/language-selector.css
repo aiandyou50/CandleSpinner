@@ -1,7 +1,7 @@
 /* Language Selector Styles */
 .language-selector {
   position: relative;
-  z-index: 10001;
+  z-index: 99999;  /* ✅ 최상단 z-index로 변경 */
 }
 
 .language-selector-button {
@@ -53,7 +53,7 @@
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  z-index: 10002;
+  z-index: 100000;  /* ✅ 드롭다운도 최상단 */
 }
 
 .language-option {
