@@ -1,14 +1,66 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link as RouterLink } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { AppBar, Toolbar, Container, Box, Typography, Card, CardContent, Button, Chip, CircularProgress, Paper } from '@mui/material';
 import { TonConnectButton } from '@tonconnect/ui-react';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
 import { useLanguage } from '@/hooks/useLanguage';
-import { Deposit } from '@/components/Deposit';
-import { SlotMachine } from '@/components/SlotMachine';
-import { SlotMachineV2 } from '@/features/slot';
-import { Withdraw } from '@/components/Withdraw';
-import { AdminWithdrawals } from '@/components/AdminWithdrawals';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { theme } from '@/theme';
+
+function Deposit({ walletAddress, onSuccess }: { walletAddress: string; onSuccess: () => void }) {
+  return (
+    <Card elevation={2}>
+      <CardContent>
+        <Typography variant='h6' gutterBottom>입금 (재작성 예정)</Typography>
+        <Typography variant='body2' color='text.secondary'>Deposit 컴포넌트가 곧 Material-UI로 재작성됩니다.</Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function Withdraw({ walletAddress, currentCredit, onSuccess }: { walletAddress: string; currentCredit: number; onSuccess: () => void }) {
+  return (
+    <Card elevation={2}>
+      <CardContent>
+        <Typography variant='h6' gutterBottom>출금 (재작성 예정)</Typography>
+        <Typography variant='body2' color='text.secondary'>Withdraw 컴포넌트가 곧 Material-UI로 재작성됩니다.</Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SlotMachine({ walletAddress, currentCredit, onSuccess }: { walletAddress: string; currentCredit: number; onSuccess: () => void }) {
+  return (
+    <Card elevation={2}>
+      <CardContent>
+        <Typography variant='h6' gutterBottom>슬롯머신 V1 (재작성 예정)</Typography>
+        <Typography variant='body2' color='text.secondary'>SlotMachine 컴포넌트가 곧 Material-UI로 재작성됩니다.</Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SlotMachineV2({ walletAddress, currentCredit, onCreditChange }: { walletAddress: string; currentCredit: number; onCreditChange: () => void }) {
+  return (
+    <Card elevation={2}>
+      <CardContent>
+        <Typography variant='h6' gutterBottom>슬롯머신 V2 (재작성 예정)</Typography>
+        <Typography variant='body2' color='text.secondary'>SlotMachineV2 컴포넌트가 곧 Material-UI로 재작성됩니다.</Typography>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AdminWithdrawals() {
+  return (
+    <Container maxWidth='lg' sx={{ py: 4 }}>
+      <Typography variant='h4' gutterBottom>관리자 페이지 (재작성 예정)</Typography>
+      <Typography variant='body1' color='text.secondary'>AdminWithdrawals 컴포넌트가 곧 Material-UI로 재작성됩니다.</Typography>
+    </Container>
+  );
+}
 
 function GamePage() {
   const { isConnected, walletAddress } = useTonConnect();
@@ -16,86 +68,43 @@ function GamePage() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      {/* 헤더 */}
-      <header className="w-full max-w-4xl mb-8">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-2xl">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">🕯️ {t.app.title}</h1>
-              <p className="text-white/80">{t.app.subtitle}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <LanguageSelector />
-              <TonConnectButton />
-            </div>
-          </div>
-          
-          {/* 크레딧 표시 */}
-          {isConnected && (
-            <div className="mt-6 bg-white/20 rounded-xl p-4">
-              <div className="text-white/60 text-sm mb-1">{t.header.credit}</div>
-              <div className="text-3xl font-bold text-white">
-                {isLoading ? t.header.loading : credit} CSPIN
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* 메인 컨텐츠 */}
-      <main className="w-full max-w-4xl space-y-6">
+    <>
+      <AppBar position='static' elevation={1}>
+        <Toolbar>
+          <Typography variant='h6' component='div' sx={{ flexGrow: 1 }}>🕯️ {t.app.title}</Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <LanguageSelector />
+            <TonConnectButton />
+          </Box>
+        </Toolbar>
+      </AppBar>
+      <Container maxWidth='lg' sx={{ py: 4 }}>
+        {isConnected && (
+          <Paper elevation={2} sx={{ p: 3, mb: 3, textAlign: 'center' }}>
+            <Typography variant='body2' color='text.secondary' gutterBottom>{t.header.credit}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+              {isLoading ? <CircularProgress size={24} /> : <Typography variant='h3' component='div' fontWeight='bold'>{credit}</Typography>}
+              <Chip label='CSPIN' color='primary' />
+            </Box>
+          </Paper>
+        )}
         {isConnected && walletAddress ? (
-          <>
-            {/* 입금 & 인출 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <Deposit walletAddress={walletAddress} onSuccess={refreshCredit} />
               <Withdraw walletAddress={walletAddress} currentCredit={credit} onSuccess={refreshCredit} />
-            </div>
-
-            {/* 슬롯 머신 */}
-            <SlotMachine 
-              walletAddress={walletAddress} 
-              currentCredit={credit} 
-              onSuccess={refreshCredit} 
-            />
-
-            {/* 신버전 링크 */}
-            <div className="text-center">
-              <Link 
-                to="/slot-v2" 
-                className="inline-block px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-800 text-white font-semibold rounded-xl hover:from-purple-500 hover:to-purple-700 transition-all shadow-lg hover:shadow-purple-500/50"
-              >
-                🎰 {t.game.newVersion}
-              </Link>
-            </div>
-          </>
+            </Box>
+            <SlotMachine walletAddress={walletAddress} currentCredit={credit} onSuccess={refreshCredit} />
+            <Box sx={{ textAlign: 'center' }}>
+              <Button component={RouterLink} to='/slot-v2' variant='contained' color='secondary' size='large' sx={{ px: 4, py: 1.5 }}>🎰 {t.game.newVersion}</Button>
+            </Box>
+          </Box>
         ) : (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center">
-            <p className="text-xl text-white/80">
-              {t.wallet.connectPrompt}
-            </p>
-          </div>
+          <Card elevation={2}><CardContent sx={{ textAlign: 'center', py: 6 }}><Typography variant='h5' color='text.secondary'>{t.wallet.connectPrompt}</Typography></CardContent></Card>
         )}
-      </main>
-
-      {/* 푸터 */}
-      <footer className="mt-8 text-white/60 text-sm">
-        <p>{t.app.footer}</p>
-      </footer>
-    </div>
-  );
-}
-
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<GamePage />} />
-        <Route path="/slot-v2" element={<SlotV2Page />} />
-        <Route path="/admin" element={<AdminWithdrawals />} />
-      </Routes>
-    </BrowserRouter>
+        <Box sx={{ mt: 6, textAlign: 'center' }}><Typography variant='body2' color='text.secondary'>{t.app.footer}</Typography></Box>
+      </Container>
+    </>
   );
 }
 
@@ -105,74 +114,58 @@ function SlotV2Page() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4">
-      {/* 헤더 */}
-      <header className="w-full max-w-4xl mb-8">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-2xl">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">🎰 {t.game.title} V2</h1>
-              <p className="text-white/80">{t.game.subtitle}</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <LanguageSelector />
-              <TonConnectButton />
-            </div>
-          </div>
-          
-          {/* 크레딧 표시 */}
-          {isConnected && (
-            <div className="mt-6 bg-white/20 rounded-xl p-4">
-              <div className="text-white/60 text-sm mb-1">{t.header.credit}</div>
-              <div className="text-3xl font-bold text-white">
-                {isLoading ? t.header.loading : credit} CSPIN
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* 메인 컨텐츠 */}
-      <main className="w-full max-w-4xl space-y-6">
+    <>
+      <AppBar position='static' elevation={1}>
+        <Toolbar>
+          <Typography variant='h6' component='div' sx={{ flexGrow: 1 }}>🎰 {t.game.title} V2</Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <LanguageSelector />
+            <TonConnectButton />
+          </Box>
+        </Toolbar>
+      </AppBar>
+      <Container maxWidth='lg' sx={{ py: 4 }}>
+        {isConnected && (
+          <Paper elevation={2} sx={{ p: 3, mb: 3, textAlign: 'center' }}>
+            <Typography variant='body2' color='text.secondary' gutterBottom>{t.header.credit}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+              {isLoading ? <CircularProgress size={24} /> : <Typography variant='h3' component='div' fontWeight='bold'>{credit}</Typography>}
+              <Chip label='CSPIN' color='primary' />
+            </Box>
+          </Paper>
+        )}
         {isConnected && walletAddress ? (
-          <>
-            {/* 입금 & 인출 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
               <Deposit walletAddress={walletAddress} onSuccess={refreshCredit} />
               <Withdraw walletAddress={walletAddress} currentCredit={credit} onSuccess={refreshCredit} />
-            </div>
-
-            {/* 슬롯머신 V2 */}
-            <SlotMachineV2 
-              walletAddress={walletAddress} 
-              currentCredit={credit} 
-              onCreditChange={refreshCredit} 
-            />
-
-            {/* 구버전 링크 */}
-            <div className="text-center">
-              <Link 
-                to="/" 
-                className="text-purple-400 hover:text-purple-300 underline"
-              >
-                {t.game.oldVersion}
-              </Link>
-            </div>
-          </>
+            </Box>
+            <SlotMachineV2 walletAddress={walletAddress} currentCredit={credit} onCreditChange={refreshCredit} />
+            <Box sx={{ textAlign: 'center' }}>
+              <Button component={RouterLink} to='/' variant='text' color='primary'>{t.game.oldVersion}</Button>
+            </Box>
+          </Box>
         ) : (
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-2xl text-center">
-            <p className="text-xl text-white/80">
-              {t.wallet.connectPrompt}
-            </p>
-          </div>
+          <Card elevation={2}><CardContent sx={{ textAlign: 'center', py: 6 }}><Typography variant='h5' color='text.secondary'>{t.wallet.connectPrompt}</Typography></CardContent></Card>
         )}
-      </main>
+        <Box sx={{ mt: 6, textAlign: 'center' }}><Typography variant='body2' color='text.secondary'>{t.game.title} V2 - {t.game.subtitle}</Typography></Box>
+      </Container>
+    </>
+  );
+}
 
-      {/* 푸터 */}
-      <footer className="mt-8 text-white/60 text-sm">
-        <p>{t.game.title} V2 - {t.game.subtitle}</p>
-      </footer>
-    </div>
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <BrowserRouter>
+        <Routes>
+          <Route path='/' element={<GamePage />} />
+          <Route path='/slot-v2' element={<SlotV2Page />} />
+          <Route path='/admin' element={<AdminWithdrawals />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
