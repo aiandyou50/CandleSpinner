@@ -5,12 +5,12 @@
  */
 
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS, GAME_JETTON_WALLET } from '@/constants';
 import { logger } from '@/utils/logger';
+import { useLanguage } from '@/hooks/useLanguage';
 import { DebugLogModal } from './DebugLogModal';
 
 interface DepositProps {
@@ -45,7 +45,7 @@ function buildJettonTransferPayload(
 }
 
 export function Deposit({ walletAddress, onSuccess }: DepositProps) {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
   const [tonConnectUI] = useTonConnectUI();
   const [amount, setAmount] = useState('10');
   const [isLoading, setIsLoading] = useState(false);
@@ -221,11 +221,11 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       await verifyDeposit({ walletAddress, txHash });
 
       logger.info('=== Deposit 완료 ===');
-      alert(t('deposit.success', { amount: depositAmount }));
+      alert(`✅ ${t.deposit.success}\n\n${depositAmount} CSPIN`);
       onSuccess();
     } catch (err) {
       logger.error('Deposit 실패:', err);
-      setError(err instanceof Error ? err.message : t('deposit.error'));
+      setError(err instanceof Error ? err.message : t.deposit.error);
     } finally {
       setIsLoading(false);
     }
@@ -234,11 +234,11 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
   return (
     <>
       <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
-        <h3 className="text-2xl font-bold text-white mb-4">💰 {t('deposit.title')}</h3>
+        <h3 className="text-2xl font-bold text-white mb-4">💰 {t.deposit.title}</h3>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">{t('deposit.amount')}</label>
+            <label className="block text-sm text-gray-300 mb-2">{t.deposit.amount}</label>
             <input
               type="number"
               value={amount}
@@ -253,7 +253,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
             disabled={isLoading}
             className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
           >
-            {isLoading ? t('deposit.processing') : t('buttons.deposit')}
+            {isLoading ? t.deposit.processing : t.buttons.deposit}
           </button>
 
           {/* 디버그 로그 버튼 */}

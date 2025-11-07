@@ -1,21 +1,32 @@
 /**
  * Language Selector Component
  * Dropdown for selecting application language with flag icons
+ * 쿠키 기반 언어 저장 + 브라우저 언어 자동 감지
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '../i18n/config';
+import { 
+  SUPPORTED_LANGUAGES, 
+  type SupportedLanguage,
+  getInitialLanguage,
+  saveLanguageToCookie
+} from '@/utils/language';
 import '../styles/language-selector.css';
 
 export function LanguageSelector() {
-  const { i18n, t } = useTranslation();
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>('en');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentLanguage = i18n.language as SupportedLanguage;
-  const currentLangInfo = SUPPORTED_LANGUAGES[currentLanguage] || SUPPORTED_LANGUAGES['en-US'];
+  const currentLangInfo = SUPPORTED_LANGUAGES[currentLanguage];
+
+  // 초기 언어 설정 (마운트 시 한 번만)
+  useEffect(() => {
+    const initialLang = getInitialLanguage();
+    setCurrentLanguage(initialLang);
+    console.log('[LanguageSelector] Initial language:', initialLang);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -30,8 +41,13 @@ export function LanguageSelector() {
   }, []);
 
   const handleLanguageChange = (lang: SupportedLanguage) => {
-    i18n.changeLanguage(lang);
+    console.log('[LanguageSelector] Language changed:', lang);
+    setCurrentLanguage(lang);
+    saveLanguageToCookie(lang);
     setIsOpen(false);
+    
+    // 페이지 새로고침하여 언어 변경 반영
+    window.location.reload();
   };
 
   return (
@@ -39,7 +55,7 @@ export function LanguageSelector() {
       <button
         className="language-selector-button"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label={t('language.select')}
+        aria-label="언어 선택"
         aria-expanded={isOpen}
       >
         <span className="language-flag">{currentLangInfo.flag}</span>

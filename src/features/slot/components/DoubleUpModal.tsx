@@ -5,7 +5,6 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import { doubleUp } from '../api/slot';
 
 interface DoubleUpModalProps {
@@ -25,7 +24,6 @@ export function DoubleUpModal({
   onClose,
   onSuccess,
 }: DoubleUpModalProps) {
-  const { t } = useTranslation();
   const [state, setState] = useState<ModalState>('pending');
   const [selectedColor, setSelectedColor] = useState<'red' | 'blue' | null>(null);
   const [winningColor, setWinningColor] = useState<'red' | 'blue' | null>(null);
@@ -50,7 +48,7 @@ export function DoubleUpModal({
       }, 3000);
     } catch (error) {
       console.error('DoubleUp failed:', error);
-      alert(error instanceof Error ? error.message : t('errors.generic'));
+      alert(error instanceof Error ? error.message : '게임 실행 실패');
       onClose();
     }
   };
@@ -81,13 +79,13 @@ export function DoubleUpModal({
         >
           {state === 'pending' && (
             <>
-              <h2 className="modal-title">🎲 {t('doubleup.title')}</h2>
+              <h2 className="modal-title">🎲 더블업 도전!</h2>
               <p className="modal-description">
-                {t('doubleup.description')}
+                색상을 선택하세요
               </p>
 
               <div className="current-win">
-                <span className="win-label">{t('doubleup.currentWin')}</span>
+                <span className="win-label">현재 상금</span>
                 <span className="win-amount">{currentWin} CSPIN</span>
               </div>
 
@@ -98,7 +96,7 @@ export function DoubleUpModal({
                   disabled={state !== 'pending'}
                 >
                   <span className="btn-icon">❤️</span>
-                  <span className="btn-text">{t('doubleup.red')}</span>
+                  <span className="btn-text">빨강</span>
                 </button>
 
                 <button
@@ -107,12 +105,12 @@ export function DoubleUpModal({
                   disabled={state !== 'pending'}
                 >
                   <span className="btn-icon">💙</span>
-                  <span className="btn-text">{t('doubleup.blue')}</span>
+                  <span className="btn-text">파랑</span>
                 </button>
               </div>
 
               <button className="skip-button" onClick={handleSkip}>
-                {t('buttons.decline')}
+                건너뛰기
               </button>
             </>
           )}
@@ -126,7 +124,7 @@ export function DoubleUpModal({
               >
                 🎰
               </motion.div>
-              <p>{t('deposit.processing')}</p>
+              <p>처리 중...</p>
             </div>
           )}
 
@@ -138,9 +136,9 @@ export function DoubleUpModal({
               transition={{ type: 'spring', bounce: 0.5 }}
             >
               <div className="result-icon">🎉</div>
-              <h2 className="result-title">{t('doubleup.success')}</h2>
+              <h2 className="result-title">성공!</h2>
               <p className="result-description">
-                {t('results.congratulations')}
+                축하합니다!
               </p>
               <div className="result-colors">
                 <span className={`color-badge ${selectedColor}`}>
@@ -165,9 +163,9 @@ export function DoubleUpModal({
               transition={{ type: 'spring', bounce: 0.5 }}
             >
               <div className="result-icon">😢</div>
-              <h2 className="result-title">{t('doubleup.failure')}</h2>
+              <h2 className="result-title">실패</h2>
               <p className="result-description">
-                {t('results.betterLuck')}
+                다음 기회에!
               </p>
               <div className="result-colors">
                 <span className={`color-badge ${selectedColor}`}>
