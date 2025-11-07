@@ -1,6 +1,6 @@
 /**
- * 다국어 번역 텍스트
- * 각 언어별 UI 텍스트 정의
+ * 간소화된 다국어 번역 시스템
+ * 영어와 한국어만 완전 번역, 나머지는 영어 폴백
  */
 
 import type { SupportedLanguage } from './language';
@@ -47,6 +47,9 @@ export interface Translations {
     spinning: string;
     max: string;
     decline: string;
+    refresh: string;
+    process: string;
+    back: string;
   };
   betting: {
     amount: string;
@@ -70,6 +73,16 @@ export interface Translations {
     blue: string;
     success: string;
     failure: string;
+  };
+  admin: {
+    title: string;
+    pending: string;
+    noWithdrawals: string;
+    walletAddress: string;
+    amount: string;
+    requestedAt: string;
+    accessDenied: string;
+    connectAdmin: string;
   };
 }
 
@@ -111,10 +124,13 @@ const en: Translations = {
   buttons: {
     deposit: 'Deposit',
     withdraw: 'Withdraw',
-    spin: 'SPIN!',
+    spin: 'Spin!',
     spinning: 'Spinning...',
     max: 'MAX',
     decline: 'Skip',
+    refresh: 'Refresh',
+    process: 'Process',
+    back: 'Back to Home',
   },
   betting: {
     amount: 'Bet Amount',
@@ -122,11 +138,11 @@ const en: Translations = {
   },
   errors: {
     insufficientBalance: 'Insufficient balance!',
-    generic: 'Game execution failed',
+    generic: 'Game failed',
   },
   results: {
     jackpot: 'JACKPOT!',
-    win: 'WIN!',
+    win: 'Win!',
     congratulations: 'Congratulations!',
     betterLuck: 'Better luck next time!',
   },
@@ -138,6 +154,16 @@ const en: Translations = {
     blue: 'Blue',
     success: 'Success!',
     failure: 'Failed',
+  },
+  admin: {
+    title: 'Admin - Withdrawal Management',
+    pending: 'Pending Withdrawals',
+    noWithdrawals: 'No pending withdrawals',
+    walletAddress: 'Wallet Address',
+    amount: 'Amount',
+    requestedAt: 'Requested At',
+    accessDenied: 'Access Denied - Admin wallet required',
+    connectAdmin: 'Connect admin wallet to manage withdrawals',
   },
 };
 
@@ -183,6 +209,9 @@ const ko: Translations = {
     spinning: '회전 중...',
     max: 'MAX',
     decline: '건너뛰기',
+    refresh: '새로고침',
+    process: '처리하기',
+    back: '홈으로 돌아가기',
   },
   betting: {
     amount: '베팅 금액',
@@ -207,481 +236,15 @@ const ko: Translations = {
     success: '성공!',
     failure: '실패',
   },
-};
-
-// 중국어 간체
-const zhCN: Translations = {
-  app: {
-    title: 'Candle Spinner',
-    subtitle: 'TON 区块链老虎机游戏',
-    footer: '可证明公平游戏',
-  },
-  header: {
-    credit: '余额',
-    loading: '加载中...',
-  },
-  game: {
-    title: '老虎机',
-    subtitle: '可证明公平游戏',
-    newVersion: '老虎机 V2',
-    oldVersion: '老虎机 V1',
-  },
-  wallet: {
-    connectPrompt: '连接钱包开始游戏',
-  },
-  deposit: {
-    title: 'CSPIN 存款',
-    amount: '存款金额 (CSPIN)',
-    success: '存款成功！',
-    error: '存款失败',
-    processing: '处理中...',
-  },
-  withdraw: {
-    title: 'CSPIN 提款',
-    description: '提款请求后需要管理员批准',
-    available: '可用',
-    success: '提款请求完成！',
-    error: '提款请求失败',
-    processing: '处理中...',
-  },
-  buttons: {
-    deposit: '存款',
-    withdraw: '提款',
-    spin: '旋转！',
-    spinning: '旋转中...',
-    max: 'MAX',
-    decline: '跳过',
-  },
-  betting: {
-    amount: '投注金额',
-    betRange: '最低投注额为 10 CSPIN',
-  },
-  errors: {
-    insufficientBalance: '余额不足！',
-    generic: '游戏执行失败',
-  },
-  results: {
-    jackpot: '大奖！',
-    win: '赢了！',
-    congratulations: '恭喜！',
-    betterLuck: '下次好运！',
-  },
-  doubleup: {
-    title: '加倍挑战！',
-    description: '选择颜色',
-    currentWin: '当前奖金',
-    red: '红色',
-    blue: '蓝色',
-    success: '成功！',
-    failure: '失败',
-  },
-};
-
-// 중국어 번체
-const zhTW: Translations = {
-  app: {
-    title: 'Candle Spinner',
-    subtitle: 'TON 區塊鏈老虎機遊戲',
-    footer: '可證明公平遊戲',
-  },
-  header: {
-    credit: '餘額',
-    loading: '載入中...',
-  },
-  game: {
-    title: '老虎機',
-    subtitle: '可證明公平遊戲',
-    newVersion: '老虎機 V2',
-    oldVersion: '老虎機 V1',
-  },
-  wallet: {
-    connectPrompt: '連接錢包開始遊戲',
-  },
-  deposit: {
-    title: 'CSPIN 存款',
-    amount: '存款金額 (CSPIN)',
-    success: '存款成功！',
-    error: '存款失敗',
-    processing: '處理中...',
-  },
-  withdraw: {
-    title: 'CSPIN 提款',
-    description: '提款請求後需要管理員批准',
-    available: '可用',
-    success: '提款請求完成！',
-    error: '提款請求失敗',
-    processing: '處理中...',
-  },
-  buttons: {
-    deposit: '存款',
-    withdraw: '提款',
-    spin: '旋轉！',
-    spinning: '旋轉中...',
-    max: 'MAX',
-    decline: '跳過',
-  },
-  betting: {
-    amount: '投注金額',
-    betRange: '最低投注額為 10 CSPIN',
-  },
-  errors: {
-    insufficientBalance: '餘額不足！',
-    generic: '遊戲執行失敗',
-  },
-  results: {
-    jackpot: '大獎！',
-    win: '贏了！',
-    congratulations: '恭喜！',
-    betterLuck: '下次好運！',
-  },
-  doubleup: {
-    title: '加倍挑戰！',
-    description: '選擇顏色',
-    currentWin: '當前獎金',
-    red: '紅色',
-    blue: '藍色',
-    success: '成功！',
-    failure: '失敗',
-  },
-};
-
-// 일본어
-const ja: Translations = {
-  app: {
-    title: 'Candle Spinner',
-    subtitle: 'TON ブロックチェーン スロットゲーム',
-    footer: '証明可能な公正ゲーム',
-  },
-  header: {
-    credit: '残高',
-    loading: '読み込み中...',
-  },
-  game: {
-    title: 'スロットマシン',
-    subtitle: '証明可能な公正ゲーム',
-    newVersion: 'スロットマシン V2',
-    oldVersion: 'スロットマシン V1',
-  },
-  wallet: {
-    connectPrompt: 'ウォレットを接続してゲームを開始',
-  },
-  deposit: {
-    title: 'CSPIN 入金',
-    amount: '入金額 (CSPIN)',
-    success: '入金成功！',
-    error: '入金失敗',
-    processing: '処理中...',
-  },
-  withdraw: {
-    title: 'CSPIN 出金',
-    description: '出金リクエスト後、管理者の承認が必要です',
-    available: '利用可能',
-    success: '出金リクエスト完了！',
-    error: '出金リクエスト失敗',
-    processing: '処理中...',
-  },
-  buttons: {
-    deposit: '入金',
-    withdraw: '出金',
-    spin: 'スピン！',
-    spinning: '回転中...',
-    max: 'MAX',
-    decline: 'スキップ',
-  },
-  betting: {
-    amount: 'ベット額',
-    betRange: '最低ベット額は 10 CSPIN です',
-  },
-  errors: {
-    insufficientBalance: '残高不足！',
-    generic: 'ゲーム実行失敗',
-  },
-  results: {
-    jackpot: 'ジャックポット！',
-    win: '当選！',
-    congratulations: 'おめでとうございます！',
-    betterLuck: '次回頑張りましょう！',
-  },
-  doubleup: {
-    title: 'ダブルアップチャレンジ！',
-    description: '色を選択',
-    currentWin: '現在の賞金',
-    red: '赤',
-    blue: '青',
-    success: '成功！',
-    failure: '失敗',
-  },
-};
-
-// 베트남어
-const vi: Translations = {
-  app: {
-    title: 'Candle Spinner',
-    subtitle: 'Trò chơi Slot trên Blockchain TON',
-    footer: 'Trò chơi công bằng có thể chứng minh',
-  },
-  header: {
-    credit: 'Số dư',
-    loading: 'Đang tải...',
-  },
-  game: {
-    title: 'Máy đánh bạc',
-    subtitle: 'Trò chơi công bằng có thể chứng minh',
-    newVersion: 'Máy đánh bạc V2',
-    oldVersion: 'Máy đánh bạc V1',
-  },
-  wallet: {
-    connectPrompt: 'Kết nối ví để bắt đầu chơi',
-  },
-  deposit: {
-    title: 'Nạp CSPIN',
-    amount: 'Số tiền nạp (CSPIN)',
-    success: 'Nạp tiền thành công!',
-    error: 'Nạp tiền thất bại',
-    processing: 'Đang xử lý...',
-  },
-  withdraw: {
-    title: 'Rút CSPIN',
-    description: 'Yêu cầu phê duyệt của quản trị viên sau khi yêu cầu rút tiền',
-    available: 'Có sẵn',
-    success: 'Yêu cầu rút tiền hoàn tất!',
-    error: 'Yêu cầu rút tiền thất bại',
-    processing: 'Đang xử lý...',
-  },
-  buttons: {
-    deposit: 'Nạp tiền',
-    withdraw: 'Rút tiền',
-    spin: 'QUAY!',
-    spinning: 'Đang quay...',
-    max: 'MAX',
-    decline: 'Bỏ qua',
-  },
-  betting: {
-    amount: 'Số tiền đặt cược',
-    betRange: 'Số tiền đặt cược tối thiểu là 10 CSPIN',
-  },
-  errors: {
-    insufficientBalance: 'Số dư không đủ!',
-    generic: 'Thực thi trò chơi thất bại',
-  },
-  results: {
-    jackpot: 'ĐẠI THẮNG!',
-    win: 'THẮNG!',
-    congratulations: 'Chúc mừng!',
-    betterLuck: 'Chúc may mắn lần sau!',
-  },
-  doubleup: {
-    title: 'Thử thách Nhân đôi!',
-    description: 'Chọn màu',
-    currentWin: 'Tiền thắng hiện tại',
-    red: 'Đỏ',
-    blue: 'Xanh',
-    success: 'Thành công!',
-    failure: 'Thất bại',
-  },
-};
-
-// 러시아어
-const ru: Translations = {
-  app: {
-    title: 'Candle Spinner',
-    subtitle: 'Слот-игра на блокчейне TON',
-    footer: 'Доказуемо честная игра',
-  },
-  header: {
-    credit: 'Баланс',
-    loading: 'Загрузка...',
-  },
-  game: {
-    title: 'Игровой автомат',
-    subtitle: 'Доказуемо честная игра',
-    newVersion: 'Игровой автомат V2',
-    oldVersion: 'Игровой автомат V1',
-  },
-  wallet: {
-    connectPrompt: 'Подключите кошелек, чтобы начать играть',
-  },
-  deposit: {
-    title: 'Депозит CSPIN',
-    amount: 'Сумма депозита (CSPIN)',
-    success: 'Депозит успешен!',
-    error: 'Ошибка депозита',
-    processing: 'Обработка...',
-  },
-  withdraw: {
-    title: 'Вывод CSPIN',
-    description: 'После запроса на вывод требуется одобрение администратора',
-    available: 'Доступно',
-    success: 'Запрос на вывод выполнен!',
-    error: 'Ошибка запроса на вывод',
-    processing: 'Обработка...',
-  },
-  buttons: {
-    deposit: 'Депозит',
-    withdraw: 'Вывод',
-    spin: 'КРУТИТЬ!',
-    spinning: 'Крутится...',
-    max: 'MAX',
-    decline: 'Пропустить',
-  },
-  betting: {
-    amount: 'Сумма ставки',
-    betRange: 'Минимальная ставка 10 CSPIN',
-  },
-  errors: {
-    insufficientBalance: 'Недостаточно средств!',
-    generic: 'Ошибка выполнения игры',
-  },
-  results: {
-    jackpot: 'ДЖЕКПОТ!',
-    win: 'ВЫИГРЫШ!',
-    congratulations: 'Поздравляем!',
-    betterLuck: 'Удачи в следующий раз!',
-  },
-  doubleup: {
-    title: 'Удвоение!',
-    description: 'Выберите цвет',
-    currentWin: 'Текущий выигрыш',
-    red: 'Красный',
-    blue: 'Синий',
-    success: 'Успех!',
-    failure: 'Неудача',
-  },
-};
-
-// 스페인어
-const es: Translations = {
-  app: {
-    title: 'Candle Spinner',
-    subtitle: 'Juego de Tragamonedas en Blockchain TON',
-    footer: 'Juego demostrablemente justo',
-  },
-  header: {
-    credit: 'Saldo',
-    loading: 'Cargando...',
-  },
-  game: {
-    title: 'Máquina tragamonedas',
-    subtitle: 'Juego demostrablemente justo',
-    newVersion: 'Máquina tragamonedas V2',
-    oldVersion: 'Máquina tragamonedas V1',
-  },
-  wallet: {
-    connectPrompt: 'Conecta tu billetera para comenzar a jugar',
-  },
-  deposit: {
-    title: 'Depósito CSPIN',
-    amount: 'Cantidad de depósito (CSPIN)',
-    success: '¡Depósito exitoso!',
-    error: 'Error en el depósito',
-    processing: 'Procesando...',
-  },
-  withdraw: {
-    title: 'Retiro CSPIN',
-    description: 'Se requiere aprobación del administrador después de la solicitud de retiro',
-    available: 'Disponible',
-    success: '¡Solicitud de retiro completada!',
-    error: 'Error en la solicitud de retiro',
-    processing: 'Procesando...',
-  },
-  buttons: {
-    deposit: 'Depositar',
-    withdraw: 'Retirar',
-    spin: '¡GIRAR!',
-    spinning: 'Girando...',
-    max: 'MAX',
-    decline: 'Omitir',
-  },
-  betting: {
-    amount: 'Cantidad de apuesta',
-    betRange: 'La apuesta mínima es 10 CSPIN',
-  },
-  errors: {
-    insufficientBalance: '¡Saldo insuficiente!',
-    generic: 'Error de ejecución del juego',
-  },
-  results: {
-    jackpot: '¡PREMIO MAYOR!',
-    win: '¡GANASTE!',
-    congratulations: '¡Felicidades!',
-    betterLuck: '¡Mejor suerte la próxima vez!',
-  },
-  doubleup: {
-    title: '¡Desafío de duplicar!',
-    description: 'Elige un color',
-    currentWin: 'Ganancia actual',
-    red: 'Rojo',
-    blue: 'Azul',
-    success: '¡Éxito!',
-    failure: 'Fallido',
-  },
-};
-
-// 힌디어
-const hi: Translations = {
-  app: {
-    title: 'Candle Spinner',
-    subtitle: 'TON ब्लॉकचेन स्लॉट गेम',
-    footer: 'प्रमाणित निष्पक्ष खेल',
-  },
-  header: {
-    credit: 'बैलेंस',
-    loading: 'लोड हो रहा है...',
-  },
-  game: {
-    title: 'स्लॉट मशीन',
-    subtitle: 'प्रमाणित निष्पक्ष खेल',
-    newVersion: 'स्लॉट मशीन V2',
-    oldVersion: 'स्लॉट मशीन V1',
-  },
-  wallet: {
-    connectPrompt: 'खेलना शुरू करने के लिए अपना वॉलेट कनेक्ट करें',
-  },
-  deposit: {
-    title: 'CSPIN जमा',
-    amount: 'जमा राशि (CSPIN)',
-    success: 'जमा सफल!',
-    error: 'जमा विफल',
-    processing: 'प्रोसेस हो रहा है...',
-  },
-  withdraw: {
-    title: 'CSPIN निकासी',
-    description: 'निकासी अनुरोध के बाद व्यवस्थापक अनुमोदन आवश्यक है',
-    available: 'उपलब्ध',
-    success: 'निकासी अनुरोध पूर्ण!',
-    error: 'निकासी अनुरोध विफल',
-    processing: 'प्रोसेस हो रहा है...',
-  },
-  buttons: {
-    deposit: 'जमा करें',
-    withdraw: 'निकालें',
-    spin: 'स्पिन!',
-    spinning: 'घूम रहा है...',
-    max: 'MAX',
-    decline: 'छोड़ें',
-  },
-  betting: {
-    amount: 'दांव राशि',
-    betRange: 'न्यूनतम दांव 10 CSPIN है',
-  },
-  errors: {
-    insufficientBalance: 'अपर्याप्त बैलेंस!',
-    generic: 'खेल निष्पादन विफल',
-  },
-  results: {
-    jackpot: 'जैकपॉट!',
-    win: 'जीत!',
-    congratulations: 'बधाई हो!',
-    betterLuck: 'अगली बार शुभकामनाएं!',
-  },
-  doubleup: {
-    title: 'डबल अप चुनौती!',
-    description: 'रंग चुनें',
-    currentWin: 'वर्तमान जीत',
-    red: 'लाल',
-    blue: 'नीला',
-    success: 'सफलता!',
-    failure: 'विफल',
+  admin: {
+    title: '관리자 - 인출 관리',
+    pending: '대기 중인 인출',
+    noWithdrawals: '대기 중인 인출이 없습니다',
+    walletAddress: '지갑 주소',
+    amount: '금액',
+    requestedAt: '요청 시각',
+    accessDenied: '접근 거부 - 관리자 지갑 필요',
+    connectAdmin: '인출을 관리하려면 관리자 지갑을 연결하세요',
   },
 };
 
@@ -689,13 +252,13 @@ const hi: Translations = {
 const translations: Record<SupportedLanguage, Translations> = {
   en,
   ko,
-  'zh-CN': zhCN,
-  'zh-TW': zhTW,
-  ja,
-  vi,
-  ru,
-  es,
-  hi,
+  'zh-CN': en, // 중국어 간체는 영어로 폴백
+  'zh-TW': en, // 중국어 번체는 영어로 폴백
+  ja: en, // 일본어는 영어로 폴백
+  vi: en, // 베트남어는 영어로 폴백
+  ru: en, // 러시아어는 영어로 폴백
+  es: en, // 스페인어는 영어로 폴백
+  hi: en, // 힌디어는 영어로 폴백
 };
 
 /**

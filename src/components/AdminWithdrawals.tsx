@@ -5,10 +5,13 @@
  */
 
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonConnect } from '@/hooks/useTonConnect';
+import { useLanguage } from '@/hooks/useLanguage';
 import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS } from '@/constants';
+import { LanguageSelector } from './LanguageSelector';
 
 interface Withdrawal {
   id: string;
@@ -22,6 +25,7 @@ interface Withdrawal {
 export function AdminWithdrawals() {
   const [tonConnectUI] = useTonConnectUI();
   const { isConnected, walletAddress } = useTonConnect();
+  const { t } = useLanguage();
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
@@ -170,24 +174,28 @@ export function AdminWithdrawals() {
         <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-8 border border-white/20 shadow-2xl">
           {/* 헤더 */}
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-white">
-              🏦 인출 관리 대시보드
-            </h2>
-            <TonConnectButton />
+            <div className="flex items-center gap-4">
+              <Link to="/" className="text-white/70 hover:text-white transition">
+                ← {t.buttons.back}
+              </Link>
+              <h2 className="text-3xl font-bold text-white">
+                🏦 {t.admin.title}
+              </h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <LanguageSelector />
+              <TonConnectButton />
+            </div>
           </div>
 
           {/* ✅ 게임 운영자 지갑 확인 */}
           {!isConnected ? (
             <div className="text-center py-12">
               <div className="mb-6">
-                <p className="text-xl text-white mb-2">🔐 관리자 인증 필요</p>
-                <p className="text-gray-400">게임 운영자 지갑을 연결해주세요</p>
+                <p className="text-xl text-white mb-2">🔐 {t.admin.connectAdmin}</p>
               </div>
               <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 max-w-md mx-auto">
                 <p className="text-sm text-yellow-200">
-                  게임 운영자 지갑 주소:
-                </p>
-                <p className="text-xs text-yellow-300 font-mono mt-2 break-all">
                   {GAME_WALLET_ADDRESS}
                 </p>
               </div>
@@ -195,15 +203,14 @@ export function AdminWithdrawals() {
           ) : !isAdminWallet ? (
             <div className="text-center py-12">
               <div className="mb-6">
-                <p className="text-xl text-red-400 mb-2">❌ 접근 권한 없음</p>
-                <p className="text-gray-400">이 지갑은 게임 운영자 지갑이 아닙니다</p>
+                <p className="text-xl text-red-400 mb-2">❌ {t.admin.accessDenied}</p>
               </div>
               <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 max-w-md mx-auto">
-                <p className="text-sm text-red-200 mb-2">현재 연결된 지갑:</p>
+                <p className="text-sm text-red-200 mb-2">{t.wallet.connectPrompt}:</p>
                 <p className="text-xs text-red-300 font-mono break-all mb-4">
                   {walletAddress}
                 </p>
-                <p className="text-sm text-red-200 mb-2">필요한 지갑:</p>
+                <p className="text-sm text-red-200 mb-2">Required:</p>
                 <p className="text-xs text-red-300 font-mono break-all">
                   {GAME_WALLET_ADDRESS}
                 </p>
@@ -218,24 +225,24 @@ export function AdminWithdrawals() {
                   disabled={isLoading}
                   className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white transition disabled:opacity-50"
                 >
-                  {isLoading ? '로딩 중...' : '🔄 새로고침'}
+                  {isLoading ? t.header.loading : `🔄 ${t.buttons.refresh}`}
                 </button>
               </div>
 
               {/* 통계 */}
               <div className="grid grid-cols-3 gap-4 mb-6">
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                  <p className="text-gray-400 text-sm">대기 중</p>
-                  <p className="text-2xl font-bold text-white">{withdrawals.length}건</p>
+                  <p className="text-gray-400 text-sm">{t.admin.pending}</p>
+                  <p className="text-2xl font-bold text-white">{withdrawals.length}</p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                  <p className="text-gray-400 text-sm">총 금액</p>
+                  <p className="text-gray-400 text-sm">{t.admin.amount}</p>
                   <p className="text-2xl font-bold text-white">
                     {withdrawals.reduce((sum, w) => sum + w.amount, 0).toFixed(2)} CSPIN
                   </p>
                 </div>
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                  <p className="text-gray-400 text-sm">예상 비용</p>
+                  <p className="text-gray-400 text-sm">Estimated Cost</p>
                   <p className="text-2xl font-bold text-white">
                     {(withdrawals.length * 0.2).toFixed(2)} TON
                   </p>
@@ -246,59 +253,59 @@ export function AdminWithdrawals() {
               {withdrawals.length > 0 && (
                 <button
                   onClick={handleBatchProcess}
-              disabled={isLoading || processing !== null}
-              className="w-full mb-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
-            >
-              🚀 모두 처리 ({withdrawals.length}건)
-            </button>
-          )}
-
-          {/* 인출 목록 */}
-          <div className="space-y-4">
-            {withdrawals.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <p className="text-xl">📭 대기 중인 인출이 없습니다</p>
-              </div>
-            ) : (
-              withdrawals.map((withdrawal) => (
-                <div
-                  key={withdrawal.id}
-                  className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition"
+                  disabled={isLoading || processing !== null}
+                  className="w-full mb-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex-1">
-                      <p className="text-white font-semibold text-lg">
-                        {withdrawal.amount} CSPIN
-                      </p>
-                      <p className="text-gray-400 text-sm font-mono">
-                        {withdrawal.walletAddress.substring(0, 8)}...
-                        {withdrawal.walletAddress.substring(withdrawal.walletAddress.length - 6)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <span className="inline-block px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs">
-                        대기 중
-                      </span>
-                    </div>
-                  </div>
+                  🚀 {t.buttons.process} ({withdrawals.length})
+                </button>
+              )}
 
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/10">
-                    <div className="text-xs text-gray-400">
-                      <p>요청 시간: {new Date(withdrawal.requestedAt).toLocaleString('ko-KR')}</p>
-                      <p className="mt-1">ID: {withdrawal.id.substring(0, 16)}...</p>
-                    </div>
-                    <button
-                      onClick={() => handleProcessWithdrawal(withdrawal)}
-                      disabled={processing !== null}
-                      className="px-4 py-2 bg-gradient-to-r from-pink-500 to-red-500 rounded-lg text-white font-semibold hover:shadow-lg transition disabled:opacity-50"
-                    >
-                      {processing === withdrawal.id ? '처리 중...' : '✅ 처리'}
-                    </button>
+              {/* 인출 목록 */}
+              <div className="space-y-4">
+                {withdrawals.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <p className="text-xl">📭 {t.admin.noWithdrawals}</p>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                ) : (
+                  withdrawals.map((withdrawal) => (
+                    <div
+                      key={withdrawal.id}
+                      className="bg-white/5 rounded-lg p-4 border border-white/10 hover:bg-white/10 transition"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex-1">
+                          <p className="text-white font-semibold text-lg">
+                            {withdrawal.amount} CSPIN
+                          </p>
+                          <p className="text-gray-400 text-sm font-mono">
+                            {withdrawal.walletAddress.substring(0, 8)}...
+                            {withdrawal.walletAddress.substring(withdrawal.walletAddress.length - 6)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-block px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs">
+                            {t.admin.pending}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/10">
+                        <div className="text-xs text-gray-400">
+                          <p>{t.admin.requestedAt}: {new Date(withdrawal.requestedAt).toLocaleString()}</p>
+                          <p className="mt-1">ID: {withdrawal.id.substring(0, 16)}...</p>
+                        </div>
+                        <button
+                          onClick={() => handleProcessWithdrawal(withdrawal)}
+                          disabled={processing !== null}
+                          className="px-4 py-2 bg-gradient-to-r from-pink-500 to-red-500 rounded-lg text-white font-semibold hover:shadow-lg transition disabled:opacity-50"
+                        >
+                          {processing === withdrawal.id ? t.withdraw.processing : `✅ ${t.buttons.process}`}
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
           {/* 안내 */}
           <div className="mt-6 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
