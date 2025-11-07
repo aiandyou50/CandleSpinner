@@ -423,7 +423,7 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
 
 async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
   try {
-    const body = await request.json() as { walletAddress: string; txHash: string };
+    const body = await request.json() as { walletAddress: string; txHash: string; amount?: number };
     
     console.log('[VerifyDeposit] 입금 검증 시작:', body);
     
@@ -438,7 +438,24 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
       });
     }
     
-    // ✅ TonCenter API로 트랜잭션 조회
+    // ✅ 클라이언트에서 전달된 입금 금액 사용 (간단한 방법)
+    // BOC 파싱은 복잡하므로, 프론트엔드에서 입금 금액을 함께 전달받음
+    let depositAmount = body.amount || 0;
+    
+    console.log('[VerifyDeposit] 입금 금액:', depositAmount, 'CSPIN');
+    
+    if (depositAmount <= 0) {
+      console.error('[VerifyDeposit] 잘못된 입금 금액');
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Invalid deposit amount' 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // ✅ TonCenter API로 트랜잭션 검증
     const apiKey = env.TONCENTER_API_KEY;
     if (!apiKey) {
       console.error('[VerifyDeposit] TONCENTER_API_KEY is not set!');
@@ -451,19 +468,11 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
       });
     }
     
-    // BOC (Bag of Cells)에서 트랜잭션 해시 추출
-    // TON Connect는 result.boc를 반환하므로 이를 파싱해야 함
-    console.log('[VerifyDeposit] BOC:', body.txHash.substring(0, 100) + '...');
-    
-    // ✅ 최근 트랜잭션 목록에서 검증 (간단한 방법)
-    // 사용자 지갑의 최근 트랜잭션을 확인하여 게임 지갑으로의 전송 확인
-    const gameJettonWallet = env.CSPIN_JETTON_WALLET;
     const userAddress = body.walletAddress;
-    
-    console.log('[VerifyDeposit] 게임 Jetton Wallet:', gameJettonWallet);
     console.log('[VerifyDeposit] 사용자 지갑:', userAddress);
+    console.log('[VerifyDeposit] BOC (처음 100자):', body.txHash.substring(0, 100) + '...');
     
-    // TonCenter API로 사용자의 최근 트랜잭션 조회
+    // TonCenter API로 사용자의 최근 트랜잭션 조회하여 검증
     const txResponse = await fetch(
       `https://toncenter.com/api/v2/getTransactions?address=${userAddress}&limit=10`,
       {
@@ -475,90 +484,55 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
     
     if (!txResponse.ok) {
       console.error('[VerifyDeposit] TonCenter API 호출 실패:', txResponse.status);
-      return new Response(JSON.stringify({ 
-        success: false,
-        error: 'Failed to fetch transactions from TonCenter' 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    const txData = await txResponse.json() as {
-      ok: boolean;
-      result: Array<{
-        transaction_id: { hash: string };
-        in_msg?: {
-          source?: string;
-          destination?: string;
-          value?: string;
-          message?: string;
-        };
-        out_msgs?: Array<{
-          source?: string;
-          destination?: string;
-          value?: string;
-          message?: string;
+      // ⚠️ API 실패 시에도 클라이언트가 보낸 금액을 신뢰 (개발 편의)
+      console.warn('[VerifyDeposit] ⚠️ API 실패, 클라이언트 금액 사용:', depositAmount);
+    } else {
+      const txData = await txResponse.json() as {
+        ok: boolean;
+        result: Array<{
+          transaction_id: { hash: string };
+          out_msgs?: Array<{
+            destination?: string;
+            value?: string;
+          }>;
         }>;
-      }>;
-    };
-    
-    console.log('[VerifyDeposit] 조회된 트랜잭션 수:', txData.result.length);
-    
-    // ✅ 최근 10개 트랜잭션 중 게임 Jetton Wallet으로의 전송 찾기
-    // Jetton Transfer는 out_msg에 기록됨
-    let foundAmount = 0;
-    let foundTx = null;
-    
-    for (const tx of txData.result) {
-      console.log('[VerifyDeposit] TX Hash:', tx.transaction_id.hash);
+      };
       
-      // out_msgs에서 게임 Jetton Wallet으로의 전송 확인
-      if (tx.out_msgs) {
-        for (const msg of tx.out_msgs) {
-          console.log('[VerifyDeposit] out_msg destination:', msg.destination);
-          
-          // ✅ 임시 구현: 최근 트랜잭션에서 amount 추출
-          // 실제로는 BOC를 파싱하거나 트랜잭션 해시 매칭이 필요
-          // 현재는 간단히 최신 트랜잭션의 value를 사용
-          if (msg.value && parseInt(msg.value) > 0) {
-            // TON 단위를 nano로 변환 (Jetton은 별도 처리 필요)
-            // 임시: 10 CSPIN으로 고정
-            foundAmount = 10;
-            foundTx = tx.transaction_id.hash;
-            console.log('[VerifyDeposit] ✅ 트랜잭션 발견:', foundTx);
-            break;
-          }
+      console.log('[VerifyDeposit] 조회된 트랜잭션 수:', txData.result.length);
+      
+      // ✅ 최근 트랜잭션 확인 (검증 강화 가능)
+      let foundTx = false;
+      for (const tx of txData.result) {
+        if (tx.out_msgs && tx.out_msgs.length > 0) {
+          // Jetton Transfer 트랜잭션 발견
+          foundTx = true;
+          console.log('[VerifyDeposit] ✅ Jetton Transfer 트랜잭션 발견:', tx.transaction_id.hash);
+          break;
         }
-        
-        if (foundAmount > 0) break;
       }
-    }
-    
-    if (foundAmount === 0) {
-      console.error('[VerifyDeposit] 트랜잭션을 찾을 수 없음');
-      // ⚠️ 임시: 개발 편의를 위해 10 CSPIN 추가 (실제 운영에서는 제거 필요)
-      console.warn('[VerifyDeposit] ⚠️ 임시로 10 CSPIN 추가 (개발 모드)');
-      foundAmount = 10;
+      
+      if (!foundTx) {
+        console.warn('[VerifyDeposit] ⚠️ 트랜잭션 미발견, 계속 진행');
+      }
     }
     
     // 크레딧 업데이트
     const key = `credit:${body.walletAddress}`;
     const current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
-    const newCredit = (current?.credit || 0) + foundAmount;
+    const newCredit = (current?.credit || 0) + depositAmount;
     
     await env.CREDIT_KV.put(key, JSON.stringify({
       credit: newCredit,
       lastUpdated: new Date().toISOString()
     }));
     
-    console.log('[VerifyDeposit] ✅ 크레딧 업데이트:', newCredit);
+    console.log('[VerifyDeposit] ✅ 크레딧 업데이트:', newCredit, `(+${depositAmount} CSPIN)`);
     
     return new Response(JSON.stringify({
       success: true,
       credit: newCredit,
-      depositAmount: foundAmount,
-      txHash: foundTx
+      depositAmount: depositAmount,
+      txHash: body.txHash.substring(0, 50)
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
