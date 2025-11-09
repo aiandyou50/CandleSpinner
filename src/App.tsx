@@ -25,7 +25,7 @@ function GamePage() {
       <AppBar position='static' elevation={1}>
         <Toolbar>
           <Typography variant='h6' component='div' sx={{ flexGrow: 1 }}>
-            <span style={{ filter: 'grayscale(0%)' }}>🎰</span> CandleSpinner - {t.game.title}
+            🎰 CandleSpinner - {t.game.title}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <LanguageSelector />
