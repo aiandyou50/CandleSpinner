@@ -1,16 +1,19 @@
 /**
- * 슬롯머신 V2 메인 컴포넌트
+ * 슬롯머신 V2 메인 컴포넌트 - Material-UI 버전
  * Provably Fair 알고리즘 기반 공정한 게임
+ * 반응형 디자인 적용
  */
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { Box, Card, CardContent, Typography, Chip, Stack } from '@mui/material';
 import { Reel } from './Reel';
 import { BettingControl } from './BettingControl';
 import { DoubleUpModal } from './DoubleUpModal';
 import { JackpotVideo } from './JackpotVideo';
 import { spinSlot } from '../api/slot';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useResponsive } from '@/hooks/useResponsive';
 import { SYMBOLS } from '../types';
 import '../styles/slot-machine.css';
 
@@ -26,6 +29,7 @@ export function SlotMachineV2({
   onCreditChange,
 }: SlotMachineV2Props) {
   const { t } = useLanguage();
+  const { isMobile } = useResponsive();
   
   // 베팅 상태
   const [betAmount, setBetAmount] = useState(10);
@@ -138,28 +142,62 @@ export function SlotMachineV2({
   };
 
   return (
-    <div className="slot-machine-v2">
-      {/* 헤더 */}
-      <div className="slot-header">
-        <h2 className="slot-title">
-          <span className="slot-title-emoji">🎰</span>
-          <span className="slot-title-text">{t.game.title}</span>
-        </h2>
-        <p className="slot-subtitle">{t.game.subtitle}</p>
-      </div>
+    <Card
+      elevation={8}
+      sx={{
+        background: 'linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(15, 12, 41, 0.95))',
+        backdropFilter: 'blur(20px)',
+        border: '2px solid rgba(255, 215, 0, 0.2)',
+        borderRadius: 4,
+        overflow: 'visible',
+      }}
+    >
+      <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+        {/* 헤더 */}
+        <Stack spacing={1} alignItems="center" sx={{ mb: 4 }}>
+          <Typography
+            variant="h3"
+            component="h2"
+            sx={{
+              fontSize: { xs: '2rem', md: '3rem' },
+              fontWeight: 700,
+              background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <span>🎰</span>
+            <span>{t.game.title || 'Slot Machine'}</span>
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {t.game.subtitle || 'Provably Fair Gaming'}
+          </Typography>
+        </Stack>
 
-      {/* 릴 디스플레이 */}
-      <div className="reels-container">
-        {reelResults.map((reel, index) => (
-          <Reel
-            key={index}
-            symbols={reel}
-            isSpinning={isSpinning}
-            delay={index * 0.2}
-            isWinning={showWinAnimation}
-          />
-        ))}
-      </div>
+        {/* 릴 디스플레이 */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: { xs: 1, sm: 2, md: 3 },
+            maxWidth: { xs: '320px', sm: '450px', md: '600px' },
+            margin: '0 auto',
+            mb: 4,
+          }}
+        >
+          {reelResults.map((reel, index) => (
+            <Reel
+              key={index}
+              symbols={reel}
+              isSpinning={isSpinning}
+              delay={index * 0.2}
+              isWinning={showWinAnimation}
+            />
+          ))}
+        </Box>
 
       {/* 당첨 라인 표시 */}
       {showWinAnimation && !isSpinning && (
@@ -221,6 +259,7 @@ export function SlotMachineV2({
 
       {/* 잭팟 비디오 */}
       {showJackpot && <JackpotVideo onComplete={handleJackpotComplete} />}
-    </div>
+      </CardContent>
+    </Card>
   );
 }
