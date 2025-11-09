@@ -35,6 +35,8 @@
     "archive/**",
     "PoC/**",
     "docs/**",
-    "ton-docs/**"
+    "ton-docs/**",
+    "**/*-backup/**",
+    "**/*-backup.*"
   ]
 }
