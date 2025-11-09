@@ -100,6 +100,15 @@ export const theme = createTheme({
   shape: {
     borderRadius: 8, // 부드러운 모서리
   },
+  breakpoints: {
+    values: {
+      xs: 0,      // 모바일 (세로)
+      sm: 600,    // 모바일 (가로) / 작은 태블릿
+      md: 960,    // 태블릿
+      lg: 1280,   // 데스크톱
+      xl: 1920,   // 대형 모니터
+    },
+  },
   shadows: [
     'none',
     '0px 2px 4px rgba(0,0,0,0.1)',
@@ -197,6 +206,158 @@ export const theme = createTheme({
       easeOut: 'cubic-bezier(0.0, 0, 0.2, 1)',
       easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
       sharp: 'cubic-bezier(0.4, 0, 0.6, 1)',
+    },
+  },
+});
+
+/**
+ * 슬롯머신 전용 다크 테마
+ * 게임 분위기를 위한 어두운 배경과 화려한 색상
+ */
+export const slotTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: '#FFD700', // 금색
+      light: '#FFE44D',
+      dark: '#CCB000',
+      contrastText: '#000',
+    },
+    secondary: {
+      main: '#FF1493', // 핑크
+      light: '#FF6BB5',
+      dark: '#CC0074',
+      contrastText: '#fff',
+    },
+    success: {
+      main: '#00FF88', // 네온 그린
+      light: '#4DFFAA',
+      dark: '#00CC6D',
+    },
+    error: {
+      main: '#FF4444',
+      light: '#FF7777',
+      dark: '#CC0000',
+    },
+    warning: {
+      main: '#FFA500',
+      light: '#FFB833',
+      dark: '#CC8400',
+    },
+    background: {
+      default: '#0f0c29', // 깊은 보라
+      paper: '#1a1a2e',   // 다크 그레이
+    },
+    text: {
+      primary: '#ffffff',
+      secondary: 'rgba(255, 255, 255, 0.7)',
+      disabled: 'rgba(255, 255, 255, 0.4)',
+    },
+  },
+  typography: {
+    fontFamily: [
+      'Poppins',
+      'Roboto',
+      '-apple-system',
+      'BlinkMacSystemFont',
+      'sans-serif',
+    ].join(','),
+    h1: {
+      fontSize: '3rem',
+      fontWeight: 700,
+      background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+    },
+    h2: {
+      fontSize: '2.5rem',
+      fontWeight: 600,
+    },
+    button: {
+      textTransform: 'none',
+      fontWeight: 600,
+    },
+  },
+  shape: {
+    borderRadius: 16, // 더 둥근 모서리
+  },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 960,
+      lg: 1280,
+      xl: 1920,
+    },
+  },
+  components: {
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: 16,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            boxShadow: '0 12px 48px rgba(255, 215, 0, 0.3)',
+            transform: 'translateY(-4px)',
+          },
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+          padding: '12px 32px',
+          fontSize: '1rem',
+          fontWeight: 600,
+          textTransform: 'none',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3)',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-2px)',
+            boxShadow: '0 6px 24px rgba(255, 215, 0, 0.4)',
+          },
+        },
+        contained: {
+          background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+          color: '#000',
+          '&:hover': {
+            background: 'linear-gradient(135deg, #FFE44D 0%, #FFB833 100%)',
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            borderRadius: 12,
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            '& fieldset': {
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+            },
+            '&:hover fieldset': {
+              borderColor: 'rgba(255, 215, 0, 0.5)',
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: '#FFD700',
+            },
+          },
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundImage: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        },
+      },
     },
   },
 });
