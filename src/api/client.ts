@@ -11,9 +11,12 @@ import {
   WithdrawResponse 
 } from '@/types';
 
-// Production에서는 현재 도메인 사용, Development에서는 localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-  (import.meta.env.DEV ? 'http://localhost:8787' : window.location.origin);
+// ✅ API URL 결정 로직 개선
+// 1. Development: localhost Workers
+// 2. Production: 현재 도메인 (Cloudflare Pages Functions)
+const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:8787' 
+  : window.location.origin;
 
 /**
  * 크레딧 조회

@@ -63,16 +63,16 @@
 
 .slot-title-emoji {
   font-size: 4rem;
-  filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.6));
-  animation: pulse-glow 2s ease-in-out infinite;
+  /* ✅ drop-shadow 제거 - 이모지 원래 색상 유지 */
+  animation: pulse-scale 2s ease-in-out infinite;
 }
 
-@keyframes pulse-glow {
+@keyframes pulse-scale {
   0%, 100% {
-    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+    transform: scale(1);
   }
   50% {
-    filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.9));
+    transform: scale(1.1);
   }
 }
 
