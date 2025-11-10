@@ -188,13 +188,13 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       // - address: 사용자의 Jetton Wallet (메시지를 받는 컨트랙트)
       // - payload 내부의 destination: 게임의 TON 지갑 (실제 토큰 수신자의 TON 주소)
       // - Jetton Wallet 컨트랙트가 자동으로 destination의 Jetton Wallet을 찾아 전송
-      // - 전체 비용: 0.2 TON (MVP 검증된 안전한 값)
+      // - 전체 비용: 0.05 TON (TON 표준 권장값, 0.2 TON에서 절감)
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5분
         messages: [
           {
             address: userJettonWalletRaw, // ✅ 사용자의 Jetton Wallet 주소
-            amount: toNano('0.2').toString(), // ✅ 0.2 TON (MVP 검증값)
+            amount: toNano('0.05').toString(), // ✅ 0.05 TON (표준 권장값, 기존 0.2에서 75% 절감)
             payload: payloadBase64,
           },
         ],

@@ -29,6 +29,11 @@ id = "0190e4e479144180a5e0ee7bd47b959b"
 
 [vars]
 # 공개 가능한 변수 (하드코딩)
-# GAME_WALLET_ADDRESS_PUBLIC = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
-# CSPIN_JETTON_MASTER_PUBLIC = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
+VITE_GAME_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
+VITE_ADMIN_WALLET_ADDRESS = "UQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8Mtd"
+VITE_CSPIN_TOKEN_ADDRESS = "EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV"
+VITE_CSPIN_JETTON_WALLET = "EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs"
+VITE_TON_CONNECT_MANIFEST_URL = "https://candlespinner-workers.x00518.workers.dev/tonconnect-manifest.json"
+VITE_TON_RPC_URL = "https://toncenter.com/api/v2/jsonRPC"
+VITE_IS_TESTNET = "false"
 
