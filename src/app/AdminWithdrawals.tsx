@@ -59,7 +59,7 @@ export function AdminWithdrawals() {
     setError(null);
 
     try {
-      const response = await fetch('/api/get-withdrawal-logs', {
+      const response = await fetch('/api/admin/pending-withdrawals', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -86,7 +86,7 @@ export function AdminWithdrawals() {
     setError(null);
 
     try {
-      const response = await fetch('/api/process-withdrawal', {
+      const response = await fetch('/api/admin/mark-processed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
