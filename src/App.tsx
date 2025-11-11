@@ -1,7 +1,27 @@
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AppBar, Toolbar, Container, Box, Typography, Chip, CircularProgress, Paper } from '@mui/material';
+import {
+  AppBar,
+  Toolbar,
+  Container,
+  Box,
+  Typography,
+  Chip,
+  CircularProgress,
+  Paper,
+  IconButton,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Button,
+  Card,
+  CardContent,
+} from '@mui/material';
 import { TonConnectButton } from '@tonconnect/ui-react';
 import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
@@ -13,26 +33,95 @@ import { SlotMachineV2 } from '@/features/slot/components/SlotMachineV2';
 import { AdminWithdrawals } from '@/app/AdminWithdrawals';
 import { theme } from '@/theme';
 
-import { Card, CardContent } from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import CasinoIcon from '@mui/icons-material/Casino';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import CloseIcon from '@mui/icons-material/Close';
+import { HelpDialog } from '@/components/HelpDialog';
 
 function GamePage() {
   const { isConnected, walletAddress } = useTonConnect();
   const { credit, isLoading, refreshCredit } = useCredit(walletAddress);
   const { t } = useLanguage();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  const handleScrollToSlot = () => {
+    const anchor = document.getElementById('slot-section');
+    if (anchor) {
+      anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsMenuOpen(false);
+  };
+
+  const handleOpenHelp = () => {
+    setIsHelpOpen(true);
+    setIsMenuOpen(false);
+  };
 
   return (
     <>
       <AppBar position='static' elevation={1}>
         <Toolbar>
+          <IconButton
+            edge='start'
+            color='inherit'
+            aria-label='open navigation menu'
+            onClick={() => setIsMenuOpen(true)}
+            sx={{ mr: 2 }}
+          >
+            <MenuIcon />
+          </IconButton>
           <Typography variant='h6' component='div' sx={{ flexGrow: 1 }}>
             🎰 CandleSpinner - {t.game.title}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <Button
+              color='inherit'
+              onClick={() => setIsHelpOpen(true)}
+              sx={{ display: { xs: 'none', md: 'inline-flex' } }}
+            >
+              {t.help.nav.help}
+            </Button>
             <LanguageSelector />
             <TonConnectButton />
           </Box>
         </Toolbar>
       </AppBar>
+      <Drawer anchor='left' open={isMenuOpen} onClose={() => setIsMenuOpen(false)}>
+        <Box sx={{ width: 280, display: 'flex', flexDirection: 'column', height: '100%' }} role='presentation'>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5 }}>
+            <Typography variant='subtitle1' fontWeight={700}>
+              CandleSpinner
+            </Typography>
+            <IconButton aria-label='close navigation menu' onClick={() => setIsMenuOpen(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Divider />
+          <List>
+            <ListItemButton onClick={handleScrollToSlot}>
+              <ListItemIcon>
+                <CasinoIcon color='primary' />
+              </ListItemIcon>
+              <ListItemText primary={t.help.nav.slot} />
+            </ListItemButton>
+            <ListItemButton onClick={handleOpenHelp}>
+              <ListItemIcon>
+                <HelpOutlineIcon color='primary' />
+              </ListItemIcon>
+              <ListItemText primary={t.help.nav.help} />
+            </ListItemButton>
+          </List>
+          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ px: 2, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+            <Typography variant='caption' color='text.secondary'>
+              {t.footer.copyright} © 2025 aiandyou50
+            </Typography>
+          </Box>
+        </Box>
+      </Drawer>
+  <HelpDialog open={isHelpOpen} onClose={() => setIsHelpOpen(false)} help={t.help} closeLabel={t.buttons.close} />
       <Container maxWidth='lg' sx={{ py: 4 }}>
         {isConnected && (
           <Paper elevation={2} sx={{ p: 3, mb: 3, textAlign: 'center' }}>
@@ -60,7 +149,9 @@ function GamePage() {
               <Deposit walletAddress={walletAddress} onSuccess={refreshCredit} />
               <Withdraw walletAddress={walletAddress} currentCredit={credit} onSuccess={refreshCredit} />
             </Box>
-            <SlotMachineV2 walletAddress={walletAddress} currentCredit={credit} onCreditChange={refreshCredit} />
+            <Box id='slot-section'>
+              <SlotMachineV2 walletAddress={walletAddress} currentCredit={credit} onCreditChange={refreshCredit} />
+            </Box>
           </Box>
         ) : (
           <Card elevation={2}>
