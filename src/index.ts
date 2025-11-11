@@ -351,13 +351,37 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
       });
     }
 
-    const tonCenterData = await tonCenterResponse.json() as {
+    const tonCenterRaw = await tonCenterResponse.text();
+    let tonCenterData: {
       ok: boolean;
       result: {
         stack: Array<[string, string] | { type: string; value: string }>;
       };
       error?: string;
-    };
+    } | null = null;
+
+    try {
+      tonCenterData = JSON.parse(tonCenterRaw) as {
+        ok: boolean;
+        result: {
+          stack: Array<[string, string] | { type: string; value: string }>;
+        };
+        error?: string;
+      };
+    } catch (parseError) {
+      console.error('[CheckBalance] TonCenter JSON 파싱 실패:', parseError);
+      console.error('[CheckBalance] TonCenter Raw 응답:', tonCenterRaw.substring(0, 200));
+    }
+
+    if (!tonCenterData) {
+      return new Response(JSON.stringify({ 
+        error: 'Failed to parse TonCenter response',
+        details: 'TonCenter returned non-JSON payload'
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     console.log('[CheckBalance] TonCenter response:', JSON.stringify(tonCenterData));
 
@@ -524,7 +548,8 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
       // ⚠️ API 실패 시에도 클라이언트가 보낸 금액을 신뢰 (개발 편의)
       console.warn('[VerifyDeposit] ⚠️ API 실패, 클라이언트 금액 사용:', depositAmount);
     } else {
-      const txData = await txResponse.json() as {
+      const txRaw = await txResponse.text();
+      let txData: {
         ok: boolean;
         result: Array<{
           transaction_id: { hash: string };
@@ -533,30 +558,66 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
             value?: string;
           }>;
         }>;
-      };
-      
-      console.log('[VerifyDeposit] 조회된 트랜잭션 수:', txData.result.length);
-      
-      // ✅ 최근 트랜잭션 확인 (검증 강화 가능)
-      let foundTx = false;
-      for (const tx of txData.result) {
-        if (tx.out_msgs && tx.out_msgs.length > 0) {
-          // Jetton Transfer 트랜잭션 발견
-          foundTx = true;
-          console.log('[VerifyDeposit] ✅ Jetton Transfer 트랜잭션 발견:', tx.transaction_id.hash);
-          break;
-        }
+      } | null = null;
+
+      try {
+        txData = JSON.parse(txRaw) as {
+          ok: boolean;
+          result: Array<{
+            transaction_id: { hash: string };
+            out_msgs?: Array<{
+              destination?: string;
+              value?: string;
+            }>;
+          }>;
+        };
+      } catch (parseError) {
+        console.error('[VerifyDeposit] TonCenter JSON 파싱 실패:', parseError);
+        console.error('[VerifyDeposit] TonCenter Raw 응답:', txRaw.substring(0, 200));
       }
-      
-      if (!foundTx) {
-        console.warn('[VerifyDeposit] ⚠️ 트랜잭션 미발견, 계속 진행');
+
+      if (txData && Array.isArray(txData.result)) {
+        console.log('[VerifyDeposit] 조회된 트랜잭션 수:', txData.result.length);
+
+        // ✅ 최근 트랜잭션 확인 (검증 강화 가능)
+        let foundTx = false;
+        for (const tx of txData.result) {
+          if (tx.out_msgs && tx.out_msgs.length > 0) {
+            // Jetton Transfer 트랜잭션 발견
+            foundTx = true;
+            console.log('[VerifyDeposit] ✅ Jetton Transfer 트랜잭션 발견:', tx.transaction_id.hash);
+            break;
+          }
+        }
+
+        if (!foundTx) {
+          console.warn('[VerifyDeposit] ⚠️ 트랜잭션 미발견, 계속 진행');
+        }
+      } else {
+        console.warn('[VerifyDeposit] ⚠️ TonCenter 응답이 비어있거나 형식이 다릅니다. 클라이언트 금액 사용 계속.');
       }
     }
     
     // 크레딧 업데이트
     const key = `credit:${body.walletAddress}`;
-    const current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
-    const newCredit = (current?.credit || 0) + depositAmount;
+    let current: { credit: number } | null = null;
+    try {
+      current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
+    } catch (kvParseError) {
+      console.error('[VerifyDeposit] CREDIT_KV JSON 파싱 실패:', kvParseError);
+      const rawValue = await env.CREDIT_KV.get(key);
+      console.error('[VerifyDeposit] CREDIT_KV Raw 값:', rawValue);
+    }
+
+    const currentCredit = typeof current?.credit === 'number' && Number.isFinite(current.credit)
+      ? current.credit
+      : 0;
+
+    if (current && (!Number.isFinite(current.credit) || current.credit < 0)) {
+      console.warn('[VerifyDeposit] CREDIT_KV에 비정상 값이 저장되어 초기화합니다:', current);
+    }
+
+    const newCredit = currentCredit + depositAmount;
     
     await env.CREDIT_KV.put(key, JSON.stringify({
       credit: newCredit,
