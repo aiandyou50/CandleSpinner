@@ -72,10 +72,31 @@ function GamePage() {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant='h6' component='div' sx={{ flexGrow: 1 }}>
+          <Typography
+            variant='h6'
+            component='div'
+            sx={{
+              flexGrow: 1,
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: { xs: 'normal', md: 'nowrap' },
+              wordBreak: 'break-word',
+              pr: { xs: 0, md: 2 },
+            }}
+          >
             🎰 CandleSpinner - {t.game.title}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              flexWrap: { xs: 'wrap', sm: 'nowrap' },
+              justifyContent: { xs: 'flex-end', sm: 'flex-end' },
+              maxWidth: { xs: '100%', sm: 'unset' },
+            }}
+          >
             <Button
               color='inherit'
               onClick={() => setIsHelpOpen(true)}
@@ -83,8 +104,12 @@ function GamePage() {
             >
               {t.help.nav.help}
             </Button>
-            <LanguageSelector disabled={isMenuOpen} />
-            <TonConnectButton />
+            <Box sx={{ flexShrink: 0 }}>
+              <LanguageSelector disabled={isMenuOpen} />
+            </Box>
+            <Box sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}>
+              <TonConnectButton style={{ width: '100%' }} />
+            </Box>
           </Box>
         </Toolbar>
       </AppBar>
