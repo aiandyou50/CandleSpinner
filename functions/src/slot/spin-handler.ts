@@ -5,6 +5,7 @@
 
 import { generateServerSeed, hashServerSeed, generateReelResults } from './provably-fair';
 import { calculatePayout } from './payout-calculator';
+import { getCredit, setCredit } from './credit-utils';
 
 interface Env {
   CREDIT_KV: KVNamespace;
@@ -66,9 +67,7 @@ export async function handleSpin(
     }
 
     // 1. 크레딧 확인
-    const creditKey = `credit:${walletAddress}`;
-    const creditStr = await env.CREDIT_KV.get(creditKey);
-    const currentCredit = creditStr ? parseInt(creditStr) : 0;
+    const currentCredit = await getCredit(env, walletAddress);
 
     if (currentCredit < betAmount) {
       return new Response(
@@ -103,11 +102,12 @@ export async function handleSpin(
     const { totalWin, isJackpot, reelPayouts, centerSymbols } = calculatePayout(reelResults, betAmount);
 
     // 6. 크레딧 업데이트 (베팅액 차감 + 당첨금 추가)
-    const newCredit = currentCredit - betAmount + totalWin;
-    await env.CREDIT_KV.put(creditKey, newCredit.toString());
+    const updatedCredit = currentCredit - betAmount + totalWin;
+    const newCredit = await setCredit(env, walletAddress, updatedCredit);
 
     // 7. 게임 기록 저장
     const gameId = `${Date.now()}_${walletAddress}_${currentNonce}`;
+    const serverSeedHash = await hashServerSeed(serverSeed);
     const gameRecord = {
       gameId,
       walletAddress,
@@ -117,7 +117,7 @@ export async function handleSpin(
       totalWin,
       isJackpot,
       reelPayouts,
-      serverSeedHash: await hashServerSeed(serverSeed),
+  serverSeedHash,
       clientSeed,
       nonce: currentNonce,
       timestamp: Date.now(),
@@ -142,7 +142,7 @@ export async function handleSpin(
       isJackpot,
       centerSymbols,
       reelPayouts,
-      serverSeedHash: await hashServerSeed(serverSeed),
+  serverSeedHash,
       nonce: currentNonce,
       gameId,
       newCredit,

@@ -4,6 +4,8 @@
  * 스핀 1회당 1번만 플레이 가능
  */
 
+import { getCredit, setCredit } from './credit-utils';
+
 interface Env {
   CREDIT_KV: KVNamespace;
 }
@@ -123,14 +125,10 @@ export async function handleDoubleUp(
     // 주의: 원본 게임에서 이미 당첨금이 추가되었으므로
     // 성공 시: +currentWin (2배가 되도록)
     // 실패 시: -currentWin (당첨금 회수)
-    const creditKey = `credit:${walletAddress}`;
-    const creditStr = await env.CREDIT_KV.get(creditKey);
-    const currentCredit = creditStr ? parseInt(creditStr) : 0;
+  const currentCredit = await getCredit(env, walletAddress);
 
     const creditChange = isWin ? currentWin : -currentWin;
-    const newCredit = currentCredit + creditChange;
-
-    await env.CREDIT_KV.put(creditKey, newCredit.toString());
+  const newCredit = await setCredit(env, walletAddress, currentCredit + creditChange);
 
     // 6. 더블업 사용 기록 (재사용 방지, 10분 TTL)
     await env.CREDIT_KV.put(doubleUpUsedKey, 'true', { expirationTtl: 600 });

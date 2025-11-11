@@ -161,19 +161,20 @@ export function SlotMachineV2({
             sx={{
               fontSize: { xs: '2rem', md: '3rem' },
               fontWeight: 700,
-              background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
               display: 'flex',
               alignItems: 'center',
               gap: 1,
+              '& .title-text': {
+                background: 'linear-gradient(90deg, #FFD700 0%, #FFA500 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              },
             }}
           >
-            <span>🎰</span>
-            <span>{t.game.title || 'Slot Machine'}</span>
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {t.game.subtitle || 'Provably Fair Gaming'}
+            <span role="img" aria-label="slot machine" style={{ lineHeight: 1 }}>
+              🎰
+            </span>
+            <span className="title-text">{t.game.title || 'Slot Machine'}</span>
           </Typography>
         </Stack>
 
