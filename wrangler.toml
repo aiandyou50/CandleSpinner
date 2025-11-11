@@ -17,15 +17,15 @@ id = "0190e4e479144180a5e0ee7bd47b959b"
 # ✅ 환경 변수 (Secrets) - Cloudflare Dashboard에서 설정
 # Dashboard → Workers & Pages → candlespinner-workers → Settings → Variables
 # 
-# 필수 변수:
+# 필수 Secrets (Dashboard 또는 npx wrangler secret put <NAME>으로 설정):
 # - GAME_WALLET_MNEMONIC: 게임 운영 지갑 니모닉 (24단어)
 # - GAME_WALLET_ADDRESS: 게임 운영 지갑 주소
 # - CSPIN_JETTON_MASTER: CSPIN Jetton Master 주소
 # - CSPIN_JETTON_WALLET: 게임의 Jetton Wallet 주소
 # - TONCENTER_API_KEY: TonCenter API Key
 #
-# ⚠️ 주의: secrets는 wrangler.toml에 직접 작성하지 않고,
-#           'npx wrangler secret put <NAME>' 명령어 또는 Dashboard에서 설정
+# ✅ Dashboard에서 Secrets를 설정하면 자동으로 env 객체에 바인딩됩니다
+# wrangler.toml에 별도 선언 불필요 (env.TONCENTER_API_KEY로 접근 가능)
 
 [vars]
 # 공개 가능한 변수 (하드코딩)
