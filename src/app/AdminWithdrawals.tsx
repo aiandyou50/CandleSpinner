@@ -24,13 +24,12 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import { TonConnectButton } from '@tonconnect/ui-react';
+import { TonConnectButton, useTonConnectUI } from '@tonconnect/ui-react';
 import { useTonConnect } from '@/hooks/useTonConnect';
+import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
+import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS, ADMIN_TONCENTER_API_ENDPOINT } from '@/constants';
 import { useLanguage } from '@/hooks/useLanguage';
 import { LanguageSelector } from '@/components/LanguageSelector';
-
-// 관리자 지갑 주소 (환경변수에서 가져오기)
-const ADMIN_WALLET_ADDRESS = import.meta.env.VITE_ADMIN_WALLET_ADDRESS || '';
 
 interface WithdrawalRequest {
   id: string;
@@ -41,6 +40,7 @@ interface WithdrawalRequest {
 }
 
 export function AdminWithdrawals() {
+  const [tonConnectUI] = useTonConnectUI();
   const { isConnected, walletAddress } = useTonConnect();
   const { t } = useLanguage();
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
@@ -48,8 +48,9 @@ export function AdminWithdrawals() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 관리자 권한 확인
-  const isAdmin = isConnected && walletAddress?.toLowerCase() === ADMIN_WALLET_ADDRESS.toLowerCase();
+  // 관리자 권한 확인 (게임 운영자 지갑 기준)
+  const isAdmin =
+    isConnected && walletAddress && walletAddress.toLowerCase() === GAME_WALLET_ADDRESS.toLowerCase();
 
   // 인출 요청 목록 불러오기
   const fetchWithdrawals = async () => {
@@ -80,20 +81,55 @@ export function AdminWithdrawals() {
 
   // 인출 처리
   const handleProcessWithdrawal = async (withdrawalId: string, walletAddr: string, amount: number) => {
-    if (!isAdmin) return;
+    if (!isAdmin || !walletAddress) return;
 
     setProcessing(withdrawalId);
     setError(null);
 
     try {
+      // 게임 Jetton Wallet 주소 계산
+  const tonClient = new TonClient({ endpoint: ADMIN_TONCENTER_API_ENDPOINT });
+      const gameAddress = Address.parse(GAME_WALLET_ADDRESS);
+      const masterAddress = Address.parse(CSPIN_TOKEN_ADDRESS);
+      const jettonMaster = tonClient.open(JettonMaster.create(masterAddress));
+      const gameJettonWalletAddress = await jettonMaster.getWalletAddress(gameAddress);
+      const gameJettonWalletRaw = gameJettonWalletAddress.toString({ urlSafe: true, bounceable: true });
+
+      // Jetton Transfer payload 준비
+      const amountNano = BigInt(Math.floor(amount * 1_000_000_000));
+      const userAddress = Address.parse(walletAddr);
+
+      const payload = beginCell()
+        .storeUint(0xf8a7ea5, 32)
+        .storeUint(0, 64)
+        .storeCoins(amountNano)
+        .storeAddress(userAddress)
+        .storeAddress(userAddress)
+        .storeBit(0)
+        .storeCoins(BigInt(1))
+        .storeBit(0)
+        .endCell();
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 300,
+        messages: [
+          {
+            address: gameJettonWalletRaw,
+            amount: toNano('0.2').toString(),
+            payload: payload.toBoc().toString('base64'),
+          },
+        ],
+      };
+
+      const result = await tonConnectUI.sendTransaction(transaction);
+      const txHash = result.boc;
+
       const response = await fetch('/api/admin/mark-processed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           withdrawalId,
-          toAddress: walletAddr,
-          amount,
-          adminWallet: walletAddress,
+          txHash,
         }),
       });
 
@@ -102,11 +138,8 @@ export function AdminWithdrawals() {
         throw new Error(errorData.error || 'Failed to process withdrawal');
       }
 
-      const result = await response.json();
-      console.log('Withdrawal processed:', result);
-
-      // 목록 새로고침
       await fetchWithdrawals();
+      alert(`${amount} CSPIN 송금 완료\nTX: ${txHash.substring(0, 12)}...`);
     } catch (err) {
       console.error('Failed to process withdrawal:', err);
       setError(err instanceof Error ? err.message : 'Failed to process withdrawal');
@@ -156,7 +189,7 @@ export function AdminWithdrawals() {
               Connected: {walletAddress}
             </Typography>
             <Typography variant='body2'>
-              Required: {ADMIN_WALLET_ADDRESS || 'Not configured'}
+              Required: {GAME_WALLET_ADDRESS}
             </Typography>
           </Alert>
         ) : (
