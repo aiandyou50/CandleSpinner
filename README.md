@@ -56,6 +56,6 @@ TonCenter RPC 관련 (확인 및 설정)
   - 설정 파일: `package.json`, `tsconfig.json`, `vite.config.ts`, `wrangler.toml`
 
 라이선스
-- MIT (자세한 내용은 LICENSE 파일 참조)
+- Copyright © 2025 aiandyou50. All rights reserved. (자세한 내용은 LICENSE 파일 참조)
 
 마지막 업데이트: 2025-11-02
