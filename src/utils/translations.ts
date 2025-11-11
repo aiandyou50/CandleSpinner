@@ -49,6 +49,7 @@ export interface Translations {
     process: string;
     back: string;
     debugLog: string;
+    close: string;
   };
   betting: {
     amount: string;
@@ -169,6 +170,7 @@ const en: Translations = {
     process: 'Process',
     back: 'Back to Home',
     debugLog: 'View Debug Log',
+    close: 'Close',
   },
   betting: {
     amount: 'Bet Amount',
@@ -312,6 +314,7 @@ const ko: Translations = {
     process: '처리하기',
     back: '홈으로 돌아가기',
     debugLog: '디버그 로그 보기',
+    close: '닫기',
   },
   betting: {
     amount: '베팅 금액',
@@ -455,6 +458,7 @@ const zhCN: Translations = {
     process: '处理',
     back: '返回首页',
     debugLog: '查看调试日志',
+    close: '关闭',
   },
   betting: {
     amount: '投注金额',
@@ -598,6 +602,7 @@ const zhTW: Translations = {
     process: '處理',
     back: '返回首頁',
     debugLog: '查看除錯日誌',
+    close: '關閉',
   },
   betting: {
     amount: '投注金額',
@@ -741,6 +746,7 @@ const vi: Translations = {
     process: 'Xử lý',
     back: 'Quay lại Trang chủ',
     debugLog: 'Xem Nhật ký Gỡ lỗi',
+    close: 'Đóng',
   },
   betting: {
     amount: 'Số tiền cược',
@@ -884,6 +890,7 @@ const ja: Translations = {
     process: '処理',
     back: 'ホームに戻る',
     debugLog: 'デバッグログを表示',
+    close: '閉じる',
   },
   betting: {
     amount: 'ベット額',
@@ -1027,6 +1034,7 @@ const ru: Translations = {
     process: 'Обработать',
     back: 'На главную',
     debugLog: 'Посмотреть журнал отладки',
+    close: 'Закрыть',
   },
   betting: {
     amount: 'Сумма ставки',
@@ -1170,6 +1178,7 @@ const es: Translations = {
     process: 'Procesar',
     back: 'Volver al inicio',
     debugLog: 'Ver registro de depuración',
+    close: 'Cerrar',
   },
   betting: {
     amount: 'Cantidad de apuesta',
@@ -1313,6 +1322,7 @@ const hi: Translations = {
     process: 'प्रक्रिया',
     back: 'होम पर वापस जाएं',
     debugLog: 'डीबग लॉग देखें',
+    close: 'बंद करें',
   },
   betting: {
     amount: 'दांव राशि',
