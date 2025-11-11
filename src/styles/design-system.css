@@ -3,6 +3,9 @@
  * Google-inspired theme with space-themed colors
  */
 
+/* Typography - Optimized single import */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;600&family=Orbitron:wght@600;700&family=Noto+Sans:wght@400;600;700&family=Noto+Sans+KR:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap');
+
 :root {
   /* Primary Colors */
   --color-primary: #4A00E0;
@@ -88,9 +91,6 @@
   --z-jackpot-video: 3000;
   --z-tooltip: 4000;
 }
-
-/* Typography - Optimized single import */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Open+Sans:wght@400;600&family=Orbitron:wght@600;700&family=Noto+Sans:wght@400;600;700&family=Noto+Sans+KR:wght@400;600;700&family=Noto+Sans+SC:wght@400;600;700&family=Noto+Sans+TC:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&display=swap');
 
 /* Base Typography Classes */
 .font-heading {
