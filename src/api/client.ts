@@ -3,13 +3,14 @@
  * Cloudflare Workers API와 통신
  */
 
-import { 
-  CreditResponse, 
-  VerifyDepositRequest, 
-  SpinResult, 
-  WithdrawRequest, 
-  WithdrawResponse 
+import {
+  CreditResponse,
+  VerifyDepositRequest,
+  SpinResult,
+  WithdrawRequest,
+  WithdrawResponse,
 } from '@/types';
+import { logger } from '@/utils/logger';
 
 // ✅ API URL 결정 로직 개선
 // 1. Development: localhost Workers
@@ -94,9 +95,6 @@ export async function spin(walletAddress: string): Promise<{
  * 인출 요청
  */
 export async function withdraw(data: WithdrawRequest): Promise<WithdrawResponse> {
-  // logger를 사용하기 위해 동적 import
-  const { logger } = await import('@/utils/logger');
-  
   logger.info('📡 API 요청 시작:', `${API_BASE_URL}/api/withdraw`);
   logger.debug('요청 헤더:', { 'Content-Type': 'application/json' });
   logger.debug('요청 본문:', data);

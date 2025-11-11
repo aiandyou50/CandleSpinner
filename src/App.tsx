@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -27,17 +27,17 @@ import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
 import { useLanguage } from '@/hooks/useLanguage';
 import { LanguageSelector } from '@/components/LanguageSelector';
-import { Deposit } from '@/components/Deposit';
-import { Withdraw } from '@/components/Withdraw';
-import { SlotMachineV2 } from '@/features/slot/components/SlotMachineV2';
-import { AdminWithdrawals } from '@/app/AdminWithdrawals';
 import { theme } from '@/theme';
 
 import MenuIcon from '@mui/icons-material/Menu';
 import CasinoIcon from '@mui/icons-material/Casino';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CloseIcon from '@mui/icons-material/Close';
-import { HelpDialog } from '@/components/HelpDialog';
+const Deposit = lazy(() => import('@/components/Deposit').then((mod) => ({ default: mod.Deposit })));
+const Withdraw = lazy(() => import('@/components/Withdraw').then((mod) => ({ default: mod.Withdraw })));
+const SlotMachineV2 = lazy(() => import('@/features/slot/components/SlotMachineV2').then((mod) => ({ default: mod.SlotMachineV2 })));
+const HelpDialog = lazy(() => import('@/components/HelpDialog').then((mod) => ({ default: mod.HelpDialog })));
+const AdminWithdrawals = lazy(() => import('@/app/AdminWithdrawals').then((mod) => ({ default: mod.AdminWithdrawals })));
 
 function GamePage() {
   const { isConnected, walletAddress } = useTonConnect();
@@ -146,7 +146,9 @@ function GamePage() {
           </Box>
         </Box>
       </Drawer>
-  <HelpDialog open={isHelpOpen} onClose={() => setIsHelpOpen(false)} help={t.help} closeLabel={t.buttons.close} />
+      <Suspense fallback={null}>
+        <HelpDialog open={isHelpOpen} onClose={() => setIsHelpOpen(false)} help={t.help} closeLabel={t.buttons.close} />
+      </Suspense>
       <Container maxWidth='lg' sx={{ py: 4 }}>
         {isConnected && (
           <Paper elevation={2} sx={{ p: 3, mb: 3, textAlign: 'center' }}>
@@ -171,11 +173,41 @@ function GamePage() {
         {isConnected && walletAddress ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
-              <Deposit walletAddress={walletAddress} onSuccess={refreshCredit} />
-              <Withdraw walletAddress={walletAddress} currentCredit={credit} onSuccess={refreshCredit} />
+              <Suspense
+                fallback={
+                  <Card elevation={1}>
+                    <CardContent sx={{ textAlign: 'center', py: 6 }}>
+                      <CircularProgress />
+                    </CardContent>
+                  </Card>
+                }
+              >
+                <Deposit walletAddress={walletAddress} onSuccess={refreshCredit} />
+              </Suspense>
+              <Suspense
+                fallback={
+                  <Card elevation={1}>
+                    <CardContent sx={{ textAlign: 'center', py: 6 }}>
+                      <CircularProgress />
+                    </CardContent>
+                  </Card>
+                }
+              >
+                <Withdraw walletAddress={walletAddress} currentCredit={credit} onSuccess={refreshCredit} />
+              </Suspense>
             </Box>
             <Box id='slot-section'>
-              <SlotMachineV2 walletAddress={walletAddress} currentCredit={credit} onCreditChange={refreshCredit} />
+              <Suspense
+                fallback={
+                  <Card elevation={1}>
+                    <CardContent sx={{ textAlign: 'center', py: 6 }}>
+                      <CircularProgress />
+                    </CardContent>
+                  </Card>
+                }
+              >
+                <SlotMachineV2 walletAddress={walletAddress} currentCredit={credit} onCreditChange={refreshCredit} />
+              </Suspense>
             </Box>
           </Box>
         ) : (
@@ -228,7 +260,20 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path='/' element={<GamePage />} />
-          <Route path='/admin' element={<AdminWithdrawals />} />
+          <Route
+            path='/admin'
+            element={
+              <Suspense
+                fallback={
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                    <CircularProgress />
+                  </Box>
+                }
+              >
+                <AdminWithdrawals />
+              </Suspense>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

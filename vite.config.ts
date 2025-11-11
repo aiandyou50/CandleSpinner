@@ -40,5 +40,23 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('src/utils/translations')) {
+            return 'translations';
+          }
+          if (id.includes('node_modules/@ton/ton') || id.includes('node_modules/@ton/crypto')) {
+            return 'ton-core';
+          }
+          if (id.includes('node_modules/@tonconnect')) {
+            return 'ton-connect';
+          }
+          if (id.includes('node_modules/@mui')) {
+            return 'mui-vendors';
+          }
+        },
+      },
+    },
   },
 });

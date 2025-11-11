@@ -11,6 +11,7 @@ export const CSPIN_TOKEN_ADDRESS = 'EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA
 // ✅ 게임 운영 지갑의 CSPIN Jetton Wallet (입금 받는 주소)
 // 이 주소로 CSPIN 토큰이 전송됨
 export const GAME_JETTON_WALLET = 'EQAjtIvLT_y9GNBAikrD7ThH3f4BI-h_l_mz-Bhuc4_c7wOs';
+export const ADMIN_TONCENTER_API_ENDPOINT = import.meta.env.VITE_TONCENTER_ENDPOINT ?? 'https://toncenter.com/api/v2/jsonRPC';
 
 // TON Connect
 export const TON_CONNECT_MANIFEST_URL = import.meta.env.VITE_TON_CONNECT_MANIFEST_URL || 'https://aiandyou.me/tonconnect-manifest.json';
