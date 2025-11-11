@@ -35,12 +35,12 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     
-    // ✅ 환경 변수 디버깅 (배포 후 확인용)
-    console.log('[Env Check] TONCENTER_API_KEY exists:', !!env.TONCENTER_API_KEY);
-    console.log('[Env Check] GAME_WALLET_MNEMONIC exists:', !!env.GAME_WALLET_MNEMONIC);
-    console.log('[Env Check] GAME_WALLET_ADDRESS:', env.GAME_WALLET_ADDRESS || 'NOT SET');
-    console.log('[Env Check] CSPIN_JETTON_MASTER:', env.CSPIN_JETTON_MASTER || 'NOT SET');
-    console.log('[Env Check] CSPIN_JETTON_WALLET:', env.CSPIN_JETTON_WALLET || 'NOT SET');
+    // ✅ 환경 변수 디버깅 (배포 후 확인용) - v2
+    console.log('[Env Check v2] TONCENTER_API_KEY exists:', !!env.TONCENTER_API_KEY);
+    console.log('[Env Check v2] GAME_WALLET_MNEMONIC exists:', !!env.GAME_WALLET_MNEMONIC);
+    console.log('[Env Check v2] GAME_WALLET_ADDRESS:', env.GAME_WALLET_ADDRESS || 'NOT SET');
+    console.log('[Env Check v2] CSPIN_JETTON_MASTER:', env.CSPIN_JETTON_MASTER || 'NOT SET');
+    console.log('[Env Check v2] CSPIN_JETTON_WALLET:', env.CSPIN_JETTON_WALLET || 'NOT SET');
     
     // CORS 헤더 (TON Connect 호환)
     const corsHeaders = {
@@ -354,7 +354,7 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
     const tonCenterData = await tonCenterResponse.json() as {
       ok: boolean;
       result: {
-        stack: Array<{ type: string; value: string }>;
+        stack: Array<[string, string] | { type: string; value: string }>;
       };
       error?: string;
     };
@@ -384,12 +384,36 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
       });
     }
 
-    // get_wallet_data 결과 파싱
-    // stack[0] = balance (number - hex 또는 decimal)
+    // ✅ get_wallet_data 결과 파싱
+    // TonCenter API는 두 가지 형식으로 응답 가능:
+    // 1. 배열 형식: ["num", "0xc097..."]
+    // 2. 객체 형식: { type: "num", value: "0xc097..." }
     const balanceItem = tonCenterData.result.stack[0];
-    if (!balanceItem || balanceItem.type !== 'num') {
+    let balanceType: string;
+    let balanceValue: string;
+    
+    if (Array.isArray(balanceItem)) {
+      // 배열 형식
+      [balanceType, balanceValue] = balanceItem as [string, string];
+    } else if (typeof balanceItem === 'object' && 'type' in balanceItem) {
+      // 객체 형식
+      balanceType = balanceItem.type;
+      balanceValue = balanceItem.value;
+    } else {
+      console.error('[CheckBalance] Unknown stack format:', balanceItem);
       return new Response(JSON.stringify({ 
         error: 'Invalid balance format',
+        stack: tonCenterData.result.stack
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
+    if (balanceType !== 'num') {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid balance type',
+        type: balanceType,
         stack: tonCenterData.result.stack
       }), {
         status: 500,
@@ -399,7 +423,6 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
 
     // ✅ hex 형식 (0x...) 또는 decimal 형식 처리
     let balanceNano: number;
-    const balanceValue = balanceItem.value;
     
     if (typeof balanceValue === 'string' && balanceValue.startsWith('0x')) {
       // hex to decimal 변환
