@@ -1,0 +1,1406 @@
+# [산출물 3] MVP 핵심 로직 의사코드 (2025-11-02)
+
+본 문서는 CandleSpinner MVP v2의 실제 TypeScript 구현(`functions/src`, `src/components`)을 요약한 의사코드이다. TonCenter RPC 직결, 컨트랙트 인출 등 이전 단계의 로직은 제외하였다.
+
+## A. 슬롯 게임 로직
+
+### A.1 상수 및 데이터 구조
+
+```pseudocode
+SYMBOL_PAYOUTS = {
+    "⭐": 0.5,
+    "🪐": 1.0,
+    "☄️": 2.0,
+    "🚀": 3.0,
+    "👽": 5.0,
+    "💎": 10.0,
+    "👑": 20.0
+}
+
+SpinRequest = {
+    walletAddress: string,
+    betAmount: number,   // 10 <= bet <= 1000
+    clientSeed: string
+}
+
+SpinResponse = {
+    success: boolean,
+    result: string[3][3],
+    centerSymbols: string[3],
+    reelPayouts: number[3],
+    winAmount: number,
+    isJackpot: boolean,
+    serverSeedHash: string,
+    nonce: number,
+    gameId: string,
+    newCredit: number
+}
+```
+
+### A.2 Provably Fair 스핀 (`handleSpin` 요약)
+
+```pseudocode
+FUNCTION handleSpin(request: SpinRequest): SpinResponse
+    IF missing walletAddress OR betAmount OR clientSeed THEN
+        RETURN error("Missing fields")
+
+    IF betAmount < 10 OR betAmount > 1000 THEN
+        RETURN error("Bet amount must be between 10 and 1000")
+
+    currentCredit = KV.getCredit(walletAddress)
+    IF currentCredit < betAmount THEN
+        RETURN error("Insufficient credit")
+
+    serverSeed = KV.get("server_seed:" + walletAddress)
+    IF serverSeed IS null THEN
+        serverSeed = randomSeed()
+        KV.put("server_seed:" + walletAddress, serverSeed)
+
+    nonce = (KV.get("nonce:" + walletAddress) OR 0) + 1
+    KV.put("nonce:" + walletAddress, nonce)
+
+    reels = generateReelResults(serverSeed, request.clientSeed, nonce)
+    payoutResult = calculatePayout(reels, betAmount)
+
+    IF payoutResult.totalWin > 0 THEN
+        updatedCredit = currentCredit + payoutResult.totalWin
+    ELSE
+        updatedCredit = currentCredit - betAmount
+
+    KV.setCredit(walletAddress, updatedCredit)
+
+    gameId = timestamp() + "_" + walletAddress + "_" + nonce
+    KV.put("game:" + gameId, {
+        walletAddress,
+        betAmount,
+        reelResults: reels,
+        centerSymbols: payoutResult.centerSymbols,
+        reelPayouts: payoutResult.reelPayouts,
+        totalWin: payoutResult.totalWin,
+        isJackpot: payoutResult.isJackpot,
+        serverSeedHash: hash(serverSeed),
+        clientSeed,
+        nonce,
+        timestamp: now()
+    }, ttl = 30 days)
+
+    updateRTPStats(betAmount, payoutResult.totalWin)
+
+    RETURN {
+        success: true,
+        result: reels,
+        centerSymbols: payoutResult.centerSymbols,
+        reelPayouts: payoutResult.reelPayouts,
+        winAmount: payoutResult.totalWin,
+        isJackpot: payoutResult.isJackpot,
+        serverSeedHash: hash(serverSeed),
+        nonce,
+        gameId,
+        newCredit: updatedCredit
+    }
+END FUNCTION
+```
+
+### A.3 배당 계산 (`calculatePayout` 요약)
+
+```pseudocode
+FUNCTION calculatePayout(reels: string[3][3], bet: number): PayoutResult
+    center = [reels[0][1], reels[1][1], reels[2][1]]
+    reelPayouts = [0, 0, 0]
+    counts = countOccurrences(center)
+
+    FOR EACH (symbol, count) IN counts
+        IF count >= 2 THEN
+            payoutPerReel = bet * SYMBOL_PAYOUTS[symbol]
+            FOR index FROM 0 TO 2
+                IF center[index] == symbol THEN
+                    reelPayouts[index] = payoutPerReel
+
+    totalWin = sum(reelPayouts)
+    isJackpot = (center[0] == center[1] == center[2]) AND totalWin > 0
+
+    IF isJackpot THEN
+        totalWin = totalWin * 100
+        FOR i FROM 0 TO 2
+            reelPayouts[i] = reelPayouts[i] * 100
+
+    RETURN {
+        totalWin,
+        isJackpot,
+        reelPayouts,
+        centerSymbols: center,
+        multiplier: isJackpot ? 100 : 1
+    }
+END FUNCTION
+```
+
+## B. 더블업 로직 (`handleDoubleUp`)
+
+```pseudocode
+INPUT: { walletAddress, choice('red'|'blue'), currentWin, gameId }
+
+IF choice NOT IN {red, blue} OR currentWin <= 0 THEN
+    RETURN error
+
+IF KV.get("doubleup_used:" + gameId) EXISTS THEN
+    RETURN error("Already used")
+
+gameRecord = KV.get("game:" + gameId)
+IF NOT gameRecord OR gameRecord.walletAddress != walletAddress OR gameRecord.totalWin != currentWin THEN
+    RETURN error
+
+winningColor = randomBit() == 0 ? 'red' : 'blue'
+isWin = (choice == winningColor)
+creditDelta = isWin ? currentWin : -currentWin
+
+currentCredit = KV.getCredit(walletAddress)
+newCredit = KV.setCredit(walletAddress, currentCredit + creditDelta)
+
+KV.put("doubleup_used:" + gameId, "true", ttl = 10 minutes)
+KV.put("doubleup:" + gameId, {
+    walletAddress,
+    choice,
+    winningColor,
+    result: isWin ? 'win' : 'lose',
+    originalWin: currentWin,
+    creditChange: creditDelta,
+    newCredit,
+    timestamp: now()
+})
+
+updateRTPForDoubleUp(creditDelta)
+
+RETURN { success: true, result: isWin ? 'win' : 'lose', finalAmount: isWin ? currentWin * 2 : 0, newCredit }
+```
+
+## C. 입금 검증 흐름 (`Deposit.tsx` + `/api/verify-deposit`)
+
+```pseudocode
+// 클라이언트
+FUNCTION handleDeposit(amount)
+    wallet = TonConnect.getWallet()
+    jettonWallet = TonCenter.getWalletAddress(CSPIN_MASTER, wallet.address)
+    payload = buildJettonTransferPayload(amount, GAME_WALLET_ADDRESS, wallet.address)
+    transaction = {
+        validUntil: now() + 5 minutes,
+        messages: [{ address: jettonWallet, amount: toNano(0.05 TON), payload }]
+    }
+    result = TonConnect.sendTransaction(transaction)
+    verifyDeposit({ walletAddress: wallet.address, txHash: result.boc, amount })
+END FUNCTION
+
+// Worker
+FUNCTION verifyDepositHandler(body)
+    { walletAddress, txHash, amount } = body
+    IF amount <= 0 THEN error
+
+    isValid = TonCenter.verifyJettonTransfer(txHash, walletAddress, GAME_JETTON_WALLET, amount)
+    IF NOT isValid THEN error
+
+    currentCredit = KV.getCredit(walletAddress)
+    newCredit = currentCredit + amount
+    KV.setCredit(walletAddress, newCredit)
+
+    RETURN { success: true, credit: newCredit }
+END FUNCTION
+```
+
+## D. 인출 요청 큐 (`Withdraw.tsx` + Worker `handleWithdrawRequest`)
+
+```pseudocode
+// 프론트엔드 보조 함수
+WITHDRAW_FEE = 0.2 TON
+FEE_VALIDITY_MS = 10 minutes
+
+FUNCTION ensureFeePayment()
+    IF cachedFeeBoc EXISTS AND age < FEE_VALIDITY_MS THEN
+        RETURN cachedFeeBoc
+
+    boc = TonConnect.sendTransaction({
+        messages: [{ address: GAME_WALLET_ADDRESS (urlSafe), amount: toNano(0.2 TON) }],
+        validUntil: now() + 5 minutes
+    })
+    cache(boc, timestamp)
+    RETURN boc
+END FUNCTION
+
+FUNCTION submitWithdraw(amount)
+    feeProof = ensureFeePayment()
+    nonce = randomUUID()
+    body = {
+        action: "withdraw",
+        amount,
+        userAddress: walletAddress,
+        timestamp: now(),
+        nonce,
+        feeTxBoc: feeProof.boc,
+        feeTonAmount: 0.2,
+        feePaidAt: feeProof.timestamp
+    }
+    fetch('/api/withdraw-request', body)
+END FUNCTION
+
+// Worker 측
+FUNCTION handleWithdrawRequest(body)
+    REQUIRE body.action == "withdraw"
+    REQUIRE abs(now() - body.timestamp) <= 5 minutes
+
+    IF KV.get("nonce:" + body.nonce) EXISTS THEN
+        RETURN error("Duplicate request")
+
+    KV.put("nonce:" + body.nonce, "used", ttl = 10 minutes)
+
+    currentCredit = KV.getCredit(body.userAddress)
+    IF currentCredit < body.amount THEN
+        RETURN error("Insufficient credit")
+
+    newCredit = KV.setCredit(body.userAddress, currentCredit - body.amount)
+
+    withdrawalId = "withdraw_" + timestamp() + "_" + randomString()
+    withdrawalRecord = {
+        id: withdrawalId,
+        walletAddress: body.userAddress,
+        amount: body.amount,
+        status: "pending",
+        requestedAt: nowISO(),
+        estimatedProcessTime: "12~24시간 이내",
+        nonce: body.nonce
+    }
+
+    KV.put("withdrawal:" + withdrawalId, withdrawalRecord)
+    queue = KV.get("withdrawals:pending") OR []
+    queue.append(withdrawalId)
+    KV.put("withdrawals:pending", queue)
+
+    RETURN {
+        success: true,
+        credit: newCredit,
+        withdrawalId,
+        estimatedProcessTime: "12~24시간 이내"
+    }
+END FUNCTION
+
+FUNCTION handleMarkProcessed({ withdrawalId, txHash? })
+    record = KV.get("withdrawal:" + withdrawalId)
+    IF NOT record THEN error
+
+    record.status = "processed"
+    record.processedAt = nowISO()
+    IF txHash THEN record.txHash = txHash
+    KV.put("withdrawal:" + withdrawalId, record)
+
+    queue = (KV.get("withdrawals:pending") OR []).filter(id != withdrawalId)
+    KV.put("withdrawals:pending", queue)
+
+    RETURN { success: true }
+END FUNCTION
+```
+
+## E. RTP 집계 (`updateRTPStats` 요약)
+
+```pseudocode
+FUNCTION updateRTPStats(bet, win)
+    key = "rtp_stats:" + today()
+    stats = KV.get(key) OR { totalGames: 0, totalBets: 0, totalWins: 0, rtp: 0 }
+    stats.totalGames += 1
+    stats.totalBets += bet
+    stats.totalWins += win
+    stats.rtp = stats.totalWins / max(stats.totalBets, 1)
+    KV.put(key, stats, ttl = 90 days)
+END FUNCTION
+
+FUNCTION updateRTPForDoubleUp(winDelta)
+    // today() 동일 key 사용
+    stats.totalWins += winDelta
+    stats.rtp = stats.totalWins / max(stats.totalBets, 1)
+END FUNCTION
+```
+
+---
+
+**비고:** 본 의사코드는 이해를 돕기 위한 요약이며, 실제 구현은 타입 검증, 로깅, 예외 처리, TonCenter API 호출 재시도 로직을 포함한다.
+
+-----
+
+#***REMOVED*****[산출물 3] 핵심 로직 의사코드 (MVP 확장 v2.1.0 최종)**
+
+  * **프로젝트명:** CandleSpinner
+  * **대상 단계:** Phase 1-2: MVP → TON 표준 준수
+  * **목표:** 게임의 핵심 오프체인 로직(스핀, 확률, 당첨, 미니게임)과 온체인 연동(입출금)을 위한 전체 플로우를 정의한다.
+  * **최종 업데이트:** 2025년 10월 21일
+  * **상태:** ✅ 현재 코드 반영 (Phase 2 완료)
+
+> **📌 참고**: 이 문서는 게임 로직의 상세 의사코드를 제공합니다.  
+> 최신 구현 정보는 `/docs/ssot/README.md` 섹션 6을 참고하세요.
+
+-----
+
+##***REMOVED*****A. 백엔드 로직 (Cloudflare Pages Functions - `functions/api/*.ts`)**
+
+  * **설명:** 모든 오프체인 게임 로직, 확률 계산, 사용자 크레딧 관리를 담당합니다. Cloudflare Pages Functions를 사용하여 functions/api/ 디렉토리에 각 API 엔드포인트를 별도 파일로 구현합니다.
+  * **데이터베이스:** Cloudflare KV를 사용하여 `user_${walletAddress}`를 Key로, 사용자 크레딧 정보를 Value로 저장합니다. (예: `KV["user_UQBF..."] = { credit: 1000, canDoubleUp: false, pendingWinnings: 0 }`)
+
+###***REMOVED*****A.1. 상수 및 헬퍼 함수 정의**
+
+```
+// 심볼 정의 (산출물 1 기반)
+DEFINE constant SYMBOLS = {
+    "⭐": { multiplier: 0.5, probability: 35 },
+    "🪐": { multiplier: 1, probability: 25 },
+    "☄️": { multiplier: 2, probability: 15 },
+    "🚀": { multiplier: 3, probability: 10 },
+    "👽": { multiplier: 5, probability: 7 },
+    "💎": { multiplier: 10, probability: 5 },
+    "👑": { multiplier: 20, probability: 3 }
+}
+
+// 0-99 사이의 숫자를 받아 심볼을 반환하는 확률 헬퍼 함수
+FUNCTION getSymbolFromProbability(value):
+    IF value < 35 THEN RETURN "⭐"
+    ELSE IF value < 60 THEN RETURN "🪐"
+    ELSE IF value < 75 THEN RETURN "☄️"
+    ELSE IF value < 85 THEN RETURN "🚀"
+    ELSE IF value < 92 THEN RETURN "👽"
+    ELSE IF value < 97 THEN RETURN "💎"
+    ELSE RETURN "👑"
+END FUNCTION
+
+// 간단한 해시 함수 (Provably Fair용)
+FUNCTION simpleHash(str):
+    hash = 0
+    FOR each char in str:
+        hash = ((hash << 5) - hash) + charCode(char)
+        hash = hash & hash  // 32bit 정수로 변환
+    RETURN abs(hash)
+END FUNCTION
+
+// 시드로부터 숫자 생성
+FUNCTION generateNumberFromSeed(seed, index):
+    RETURN simpleHash(seed + toString(index)) % 100
+END FUNCTION
+
+// KV 데이터베이스 헬퍼 함수
+FUNCTION getKVState(wallet, env):
+    stateKey = "user_" + wallet
+    stateData = await env.CREDIT_KV.get(stateKey)
+    IF stateData EXISTS THEN
+        RETURN JSON.parse(stateData)
+    ELSE
+        RETURN { credit: 0, canDoubleUp: false, pendingWinnings: 0 }
+    END IF
+END FUNCTION
+
+FUNCTION setKVState(wallet, state, env):
+    stateKey = "user_" + wallet
+    await env.CREDIT_KV.put(stateKey, JSON.stringify(state))
+END FUNCTION
+```
+
+###***REMOVED*****A.2. API 엔드포인트: `/api/credit-deposit`**
+
+  * **목적:** PoC에서 검증된 온체인 입금이 성공한 후, 프론트엔드가 이 API를 호출하여 오프체인 크레딧을 충전.
+  * **요청 (Body):** `{ walletAddress: string, amount: number }`
+
+<!-- end list -->
+
+```
+FUNCTION handleApiCreditDeposit(request, env):
+    GET { walletAddress, amount } FROM request.body
+    
+    state = await getKVState(walletAddress, env)
+    state.credit = state.credit + amount
+    
+    await setKVState(walletAddress, state, env)
+    
+    RETURN { success: true, newCredit: state.credit }
+```
+
+###***REMOVED*****A.3. API 엔드포인트: `/api/spin`**
+
+  * **목적:** 메인 게임 스핀을 실행하고 결과를 반환.
+  * **요청 (Body):** `{ walletAddress: string, betAmount: number, clientSeed: string }`
+
+<!-- end list -->
+
+```
+FUNCTION handleApiSpin(request, env):
+    GET { walletAddress, betAmount, clientSeed } FROM request.body
+    
+    state = await getKVState(walletAddress, env)
+
+    // 1. 유효성 검사 (베팅액 확인, 미니게임 대기 중인지 확인)
+    IF betAmount > state.credit THEN
+        RETURN ERROR "크레딧이 부족합니다."
+    IF state.canDoubleUp IS TRUE THEN
+        RETURN ERROR "미니게임 결과를 먼저 처리해야 합니다."
+
+    // 2. 크레딧 차감
+    state.credit = state.credit - betAmount
+    
+    // 3. Provably Fair 기반 릴 결과 생성
+    serverSeed = Math.random().toString(36)
+    hashedServerSeed = simpleHash(serverSeed).toString()
+    combinedSeed = simpleHash(serverSeed + clientSeed).toString()
+    
+    // 3개의 릴 결과를 0-99 사이의 숫자로 각각 생성
+    reel1_value = generateNumberFromSeed(combinedSeed, 1)
+    reel2_value = generateNumberFromSeed(combinedSeed, 2)
+    reel3_value = generateNumberFromSeed(combinedSeed, 3)
+    
+    reels = [
+        getSymbolFromProbability(reel1_value),
+        getSymbolFromProbability(reel2_value),
+        getSymbolFromProbability(reel3_value)
+    ]
+    
+    // 4. 당첨금 계산 (산출물 1의 독창적 규칙 적용)
+    winnings = 0
+    symbolCounts = {} // 각 심볼별 개수
+    
+    // 심볼 개수 세기
+    FOR each symbol in reels:
+        symbolCounts[symbol] = (symbolCounts[symbol] OR 0) + 1
+    END FOR
+    
+    // 각 심볼별 당첨금 계산
+    FOR (symbol, count) in symbolCounts:
+        multiplier = SYMBOLS[symbol].multiplier
+        individualPayout = betAmount * multiplier
+        winnings = winnings + (individualPayout * count) // "1번째릴 + 2번째릴"
+    END FOR
+    
+    // 5. 잭팟 처리
+    isJackpot = (reels[0] == reels[1] AND reels[1] == reels[2])
+    IF isJackpot THEN
+        winnings = winnings * 100 // 잭팟 보너스
+        
+    // 6. 상태 저장
+    IF winnings > 0 THEN
+        state.canDoubleUp = true // 미니게임 기회 활성화
+        state.pendingWinnings = winnings // 상금을 '대기' 상태로 저장
+    END IF
+    
+    await setKVState(walletAddress, state, env)
+    
+    // 7. 결과 반환
+    RETURN {
+        reels: reels,
+        winnings: winnings,
+        newCredit: state.credit, // 베팅액만 차감된 크레딧
+        isJackpot: isJackpot,
+        hashedServerSeed: hashedServerSeed,
+        serverSeed: serverSeed // (검증을 위해 스핀 직후 즉시 공개)
+    }
+```
+
+###***REMOVED*****A.4. API 엔드포인트: `/api/double-up`**
+
+  * **목적:** 미니게임(더블업) 실행.
+  * **요청 (Body):** `{ walletAddress: string, choice: 'red' | 'blue', clientSeed: string }`
+
+<!-- end list -->
+
+```
+FUNCTION handleApiDoubleUp(request, env):
+    GET { walletAddress, choice, clientSeed } FROM request.body
+    state = await getKVState(walletAddress, env)
+
+    // 1. 유효성 검사 (미니게임 기회가 있는지)
+    IF state.canDoubleUp IS NOT TRUE THEN
+        RETURN ERROR "미니게임을 플레이할 수 없습니다."
+        
+    winningsAtStake = state.pendingWinnings
+    state.canDoubleUp = false // 기회는 1회만
+    state.pendingWinnings = 0
+    
+    // 2. Provably Fair 기반 50% 확률 계산
+    serverSeed = Math.random().toString(36)
+    resultValue = simpleHash(serverSeed + clientSeed) % 2
+    winningChoice = (resultValue == 0) ? 'red' : 'blue'
+    
+    // 3. 결과 처리
+    hasWon = (choice == winningChoice)
+    IF hasWon THEN
+        // 성공: 대기 중인 상금의 2배를 크레딧에 더함
+        newWinnings = winningsAtStake * 2
+        state.credit = state.credit + newWinnings
+        await setKVState(walletAddress, state, env)
+        RETURN { won: true, newWinnings: newWinnings }
+    ELSE
+        // 실패: 대기 중인 상금 소멸, 크레딧 변동 없음
+        await setKVState(walletAddress, state, env)
+        RETURN { won: false, newWinnings: 0 }
+    END IF
+```
+
+###***REMOVED*****A.5. API 엔드포인트: `/api/collect-winnings`**
+
+  * **목적:** 미니게임을 포기하고 대기 중인 상금을 크레딧에 합산.
+  * **요청 (Body):** `{ walletAddress: string }`
+
+<!-- end list -->
+
+```
+FUNCTION handleApiCollect(request, env):
+    GET { walletAddress } FROM request.body
+    state = await getKVState(walletAddress, env)
+
+    IF state.canDoubleUp IS NOT TRUE THEN
+        RETURN ERROR "수령할 상금이 없습니다."
+
+    // 대기 중인 상금을 크레딧에 합산
+    collectedAmount = state.pendingWinnings
+    state.credit = state.credit + state.pendingWinnings
+    state.canDoubleUp = false
+    state.pendingWinnings = 0
+    
+    await setKVState(walletAddress, state, env)
+    
+    RETURN { success: true, newCredit: state.credit, collectedAmount: collectedAmount }
+```
+
+###***REMOVED*****A.5.5. API 엔드포인트: `/api/initiate-deposit` (v1.3.0 추가)**
+
+  * **목적:** 사용자의 CSPIN 토큰을 게임 지갑으로 입금하고 오프체인 크레딧을 충전.
+  * **요청 (Body):** `{ walletAddress: string, depositAmount: number }`
+  * **환경 변수:** `GAME_WALLET_PRIVATE_KEY` (게임 지갑의 프라이빗 키)
+
+<!-- end list -->
+
+```
+FUNCTION handleApiInitiateDeposit(request, env):
+    GET { walletAddress, depositAmount } FROM request.body
+    
+    IF depositAmount <= 0 THEN
+        RETURN ERROR "올바르지 않은 입금액입니다."
+    
+    // 1. 게임 지갑 준비
+    gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY
+    keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
+    gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey, workchain: 0 })
+    
+    // 2. 게임 지갑의 CSPIN Jetton 지갑 주소 조회
+    gameJettonWalletAddress = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, gameWallet.address.toString())
+    
+    // 3. Jetton 전송 메시지 생성
+    jettonTransferBody = beginCell()
+        .storeUint(0x0f8a7ea5, 32) // op: transfer
+        .storeUint(0, 64) // query_id
+        .storeCoins(toNano(depositAmount.toString())) // amount
+        .storeAddress(Address.parse(walletAddress)) // destination (사용자 지갑)
+        .storeAddress(Address.parse(gameWallet.address.toString())) // response_destination
+        .storeBit(0) // custom_payload
+        .storeCoins(toNano('0.01')) // forward_ton_amount
+        .storeBit(0) // forward_payload
+        .endCell()
+    
+    // 4. 트랜잭션 생성
+    seqno = await getWalletSeqno(gameWallet.address.toString())
+    transferMessage = internal({
+        to: gameJettonWalletAddress,
+        value: toNano('0.03'), // 수수료
+        body: jettonTransferBody
+    })
+    
+    transfer = gameWallet.createTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [transferMessage]
+    })
+    
+    // 5. BOC 생성 및 네트워크 전송
+    boc = transfer.toBoc()
+    bocBase64 = boc.toString('base64')
+    txHash = await sendBocViaAPI(bocBase64) // tonapi.io 사용
+    
+    // 6. 오프체인 크레딧 업데이트
+    state = await getKVState(walletAddress, env)
+    state.credit = state.credit + depositAmount
+    await setKVState(walletAddress, state, env)
+    
+    RETURN { 
+        success: true, 
+        message: 'CSPIN 입금이 성공했습니다.',
+        txHash: txHash,
+        newCredit: state.credit,
+        depositAmount: depositAmount
+    }
+```
+
+###***REMOVED*****A.6. API 엔드포인트: `/api/initiate-withdrawal` (v2.3.0 - RPC 방식)**
+
+* **목적:** 게임 지갑에서 사용자 지갑으로 CSPIN 토큰 RPC 직접 인출
+* **요청 (Body):** `{ userId: string, amount: number, userWallet: string, userJettonWalletAddress: string }`
+* **응답 (Body):** `{ success: boolean, txHash: string, message: string, newCredit: number }`
+
+```
+FUNCTION handleApiInitiateWithdrawal(request, env):
+    GET { userId, amount, userWallet, userJettonWalletAddress } FROM request.body
+    
+    // 1. 유효성 검사
+    IF amount <= 0 THEN
+        RETURN ERROR "금액은 0보다 커야 합니다"
+    
+    IF isValidTonAddress(userWallet) IS NOT TRUE THEN
+        RETURN ERROR "유효하지 않은 지갑 주소"
+    
+    // 2. KV에서 사용자 크레딧 확인 및 즉시 차감
+    state = await getKVState(userWallet, env)
+    IF state.credit < amount THEN
+        RETURN ERROR "크레딧이 부족합니다"
+    
+    state.credit = state.credit - amount
+    await setKVState(userWallet, state, env)
+    
+    // 3. 게임 지갑 준비
+    gameWalletPrivateKey = env.GAME_WALLET_PRIVATE_KEY
+    keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
+    gameWallet = WalletContractV5R1.create({ publicKey: keyPair.publicKey, workchain: 0 })
+    
+    // 4. TonCenter v3 RPC 클라이언트 생성
+    tonCenterApiKey = env.TONCENTER_API_KEY
+    rpc = new TonCenterV3Rpc(tonCenterApiKey)
+    
+    // 5. seqno 조회 및 증가
+    seqnoManager = new SeqnoManager(rpc, env.CREDIT_KV, gameWallet.address.toString())
+    seqno = await seqnoManager.getAndIncrementSeqno()
+    
+    // 6. TON 잔액 확인 (가스비 확보)
+    tonBalance = await rpc.getBalance(gameWallet.address.toString())
+    IF tonBalance < toNano('0.05') THEN
+        RETURN ERROR "게임 지갑 TON 부족"
+    
+    // 7. Jetton Transfer Payload 생성 (TEP-74)
+    jettonPayload = beginCell()
+        .storeUint(0xf8a7ea5, 32)              // op: transfer
+        .storeUint(0, 64)                       // query_id
+        .storeCoins(toNano(amount.toString()))  // amount
+        .storeAddress(Address.parse(userWallet)) // destination
+        .storeAddress(gameWallet.address)       // response_destination
+        .storeBit(0)                            // custom_payload
+        .storeCoins(toNano('0.001'))            // forward_ton_amount
+        .storeBit(0)                            // forward_payload
+        .endCell()
+    
+    // 8. 내부 메시지 생성
+    transferMessage = internal({
+        to: Address.parse(userJettonWalletAddress),  // 게임 지갑의 Jetton 중간 지갑
+        value: toNano('0.03'),                        // 가스비
+        body: jettonPayload
+    })
+    
+    // 9. 트랜잭션 생성 및 서명
+    transfer = gameWallet.createTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [transferMessage],
+        sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS
+    })
+    
+    // 10. BOC 생성 및 TonCenter v3 RPC로 전송
+    boc = transfer.toBoc().toString('base64')
+    txHash = await rpc.sendBoc(boc)
+    
+    // 11. 결과 반환
+    RETURN {
+        success: true,
+        txHash: txHash,
+        message: `RPC 방식 인출 완료: ${amount} CSPIN`,
+        newCredit: state.credit
+    }
+END FUNCTION
+```
+
+**주요 특징:**
+- ✅ TonCenter v3 API 사용 (`https://toncenter.com/api/v3/`)
+- ✅ KV 크레딧 즉시 차감 (트랜잭션 전송 전)
+- ✅ 게임 지갑이 가스비 부담 (~0.05 TON)
+- ✅ seqno 관리로 트랜잭션 충돌 방지
+- ✅ Jetton TEP-74 표준 준수
+- ✅ Cloudflare Worker 전역(`window`, `self`) 폴리필 적용으로 Ton SDK 브라우저 의존성 대응 (`functions/_bufferPolyfill.ts`)
+
+###***REMOVED*****A.6.1. API 엔드포인트: `/api/confirm-withdrawal` (신규)**
+
+* **목적:** 블록체인 트랜잭션 확인 후 KV 크레딧 차감
+* **요청 (Body):** `{ txHash: string, userId: string, amount: number }`
+* **응답 (Body):** `{ success: boolean, newCredit: number }`
+
+```
+FUNCTION handleApiConfirmWithdrawal(request, env):
+    GET { txHash, userId, amount } FROM request.body
+    
+    // 1. 트랜잭션 유효성 검사
+    IF isValidTxHash(txHash) IS NOT TRUE THEN
+        RETURN ERROR "유효하지 않은 트랜잭션 해시"
+    
+    // 2. 블록체인에서 트랜잭션 확인 (최대 60초 대기)
+    txInfo = await waitForTransaction(txHash, timeout: 60000, rpcEndpoint: env.TON_RPC_ENDPOINT)
+    
+    IF txInfo.status === 'failed' THEN
+        RETURN { success: false, message: "트랜잭션 실패" }
+    
+    IF txInfo.status !== 'confirmed' THEN
+        RETURN { success: false, message: "트랜잭션 아직 확인 중" }
+    
+    // 3. 스마트컨트랙트 로그에서 출금 이벤트 확인
+    // (WithdrawalManager가 OP_WITHDRAWAL_SUCCESS 또는 OP_WITHDRAWAL_FAILED 이벤트 발생)
+    withdrawalEvent = findEventInTransaction(txInfo, eventType: "WITHDRAWAL_SUCCESS")
+    
+    IF withdrawalEvent IS NULL THEN
+        RETURN { success: false, message: "출금 이벤트를 찾을 수 없음" }
+    
+    // 4. KV에서 크레딧 차감 (중복 방지: idempotent)
+    userAddress = withdrawalEvent.destination
+    state = await getKVState(userAddress, env)
+    
+    IF state.credit < amount THEN
+        RETURN { success: false, message: "크레딧 차감 실패" }
+    
+    state.credit -= amount
+    await setKVState(userAddress, state, env)
+    
+    // 5. 트랜잭션 로그 저장
+    logKey = "tx:" + userAddress + ":" + Math.floor(Date.now() / 1000)
+    logData = {
+        type: "withdrawal",
+        amount: amount,
+        method: "smart_contract",
+        txHash: txHash,
+        timestamp: new Date().toISOString(),
+        status: "confirmed"
+    }
+
+
+###***REMOVED*****A.7. API 엔드포인트: `/api/rpc`**
+
+  * **목적:** TON 블록체인 RPC 요청을 프록시하여 CORS 및 API 키 문제를 해결.
+  * **요청 (Body):** `{ rpcBody: { jsonrpc: '2.0', id: 1, method: 'runGetMethod', params: {...} } }`
+
+<!-- end list -->
+
+```
+FUNCTION handleApiRpc(request, env):
+    // 1. 요청 검증 (POST, JSON, API 키)
+    IF request.method !== 'POST' THEN RETURN 405
+    IF NOT validContentType THEN RETURN 400
+    IF NOT validApiKey THEN RETURN 401
+    
+    // 2. RPC 요청을 백엔드(TonCenter)로 프록시
+    backendUrl = env.BACKEND_RPC_URL || 'https://toncenter.com/api/v2/jsonRPC'
+    response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: request.body.rpcBody
+    })
+    
+    // 3. 응답을 클라이언트에 전달 (CORS 헤더 포함)
+    RETURN response with CORS headers
+```
+
+-----
+```
+        RETURN ERROR "인출할 크레딧이 없습니다."
+
+    // 1. 크레딧 즉시 차감 (중복 인출 방지)
+    state.credit = 0
+    await setKVState(walletAddress, state, env)
+    
+    // 2. 인출 큐(Queue)에 작업 등록
+    // (Cloudflare Queues 또는 KV를 큐로 활용)
+    await addWithdrawalToQueue({ to: walletAddress, amount: amountToWithdraw })
+    
+    RETURN { success: true, requestedAmount: amountToWithdraw }
+```
+
+###***REMOVED*****A.8. API 엔드포인트: `/api/get-credit` (v2.3.0 추가)**
+
+  * **목적:** 지갑 주소로 KV에 저장된 크레딧을 조회합니다. 프론트엔드가 페이지 새로고침 후 크레딧을 복구하기 위해 사용됩니다.
+  * **요청 (Query Param):** `walletAddress` (지갑 주소)
+  * **응답:** `{ credit: number, walletAddress: string, timestamp: number }`
+
+```
+FUNCTION handleApiGetCredit(request, env):
+    // 1. 요청 검증
+    IF request.method !== 'GET' THEN
+        RETURN ERROR 405 "Method not allowed"
+    
+    GET walletAddress FROM request.query_params
+    IF NOT walletAddress THEN
+        RETURN ERROR 400 "Missing walletAddress parameter"
+    
+    // 2. KV에서 해당 지갑의 상태 조회 (getKVState 재사용)
+    state = await getKVState(walletAddress, env)
+    
+    // 3. 크레딧 반환 (없으면 0)
+    credit = state.credit OR 0
+    
+    RETURN {
+        credit: credit,
+        walletAddress: walletAddress,
+        timestamp: getCurrentTimestamp(),
+        cacheControl: "no-cache" // 항상 최신값 조회
+    }
+```
+
+**사용 사례:**
+- 프론트엔드가 지갑 연결 시 이 API를 호출하여 KV에 저장된 크레딧을 Zustand 상태에 동기화
+- 페이지 새로고침 후 크레딧 복구 문제 해결
+- 게임 컴포넌트의 `useEffect` 훅에서 `wallet?.account?.address` 변경 시 자동 호출
+
+```typescript
+// React 프론트엔드 예제
+useEffect(() => {
+  if (!wallet?.account?.address) return;
+  
+  const loadCredits = async () => {
+    const response = await fetch(
+      `/api/get-credit?walletAddress=${encodeURIComponent(wallet.account!.address)}`
+    );
+    const data = await response.json();
+    updateCredit(data.credit);
+  };
+  
+  loadCredits();
+}, [wallet?.account?.address, updateCredit]);
+```
+
+-----
+
+##***REMOVED*****B. 프론트엔드 로직 (React - `src/features/game/GameComplete.tsx`)**
+
+  * **설명:** 사용자 입력을 받아 백엔드 API를 호출하고, 그 결과를 화면(애니메이션, UI)에 반영합니다.
+  * **상태 관리:** Zustand 스토어를 사용하여 `userCredit`, `betAmount`, `reelSymbols`, `lastWinnings`, `isSpinning`, `showDoubleUp`, `isDeveloperMode` 등의 상태를 관리합니다.
+
+###***REMOVED*****B.1. 기능: 크레딧 입금 (PoC 확장)**
+
+```
+// PoC에서 사용한 입금 컴포넌트와 연동
+FUNCTION handleDepositSuccess(onChainResult, depositAmount):
+    // 1. 온체인 트랜잭션 성공 시
+    setMessage("온체인 입금 확인. 서버에 크레딧을 등록합니다...")
+
+    // 2. 백엔드에 크레딧 등록 요청
+    CALL API `/api/credit-deposit` with { walletAddress: user.address, amount: depositAmount }
+    
+    .ON_SUCCESS(data):
+        setUserCredit(data.newCredit) // UI 크레딧 업데이트
+        setMessage("크레딧 충전 완료!")
+    .ON_ERROR(error):
+        setMessage("크레딧 충전 실패: " + error.message)
+```
+
+###***REMOVED*****B.2. 기능: 스핀 실행**
+
+```
+FUNCTION handleSpinClick():
+    setIsSpinning(true)
+    setShowDoubleUp(false) // 미니게임 UI 숨김
+    clientSeed = generateRandomString() // 프론트엔드에서 생성
+
+    CALL API `/api/spin` with { walletAddress: user.address, betAmount: betAmount, clientSeed: clientSeed }
+    
+    .ON_SUCCESS(data):
+        // 1. 릴 애니메이션 시작 (ReelPixi 컴포넌트 사용)
+        triggerReelAnimation(data.reels) 
+        
+        // 2. 애니메이션 완료 후 (Callback)
+        ON_ANIMATION_COMPLETE:
+            setIsSpinning(false)
+            setUserCredit(data.newCredit) // 베팅액 차감된 크레딧 반영
+            
+            IF data.winnings > 0 THEN
+                setLastWinnings(data.winnings)
+                setShowDoubleUp(true) // [Gamble] / [Collect] 버튼 표시
+            END IF
+            
+            IF data.isJackpot THEN
+                playJackpotVideo() // 잭팟 비디오 재생
+            END IF
+    .ON_ERROR(error):
+        setMessage("스핀 오류: " + error.message)
+        setIsSpinning(false)
+```
+
+###***REMOVED*****B.3. 기능: 미니게임 선택 (`Gamble` / `Collect`)**
+
+```
+// "Gamble" (빨간색 또는 파란색) 버튼 클릭 시
+FUNCTION handleGambleClick(choice): // choice: 'red' or 'blue'
+    clientSeed = generateRandomString()
+    
+    CALL API `/api/double-up` with { walletAddress: user.address, choice: choice, clientSeed: clientSeed }
+    
+    .ON_SUCCESS(data):
+        setShowDoubleUp(false)
+        IF data.won THEN
+            setMessage("더블업 성공! 획득 상금: " + data.newWinnings)
+            setUserCredit(current => current + data.newWinnings) // 크레딧에 즉시 반영
+        ELSE
+            setMessage("더블업 실패...")
+            setLastWinnings(0)
+        END IF
+
+// "Collect" 버튼 클릭 시
+FUNCTION handleCollectClick():
+    CALL API `/api/collect-winnings` with { walletAddress: user.address }
+    
+    .ON_SUCCESS(data):
+        setUserCredit(data.newCredit) // 크레딧에 합산
+        setShowDoubleUp(false)
+        setMessage("상금 수령 완료! 수령액: " + data.collectedAmount)
+```
+
+###***REMOVED*****B.4. 기능: 상금 인출 (변경됨: 스마트컨트랙트 사용자 주도 방식)**
+
+```
+FUNCTION handleWithdrawClick():
+    // Step 1: 사용자 확인
+    IF confirm("정말 " + userCredit + " CSPIN을 모두 인출하시겠습니까? (가스비 약 0.05 TON 소요)") THEN
+        
+        // Step 2: 백엔드에서 Permit 데이터 요청
+        permitData = CALL API `/api/initiate-withdrawal` with {
+            userId: user.id,
+            amount: userCredit,
+            userWallet: user.tonWalletAddress
+        }
+        
+        .ON_SUCCESS(data):
+            // Step 3: TonConnect로 스마트컨트랙트 호출
+            transactionPayload = createWithdrawalPayload({
+                signature: data.signature,
+                message: data.message,
+                nonce: data.nonce,
+                deadline: data.deadline,
+                recipientWallet: data.recipientWallet
+            })
+            
+            transaction = {
+                valid_until: Math.floor(Date.now() / 1000) + 600,
+                messages: [{
+                    address: WITHDRAWAL_SMART_CONTRACT_ADDRESS,
+                    amount: toNano("0.1"),    // 가스비 (약 0.05 TON)
+                    payload: transactionPayload
+                }]
+            }
+            
+            // Step 4: 사용자 서명 (TonConnect)
+            txHash = CALL tonConnectUI.sendTransaction(transaction)
+            
+            .ON_SUCCESS(hash):
+                setMessage("트랜잭션을 블록체인에 전송했습니다. 확인 대기 중...")
+                
+                // Step 5: 트랜잭션 모니터링
+                WAIT FOR blockchainConfirmation(txHash, timeout: 60sec)
+                
+                .ON_CONFIRMED:
+                    // Step 6: 백엔드에 성공 알림 (KV 크레딧 차감)
+                    confirmResult = CALL API `/api/confirm-withdrawal` with {
+                        txHash: txHash,
+                        userId: user.id,
+                        amount: userCredit
+                    }
+                    
+                    .ON_SUCCESS(result):
+                        setUserCredit(result.newCredit)      // 0으로 설정
+                        setMessage("인출 완료! CSPIN이 지갑으로 전송되었습니다.")
+                        setShowWithdraw(false)
+                    
+                    .ON_ERROR(error):
+                        setMessage("경고: 블록체인 확인 중. 나중에 다시 확인해주세요.")
+                
+                .ON_TIMEOUT:
+                    setMessage("경고: 트랜잭션 확인 시간 초과. 나중에 다시 확인해주세요.")
+            
+            .ON_ERROR(error):
+                setMessage("트랜잭션 서명 실패: " + error.message)
+        
+        .ON_ERROR(error):
+            setMessage("인출 허가 생성 실패: " + error.message)
+    END IF
+```
+
+**변경 사항 요약:**
+- ✅ 프론트엔드: 백엔드에서 Permit 데이터 수령
+- ✅ 프론트엔드: TonConnect로 스마트컨트랙트 직접 호출
+- ✅ 블록체인: 스마트컨트랙트 실행 (서명 검증 → Jetton 전송)
+- ✅ 프론트엔드: 트랜잭션 모니터링 (최대 60초)
+- ✅ 백엔드: 블록체인 확인 후 `/api/confirm-withdrawal` 호출
+- ❌ 백엔드: 더 이상 RPC 직접 전송 X
+- ❌ 백엔드: 더 이상 즉시 KV 차감 X (트랜잭션 확인 후만 차감)
+
+**사용자 경험:**
+- 📱 사용자가 직접 지갑에서 트랜잭션 서명 (투명성)
+- 💰 가스비 ~0.05 TON 사용자 부담 (네트워크 요금)
+- ⏱️ 총 시간: 15~60초 (블록체인 확인 포함)
+- ✅ CSPIN 100% 전송 (손실 없음)
+
+
+
+-----
+
+##***REMOVED*****C. 인출 처리기 (Withdrawal Processor) - (별도 보안 로직)**
+
+  * **설명:** 이것은 사용자 앱과 분리된 **별도의 보안 서버 또는 스크립트**입니다. Cloudflare Worker가 아닌, Private Key를 안전하게 보관할 수 있는 환경(예: AWS Lambda + Secrets Manager, Google Cloud Functions, 또는 전용 서버)에서 실행되어야 합니다.
+  * **작동:** 정기적으로(예: 1분마다) 인출 큐(A.6에서 등록된)를 확인하고 실제 온체인 트랜잭션을 실행합니다.
+
+<!-- end list -->
+
+```
+FUNCTION processWithdrawalQueue():
+    // 1. 큐에서 처리할 작업 가져오기
+    job = await getNextJobFromQueue() // e.g., { to: 'USER_WALLET', amount: 1000 }
+    IF job IS NULL THEN RETURN
+
+    // 2. 게임 지갑의 Private Key 안전하게 로드
+    privateKey = await getSecurelyStoredPrivateKey()
+    gameWallet = Wallet.fromPrivateKey(privateKey)
+    
+    // 3. CSPIN 토큰 전송 트랜잭션 생성 (PoC 로직과 유사하나, '보내는 주체'가 다름)
+    CALL buildCSPINTransferTransaction(
+        from: gameWallet,
+        to: job.to,
+        amount: job.amount,
+        tokenAddress: CSPIN_TOKEN_ADDRESS
+    )
+    
+    // 4. 트랜잭션 전송 및 로깅
+    .ON_SUCCESS(result):
+        LOG "인출 성공: " + job.to + "에게 " + job.amount + " CSPIN 전송"
+        MARK job as complete
+    .ON_ERROR(error):
+        LOG "인출 실패: " + error.message
+        MARK job as failed (재시도 또는 관리자 알림)
+
+---
+
+##***REMOVED*****C. CSPIN 토큰 입금/인출 로직**
+
+###***REMOVED*****C.1. CSPIN 입금 (프론트엔드)**
+
+* **목적:** 사용자가 CSPIN 토큰을 게임 지갑으로 전송하여 크레딧 충전.
+* **플로우:**
+  1. 사용자가 입금 버튼 클릭.
+  2. CSPIN 제톤 월렛 주소 계산 (RPC).
+  3. 제톤 전송 페이로드 빌드 (transfer 메시지, TL-B 준수).
+  4. TON Connect로 트랜잭션 전송 (사용자 서명).
+  5. 성공 시 백엔드에 크레딧 등록.
+
+```typescript
+// 프론트엔드: CSPIN 전송 페이로드 빌드
+const buildCSPINTransferPayload = (amount: bigint, destination: Address, responseTo: Address) => {
+  return beginCell()
+    .storeUint(0xF8A7EA5, 32) // op: transfer
+    .storeUint(0, 64) // query_id
+    .storeCoins(amount) // amount
+    .storeAddress(destination) // destination
+    .storeAddress(responseTo) // response_destination
+    .storeBit(0) // custom_payload: none
+    .storeCoins(BigInt(0)) // forward_ton_amount
+    .storeBit(1) // forward_payload: right
+    .storeBit(0) // forward_payload: nothing
+    .endCell();
+};
+
+// 입금 처리
+const handleDeposit = async () => {
+  const userJettonWallet = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, userWallet);
+  const payload = buildCSPINTransferPayload(amount, GAME_WALLET_ADDRESS, userWallet);
+  const tx = { messages: [{ address: userJettonWallet, amount: '30000000', payload: payload.toBoc().toString('base64') }] };
+  await tonConnectUI.sendTransaction(tx);
+  // 성공 시 handleDepositSuccess 호출
+};
+```
+
+###***REMOVED*****C.2. CSPIN 인출 (백엔드)**
+
+* **목적:** 사용자의 크레딧을 CSPIN 토큰으로 게임 지갑에서 사용자 지갑으로 전송.
+* **플로우:**
+  1. 프론트엔드에서 /api/initiate-withdrawal 호출.
+  2. 백엔드에서 크레딧 검증 및 차감.
+  3. 게임 월렛 프라이빗 키로 제톤 전송 트랜잭션 생성 및 전송.
+  4. 성공 시 사용자에게 토큰 전송.
+
+```typescript
+// 백엔드: /api/initiate-withdrawal
+FUNCTION handleInitiateWithdrawal(request, env):
+    GET { walletAddress, withdrawalAmount } FROM request.body
+    
+    state = await getKVState(walletAddress, env)
+    IF state.credit < withdrawalAmount THEN RETURN { success: false, error: 'Insufficient credit' }
+    
+    state.credit -= withdrawalAmount
+    await setKVState(walletAddress, state, env)
+    
+    // 게임 월렛으로 CSPIN 전송
+    gameWallet = Wallet.fromPrivateKey(env.GAME_WALLET_PRIVATE_KEY)
+    jettonWallet = await getJettonWalletAddress(CSPIN_TOKEN_ADDRESS, GAME_WALLET_ADDRESS)
+    
+    payload = buildCSPINTransferPayload(withdrawalAmount * 10**9, walletAddress, GAME_WALLET_ADDRESS)
+    tx = { messages: [{ address: jettonWallet, amount: '100000000', payload: payload.toBoc().toString('base64') }] }
+    
+    result = await gameWallet.sendTransaction(tx)
+    
+    RETURN { success: true, newCredit: state.credit, withdrawalAmount }
+```
+
+##***REMOVED*****D. A/B 이중 입금 방식 (v1.5 추가 → v2.1.0 수정)**
+
+###***REMOVED*****D.0. Jetton Transfer Payload 구성 (v2.1.0 핵심 수정)**
+
+* **문제:** 이전 버전에서 `payload: undefined`로 전송하여 "100TON 지갑에 있어야 한다" 오류 발생
+* **해결:** PoC 코드에서 제공하는 **Jetton Transfer Payload (opcode: 0xF8A7EA5)** 사용
+
+**Payload 생성 함수:**
+```typescript
+// Jetton Transfer Payload (Standard Jetton TEP-74)
+function buildJettonTransferPayload(amount: bigint, destination: Address, responseTo: Address): string {
+  const cell = beginCell()
+    .storeUint(0xf8a7ea5, 32)        // Jetton transfer opcode
+    .storeUint(0, 64)                 // query_id
+    .storeCoins(amount)               // Jetton amount
+    .storeAddress(destination)        // 수취인 (게임 지갑)
+    .storeAddress(responseTo)         // 응답 주소 (사용자 지갑)
+    .storeBit(0)                      // custom_payload: none
+    .storeCoins(BigInt(0))            // forward_ton_amount
+    .storeBit(0)                      // forward_payload: none
+    .endCell();
+  return cell.toBoc().toString('base64');
+}
+```
+
+**TonConnect 트랜잭션 구조 (v2.1.0):**
+```typescript
+const payload = buildJettonTransferPayload(amountInNano, destinationAddress, responseAddress);
+
+// ✅ v2.0.2 긴급 수정: Address 형식 오류 해결
+const jettonWalletAddress = Address.parse(CSPIN_JETTON_WALLET).toString();
+
+const transaction = {
+  validUntil: Math.floor(Date.now() / 1000) + 600,
+  messages: [
+    {
+      address: jettonWalletAddress,  // ← Address.parse().toString() 필수 (v2.0.2)
+      amount: '200000000',             // 0.2 TON (for fees)
+      payload: payload                 // ← Jetton Transfer Payload 필수
+    }
+  ]
+};
+const result = await tonConnectUI.sendTransaction(transaction);
+```
+
+**핵심 수정 요소:**
+1. **CSPIN_JETTON_WALLET 주소**: 게임 지갑이 아닌, CSPIN 토큰의 Jetton Wallet 주소 사용
+2. **Address 형식 (v2.0.2 핵심)**: `Address.parse().toString()` 필수 (TonConnect SDK 요구사항)
+3. **payload 필수**: `undefined` 대신 Jetton Transfer Payload 포함
+4. **amount**: 게임 지갑이 아닌 CSPIN Jetton 주소로 전송할 때 필요한 TON 가스비
+
+---
+
+**오류 해결 과정 (v2.0.2)**:
+| 단계 | 문제 | 해결책 |
+|------|------|--------|
+| **v2.0.1** | `address: CSPIN_JETTON_WALLET` (문자열) | ❌ TonConnect 거부: "Wrong 'address' format" |
+| **v2.0.2** | `address: Address.parse(CSPIN_JETTON_WALLET).toString()` | ✅ 정식 Address 형식 |
+
+###***REMOVED*****D.1. 입금 방식 A: TonConnect 클라이언트 직접 서명 (DepositDirect - v2.1.0 수정)**
+
+* **목적:** 사용자가 자신의 지갑에서 CSPIN을 직접 게임 지갑으로 전송. 백엔드는 KV 크레딧만 업데이트.
+* **장점:** 
+  - 완전히 탈중앙화 (사용자가 직접 서명)
+  - 백엔드 가스비 비용 없음
+  - 프라이빗 키 관리 불필요
+* **단점:**
+  - 사용자가 지갑 앱에서 트랜잭션 서명 필요
+  - 추가 단계 필요 (지갑 앱 전환)
+
+**플로우:**
+```
+1. 사용자가 DepositDirect 컴포넌트에서 입금액 입력
+2. TonConnect로 트랜잭션 생성 및 서명 (사용자 지갑에서)
+3. 트랜잭션 전송 (온체인)
+4. 프론트엔드에서 /api/deposit-complete 호출 (txHash 포함)
+5. 백엔드에서 KV에 크레딧 저장
+6. 게임 진행 가능
+```
+
+**백엔드 엔드포인트: `/api/deposit-complete`**
+```
+FUNCTION handleDepositComplete(request, env):
+    GET { walletAddress, depositAmount, txHash, method } FROM request.body
+    
+    IF method != 'direct' THEN RETURN { success: false, error: 'Invalid method' }
+    
+    // KV에서 기존 크레딧 읽기
+    key = 'deposit:' + walletAddress
+    existing = await env.CREDIT_KV.get(key)
+    currentCredit = existing ? parseFloat(existing) : 0
+    newCredit = currentCredit + depositAmount
+    
+    // 트랜잭션 로그 저장
+    logKey = 'txlog:' + walletAddress + ':' + timestamp()
+    await env.CREDIT_KV.put(logKey, JSON.stringify({
+        method: 'direct',
+        amount: depositAmount,
+        txHash: txHash,
+        timestamp: NOW(),
+        status: 'confirmed'
+    }))
+    
+    // 크레딧 업데이트
+    await env.CREDIT_KV.put(key, newCredit.toString())
+    
+    RETURN { success: true, newCredit: newCredit }
+```
+
+###***REMOVED*****D.2. 입금 방식 B: 백엔드 Ankr RPC 자동 입금 (DepositAuto)**
+
+* **목적:** 백엔드에서 Ankr RPC를 통해 게임 지갑의 CSPIN을 자동으로 사용자에게 전송.
+* **장점:**
+  - 사용자 UX 최고 (입금액 입력만 하면 자동 처리)
+  - 지갑 앱 전환 불필요
+  - 완전히 자동화된 프로세스
+* **단점:**
+  - 백엔드 가스비 비용 발생 (~0.1 TON)
+  - 게임사가 초기 TON 보유 필요
+
+**플로우:**
+```
+1. 사용자가 DepositAuto 컴포넌트에서 입금액 입력
+2. /api/deposit-auto 호출 (백엔드로)
+3. 백엔드에서 Ankr RPC를 통해 자동 입금 트랜잭션 생성 & 전송
+4. KV에 크레딧 저장
+5. 프론트엔드에 성공 응답
+6. 게임 진행 가능
+```
+
+**백엔드 엔드포인트: `/api/deposit-auto`**
+```
+FUNCTION handleDepositAuto(request, env):
+    GET { walletAddress, depositAmount } FROM request.body
+    
+    // 환경변수 검증
+    IF NOT env.ANKR_RPC_URL OR NOT env.GAME_WALLET_KEY THEN
+        RETURN { success: false, error: 'Configuration missing' }
+    
+    // 게임 지갑 설정
+    gameWalletPrivateKey = env.GAME_WALLET_KEY
+    keyPair = keyPairFromSecretKey(Buffer.from(gameWalletPrivateKey, 'hex'))
+    gameWallet = WalletContractV4.create({ publicKey: keyPair.publicKey })
+    
+    // Ankr RPC로부터 seqno 조회
+    seqno = await getSeqnoFromAnkrRPC(env.ANKR_RPC_URL, gameWallet.address.toString())
+    
+    // Jetton transfer 메시지 생성
+    jettonTransferBody = beginCell()
+        .storeUint(0x0f8a7ea5, 32) // op: transfer
+        .storeUint(0, 64) // query_id
+        .storeCoins(toNano(depositAmount.toString())) // amount
+        .storeAddress(Address.parse(walletAddress)) // destination
+        .storeAddress(gameWallet.address) // response_destination
+        .storeBit(0) // custom_payload
+        .storeCoins(toNano('0.01')) // forward_ton_amount
+        .storeBit(0) // forward_payload
+        .endCell()
+    
+    // 트랜잭션 생성
+    transferMessage = internal({
+        to: CSPIN_JETTON_WALLET,
+        value: toNano('0.05'),
+        body: jettonTransferBody
+    })
+    
+    transfer = gameWallet.createTransfer({
+        seqno: seqno,
+        secretKey: keyPair.secretKey,
+        messages: [transferMessage],
+        sendMode: 3
+    })
+    
+    // BOC로 인코딩
+    bocBase64 = transfer.toBoc().toString('base64')
+    
+    // Ankr RPC로 전송
+    txHash = await sendBocViaAnkrRPC(env.ANKR_RPC_URL, bocBase64)
+    
+    // KV에 크레딧 저장
+    key = 'deposit:' + walletAddress
+    existing = await env.CREDIT_KV.get(key)
+    currentCredit = existing ? parseFloat(existing) : 0
+    newCredit = currentCredit + depositAmount
+    
+    logKey = 'txlog:' + walletAddress + ':' + timestamp()
+    await env.CREDIT_KV.put(logKey, JSON.stringify({
+        method: 'auto',
+        amount: depositAmount,
+        txHash: txHash,
+        timestamp: NOW(),
+        status: 'sent'
+    }))
+    
+    await env.CREDIT_KV.put(key, newCredit.toString())
+    
+    RETURN { success: true, txHash: txHash, newCredit: newCredit }
+```
+
+###***REMOVED*****D.3. 프론트엔드 컴포넌트**
+
+**DepositDirect.tsx:**
+- TonConnect 클라이언트 직접 서명
+- Jetton transfer 메시지 사용자 지갑에서 생성
+- 트랜잭션 해시 백엔드로 전송
+
+**DepositAuto.tsx:**
+- 입금액만 입력
+- 백엔드 API 호출로 자동 처리
+- 결과 즉시 수신
+
+**App.tsx 메인 화면:**
+```
+┌─────────────────────────────────┐
+│   CandleSpinner 메인            │
+│                                 │
+│  ┌──────────┐    ┌──────────┐  │
+│  │ 방식 A  │    │ 방식 B  │  │
+│  │💳 직접  │    │🚀 자동  │  │
+│  └──────────┘    └──────────┘  │
+│                                 │
+│  ┌─────────────────────────────┐ │
+│  │ ▶️ 게임 시작               │ │
+│  └─────────────────────────────┘ │
+└─────────────────────────────────┘
+```
+
+###***REMOVED*****D.4. 환경 변수 설정 (Cloudflare Pages)**
+
+```
+A방식 (DepositDirect):
+- GAME_WALLET_ADDRESS (공개 주소) - 필수
+- CSPIN_TOKEN_ADDRESS (CSPIN 마스터 계약 주소) - 필수
+- CSPIN_JETTON_WALLET (게임 지갑의 CSPIN 지갑 주소) - 필수
+
+B방식 (DepositAuto):
+- ANKR_RPC_URL = https://rpc.ankr.com/ton_api_v2/ - 필수
+- GAME_WALLET_KEY (게임 지갑 프라이빗 키) - 필수 (암호화)
+- GAME_WALLET_ADDRESS - 필수
+- CSPIN_TOKEN_ADDRESS - 필수
+- CSPIN_JETTON_WALLET - 필수
+```
+
+###***REMOVED*****D.5. MVP 테스트 전략**
+
+1. **A방식 우선 테스트 (안정성 검증)**
+   - 사용자 지갑 연결 테스트
+   - TonConnect 직접 서명 테스트
+   - 트랜잭션 해시 검증
+
+2. **B방식 추가 테스트 (자동화 검증)**
+   - Ankr RPC 연결 테스트
+   - 자동 트랜잭션 생성 및 전송 테스트
+   - 동시성 문제 (seqno 동기화) 테스트
+
+3. **통합 테스트 (A+B 동시)**
+   - 사용자가 A 또는 B 선택 가능
+   - 각 입금 방식별 크레딧 누적 검증
+   - 게임 플레이 및 출금 검증
+```
+````
