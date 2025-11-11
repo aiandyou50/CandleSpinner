@@ -7,8 +7,10 @@
 
 import { useState } from 'react';
 import { useTonConnectUI } from '@tonconnect/ui-react';
+import { Address, toNano } from '@ton/ton';
 import { logger } from '@/utils/logger';
 import { useLanguage } from '@/hooks/useLanguage';
+import { GAME_WALLET_ADDRESS } from '@/constants';
 import { DebugLogModal } from './DebugLogModal';
 
 interface WithdrawProps {
@@ -17,18 +19,92 @@ interface WithdrawProps {
   onSuccess: () => void;
 }
 
+const WITHDRAW_FEE_TON = '0.2';
+const WITHDRAW_FEE_VALIDITY_MS = 10 * 60 * 1000;
+
 export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawProps) {
   const { t } = useLanguage();
   const [amount, setAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [showDebugLog, setShowDebugLog] = useState(false);
   const [tonConnectUI] = useTonConnectUI();
+  const [feeTxBoc, setFeeTxBoc] = useState<string | null>(null);
+  const [feeTxTimestamp, setFeeTxTimestamp] = useState<number | null>(null);
+
+  const feeStillValid = feeTxTimestamp !== null && Date.now() - feeTxTimestamp < WITHDRAW_FEE_VALIDITY_MS;
+
+  const ensureFeePayment = async (): Promise<{ boc: string; timestamp: number }> => {
+    setStatusMessage(null);
+
+    const now = Date.now();
+
+    if (feeTxBoc && feeTxTimestamp && now - feeTxTimestamp < WITHDRAW_FEE_VALIDITY_MS) {
+      logger.info('Reusing previously submitted withdrawal fee transaction.');
+      setStatusMessage(t.withdraw.feeAlreadyPaid);
+      return { boc: feeTxBoc, timestamp: feeTxTimestamp };
+    }
+
+    logger.info('Initiating 0.2 TON fee transfer for withdrawal request.');
+
+    let operatorAddress: string;
+    try {
+      operatorAddress = Address.parse(GAME_WALLET_ADDRESS).toString({
+        urlSafe: true,
+        bounceable: false,
+      });
+    } catch (parseError) {
+      logger.error('Invalid operator wallet address configuration:', parseError);
+      throw new Error(t.withdraw.error);
+    }
+
+    const transaction = {
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [
+        {
+          address: operatorAddress,
+          amount: toNano(WITHDRAW_FEE_TON).toString(),
+        },
+      ],
+    };
+
+    try {
+      const result = await tonConnectUI.sendTransaction(transaction);
+      const boc = result.boc;
+      if (!boc) {
+        throw new Error('Missing BOC result');
+      }
+      const timestamp = Date.now();
+
+      setFeeTxBoc(boc);
+      setFeeTxTimestamp(timestamp);
+      setStatusMessage(t.withdraw.feeSuccess);
+
+      logger.info('Fee transfer completed. BOC length:', boc.length);
+
+      return { boc, timestamp };
+    } catch (feeError) {
+      setStatusMessage(null);
+      logger.error('Fee transfer failed:', feeError);
+
+      if (feeError instanceof Error) {
+        const message = feeError.message.toLowerCase();
+        if (message.includes('reject') || message.includes('cancel')) {
+          throw new Error(t.withdraw.feeRejected);
+        }
+        throw new Error(`${t.withdraw.feeFailed}\n${feeError.message}`);
+      }
+
+      throw new Error(t.withdraw.feeFailed);
+    }
+  };
 
   const handleWithdraw = async () => {
     try {
       setIsLoading(true);
       setError(null);
+      setStatusMessage(null);
 
       logger.info('=== 인출 요청 시작 (메시지 서명 보안) ===');
       logger.info(`사용자 지갑: ${walletAddress}`);
@@ -47,6 +123,11 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
         throw new Error(t.errors.insufficientBalance);
       }
 
+      const feeProof = await ensureFeePayment();
+      logger.info('Fee transaction captured for withdrawal request.', {
+        feeTimestamp: feeProof.timestamp,
+      });
+
       // ✅ 1단계: 리플레이 공격 방지 (타임스탬프 + 논스)
       logger.info('📝 보안 토큰 생성 중...');
       const timestamp = Date.now();
@@ -56,7 +137,10 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
         amount: withdrawAmount,
         userAddress: walletAddress,
         timestamp,
-        nonce
+        nonce,
+        feeTxBoc: feeProof.boc,
+        feeTonAmount: Number(WITHDRAW_FEE_TON),
+        feePaidAt: feeProof.timestamp,
       };
       
       logger.info('생성된 보안 토큰:', { timestamp, nonce: nonce.substring(0, 8) });
@@ -94,6 +178,9 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       alert(successMsg);
       
       setAmount('');
+      setFeeTxBoc(null);
+      setFeeTxTimestamp(null);
+      setStatusMessage(null);
       onSuccess();
     } catch (err) {
       logger.error('❌ 인출 실패:', err);
@@ -104,7 +191,8 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       }
       
       console.error('Withdraw failed:', err);
-  setError(err instanceof Error ? err.message : t.withdraw.error);
+      setStatusMessage(null);
+      setError(err instanceof Error ? err.message : t.withdraw.error);
     } finally {
       setIsLoading(false);
     }
@@ -120,6 +208,17 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
           <p className="text-sm text-blue-200 font-semibold mb-1">
             📋 {t.withdraw.description}
           </p>
+          <p className="text-xs text-blue-100 leading-relaxed mt-2">
+            💠 {t.withdraw.feeNotice}
+          </p>
+          <p className="text-xs text-blue-100 mt-2 font-mono break-words">
+            🔗 {t.withdraw.feeAddressLabel}: {GAME_WALLET_ADDRESS}
+          </p>
+          {feeStillValid && (
+            <p className="text-xs text-emerald-200 mt-2">
+              ✅ {t.withdraw.feeAlreadyPaid}
+            </p>
+          )}
         </div>
         
         <div className="space-y-4">
@@ -144,6 +243,12 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
           >
             {isLoading ? t.withdraw.processing : t.buttons.withdraw}
           </button>
+
+          {statusMessage && (
+            <div className="text-emerald-300 text-sm text-center">
+              {statusMessage}
+            </div>
+          )}
 
           {error && (
             <div className="text-red-400 text-sm text-center">{error}</div>

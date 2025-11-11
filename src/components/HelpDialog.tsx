@@ -1,4 +1,4 @@
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Stack, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Stack, List, ListItem, ListItemIcon, ListItemText, Divider, Link } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import type { Translations } from '@/utils/translations';
@@ -88,9 +88,17 @@ export function HelpDialog({ open, onClose, help, closeLabel }: HelpDialogProps)
               {help.wallet.description}
             </Typography>
             <StepList steps={help.wallet.steps} />
-            <Typography variant="body2" sx={{ mt: 1.5, fontWeight: 600 }}>
+            <Link
+              href={help.wallet.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              underline="hover"
+              color="primary"
+              variant="body2"
+              sx={{ mt: 1.5, fontWeight: 600, display: 'inline-block' }}
+            >
               {help.wallet.linkText}
-            </Typography>
+            </Link>
           </Box>
 
           <Divider />
@@ -102,9 +110,17 @@ export function HelpDialog({ open, onClose, help, closeLabel }: HelpDialogProps)
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
               {help.token.description}
             </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            <Link
+              href={help.token.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              underline="hover"
+              color="primary"
+              variant="body2"
+              sx={{ fontWeight: 600, display: 'inline-block' }}
+            >
               {help.token.linkText}
-            </Typography>
+            </Link>
           </Box>
 
           <Divider />

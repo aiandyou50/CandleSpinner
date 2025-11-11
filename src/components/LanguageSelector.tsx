@@ -14,7 +14,11 @@ import {
 } from '@/utils/language';
 import '../styles/language-selector.css';
 
-export function LanguageSelector() {
+type LanguageSelectorProps = {
+  disabled?: boolean;
+};
+
+export function LanguageSelector({ disabled = false }: LanguageSelectorProps) {
   const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>('en');
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -40,6 +44,12 @@ export function LanguageSelector() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (disabled) {
+      setIsOpen(false);
+    }
+  }, [disabled]);
+
   const handleLanguageChange = (lang: SupportedLanguage) => {
     console.log('[LanguageSelector] Language changed:', lang);
     setCurrentLanguage(lang);
@@ -51,12 +61,23 @@ export function LanguageSelector() {
   };
 
   return (
-    <div className="language-selector" ref={dropdownRef}>
+    <div
+      className={`language-selector${disabled ? ' language-selector--disabled' : ''}`}
+      ref={dropdownRef}
+    >
       <button
         className="language-selector-button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (disabled) {
+            return;
+          }
+
+          setIsOpen((prev) => !prev);
+        }}
         aria-label="언어 선택"
         aria-expanded={isOpen}
+        aria-disabled={disabled}
+        disabled={disabled}
       >
         <span className="language-flag">{currentLangInfo.flag}</span>
         <span className="language-name">{currentLangInfo.nativeName}</span>

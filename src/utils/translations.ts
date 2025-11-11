@@ -37,6 +37,12 @@ export interface Translations {
     success: string;
     error: string;
     processing: string;
+    feeNotice: string;
+    feeAddressLabel: string;
+    feeAlreadyPaid: string;
+    feeRejected: string;
+    feeFailed: string;
+    feeSuccess: string;
   };
   buttons: {
     deposit: string;
@@ -101,11 +107,13 @@ export interface Translations {
       description: string;
       steps: string[];
       linkText: string;
+      linkUrl: string;
     };
     token: {
       title: string;
       description: string;
       linkText: string;
+      linkUrl: string;
     };
     rules: {
       title: string;
@@ -158,6 +166,12 @@ const en: Translations = {
     success: 'Withdrawal request completed!',
     error: 'Withdrawal request failed',
     processing: 'Processing...',
+    feeNotice: 'Before submitting a withdrawal you must send a 0.2 TON fee to the operator wallet. The fee covers network costs, validates the request, and stays valid for 10 minutes per attempt.',
+    feeAddressLabel: 'Operator wallet address',
+    feeAlreadyPaid: 'The fee was already sent within the last 10 minutes. Continuing with the withdrawal submission.',
+    feeRejected: 'Fee transfer was cancelled, so the withdrawal request cannot continue.',
+    feeFailed: 'Unable to send the fee transaction. Check your TON balance and try again.',
+    feeSuccess: '0.2 TON fee sent successfully. Continuing with the withdrawal request...',
   },
   buttons: {
     deposit: 'Deposit',
@@ -226,11 +240,13 @@ const en: Translations = {
         'Set a strong passcode and enable notifications so you never miss a signing request.',
       ],
       linkText: 'Open Telegram TON Wallet',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: 'Buy CSPIN Tokens',
       description: 'Need CSPIN? Join the official community to ask purchase questions, find OTC deals, or stay informed about liquidity updates.',
       linkText: 'Open CSPIN Telegram Group',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: 'Slot Machine Rules',
@@ -302,6 +318,12 @@ const ko: Translations = {
     success: '인출 요청 완료!',
     error: '인출 요청 실패',
     processing: '처리 중...',
+    feeNotice: '인출을 신청하려면 먼저 게임 운영자 지갑으로 0.2 TON 수수료를 전송해야 합니다. 이 수수료는 네트워크 비용과 요청 검증에 사용되며 각 시도마다 10분 동안 유효합니다.',
+    feeAddressLabel: '운영 지갑 주소',
+    feeAlreadyPaid: '최근 10분 내 수수료를 전송하여 다시 청구되지 않습니다. 인출 요청을 계속합니다.',
+    feeRejected: '수수료 전송이 취소되어 인출 요청을 진행할 수 없습니다.',
+    feeFailed: '수수료 전송에 실패했습니다. TON 잔액을 확인한 뒤 다시 시도하세요.',
+    feeSuccess: '0.2 TON 수수료 전송이 완료되었습니다. 인출 요청을 계속 진행합니다...',
   },
   buttons: {
     deposit: '입금하기',
@@ -370,11 +392,13 @@ const ko: Translations = {
         '강력한 잠금 비밀번호를 설정하고 알림을 켜 두어 서명 요청을 놓치지 않도록 합니다.',
       ],
       linkText: '텔레그램 TON Wallet 열기',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: 'CSPIN 토큰 구매 문의',
       description: 'CSPIN이 필요하다면 공식 커뮤니티에서 구매 방법을 문의하거나 홀더들과 직접 거래 정보를 확인하세요.',
       linkText: 'CSPIN 공식 텔레그램 그룹 바로가기',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: '슬롯머신 규칙',
@@ -446,6 +470,12 @@ const zhCN: Translations = {
     success: '提现请求已完成！',
     error: '提现请求失败',
     processing: '处理中...',
+    feeNotice: '提交提现前必须向运营方钱包发送 0.2 TON 费用，用于验证请求并支付网络开销。该费用在每次申请中有效期为 10 分钟。',
+    feeAddressLabel: '运营方钱包地址',
+    feeAlreadyPaid: '您已在最近 10 分钟内支付过费用，正在直接提交提现请求。',
+    feeRejected: '费用转账被取消，提现请求无法继续。',
+    feeFailed: '费用转账失败，请检查 TON 余额后重试。',
+    feeSuccess: '0.2 TON 费用已成功发送，正在继续处理提现请求...',
   },
   buttons: {
     deposit: '充值',
@@ -514,11 +544,13 @@ const zhCN: Translations = {
         '设置强密码并开启通知，避免错过签名请求。',
       ],
       linkText: '打开 Telegram TON Wallet',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: '购买 CSPIN 代币',
       description: '如果需要购买 CSPIN，可加入官方社群咨询、寻找场外交易或获取流动性更新。',
       linkText: '打开 CSPIN 官方 Telegram 群组',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: '老虎机规则',
@@ -590,6 +622,12 @@ const zhTW: Translations = {
     success: '提現請求已完成！',
     error: '提現請求失敗',
     processing: '處理中...',
+    feeNotice: '送出提現申請前需先向營運錢包轉帳 0.2 TON 手續費，用於驗證申請並支付網路費用。該手續費每次申請自付款起 10 分鐘內有效。',
+    feeAddressLabel: '營運錢包地址',
+    feeAlreadyPaid: '您已在 10 分鐘內支付手續費，將直接送出提現申請。',
+    feeRejected: '手續費轉帳被取消，提現申請無法繼續。',
+    feeFailed: '手續費轉帳失敗，請確認 TON 餘額後再試。',
+    feeSuccess: '0.2 TON 手續費已成功轉出，正在繼續辦理提現申請...',
   },
   buttons: {
     deposit: '充值',
@@ -658,11 +696,13 @@ const zhTW: Translations = {
         '設定強密碼並開啟通知，避免錯過交易簽名。',
       ],
       linkText: '前往 Telegram TON Wallet',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: '購買 CSPIN 代幣',
       description: '若需要購買 CSPIN，歡迎加入官方社群詢問、尋找場外交易或取得流動性資訊。',
       linkText: '前往 CSPIN 官方 Telegram 群組',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: '老虎機規則',
@@ -734,6 +774,12 @@ const vi: Translations = {
     success: 'Yêu cầu rút tiền đã hoàn tất!',
     error: 'Yêu cầu rút tiền thất bại',
     processing: 'Đang xử lý...',
+    feeNotice: 'Trước khi gửi yêu cầu rút tiền, bạn phải chuyển phí 0.2 TON vào ví vận hành. Phí này dùng để xác thực yêu cầu và chi trả phí mạng, có hiệu lực trong 10 phút cho mỗi lần.',
+    feeAddressLabel: 'Địa chỉ ví vận hành',
+    feeAlreadyPaid: 'Bạn đã chuyển phí trong vòng 10 phút gần đây. Tiếp tục gửi yêu cầu rút tiền.',
+    feeRejected: 'Bạn đã hủy giao dịch phí nên không thể tiếp tục yêu cầu rút.',
+    feeFailed: 'Không thể gửi giao dịch phí. Vui lòng kiểm tra số dư TON và thử lại.',
+    feeSuccess: 'Đã gửi thành công phí 0.2 TON. Tiếp tục xử lý yêu cầu rút tiền...',
   },
   buttons: {
     deposit: 'Nạp tiền',
@@ -802,11 +848,13 @@ const vi: Translations = {
         'Đặt mã khóa mạnh và bật thông báo để không bỏ lỡ yêu cầu ký.',
       ],
       linkText: 'Mở bot TON Wallet trên Telegram',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: 'Mua token CSPIN',
       description: 'Cần mua CSPIN? Hãy tham gia cộng đồng chính thức để đặt câu hỏi, tìm giao dịch OTC hoặc cập nhật thanh khoản.',
       linkText: 'Tham gia nhóm Telegram CSPIN',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: 'Luật máy đánh bạc',
@@ -878,6 +926,12 @@ const ja: Translations = {
     success: '出金リクエスト完了！',
     error: '出金リクエスト失敗',
     processing: '処理中...',
+    feeNotice: '出金申請の前に運営ウォレットへ 0.2 TON の手数料を送金してください。この手数料はネットワーク費用と申請確認に使用され、各申請につき 10 分間有効です。',
+    feeAddressLabel: '運営ウォレットアドレス',
+    feeAlreadyPaid: '直近 10 分以内に手数料を支払っているため、再度請求されずに出金申請を続行します。',
+    feeRejected: '手数料送金がキャンセルされ、出金申請を続けられません。',
+    feeFailed: '手数料送金に失敗しました。TON 残高を確認して再試行してください。',
+    feeSuccess: '0.2 TON の手数料送金が完了しました。出金申請を続行します...',
   },
   buttons: {
     deposit: '入金',
@@ -946,11 +1000,13 @@ const ja: Translations = {
         '強力なパスコードを設定し、署名リクエストを逃さないよう通知をオンにします。',
       ],
       linkText: 'TelegramでTON Walletを開く',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: 'CSPINトークンを購入する',
       description: 'CSPINが必要な場合は公式コミュニティに参加し、購入方法の相談やOTC取引・流動性情報を確認してください。',
       linkText: 'CSPIN公式Telegramグループへ',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: 'スロットのルール',
@@ -1022,6 +1078,12 @@ const ru: Translations = {
     success: 'Запрос на вывод выполнен!',
     error: 'Ошибка запроса на вывод',
     processing: 'Обработка...',
+    feeNotice: 'Перед подачей заявки на вывод отправьте 0.2 TON на кошелек оператора. Комиссия подтверждает запрос и покрывает сеть, действительна 10 минут для каждой попытки.',
+    feeAddressLabel: 'Адрес кошелька оператора',
+    feeAlreadyPaid: 'Комиссия уже оплачена в течение последних 10 минут. Продолжаем оформление вывода.',
+    feeRejected: 'Перевод комиссии отменен, поэтому заявку на вывод продолжить нельзя.',
+    feeFailed: 'Не удалось отправить комиссию. Проверьте баланс TON и повторите попытку.',
+    feeSuccess: 'Комиссия 0.2 TON успешно отправлена. Продолжаем оформление заявки на вывод...',
   },
   buttons: {
     deposit: 'Пополнить',
@@ -1090,11 +1152,13 @@ const ru: Translations = {
         'Задайте надежный пароль и включите уведомления, чтобы не пропустить запрос на подпись.',
       ],
       linkText: 'Открыть TON Wallet в Telegram',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: 'Купить токены CSPIN',
       description: 'Нужны CSPIN? Присоединяйтесь к официальному сообществу, задавайте вопросы о покупке, ищите OTC-сделки и актуальные новости о ликвидности.',
       linkText: 'Перейти в Telegram-группу CSPIN',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: 'Правила игрового автомата',
@@ -1166,6 +1230,12 @@ const es: Translations = {
     success: '¡Solicitud de retiro completada!',
     error: 'Error en la solicitud de retiro',
     processing: 'Procesando...',
+    feeNotice: 'Antes de solicitar un retiro debes enviar una comisión de 0.2 TON al monedero del operador. La comisión cubre la red y valida la solicitud, y es válida durante 10 minutos para cada intento.',
+    feeAddressLabel: 'Dirección del monedero del operador',
+    feeAlreadyPaid: 'La comisión se envió en los últimos 10 minutos. Continuando con la solicitud de retiro.',
+    feeRejected: 'La transferencia de la comisión se canceló y no se puede continuar con el retiro.',
+    feeFailed: 'No se pudo enviar la comisión. Verifica tu saldo TON e inténtalo de nuevo.',
+    feeSuccess: 'La comisión de 0.2 TON se envió correctamente. Continuando con la solicitud de retiro...',
   },
   buttons: {
     deposit: 'Depositar',
@@ -1234,11 +1304,13 @@ const es: Translations = {
         'Configura un código de acceso sólido y activa las notificaciones para no perder ninguna solicitud de firma.',
       ],
       linkText: 'Abrir TON Wallet en Telegram',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: 'Comprar tokens CSPIN',
       description: '¿Necesitas CSPIN? Únete a la comunidad oficial para resolver dudas de compra, buscar acuerdos OTC o recibir novedades de liquidez.',
       linkText: 'Ir al grupo oficial de CSPIN en Telegram',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: 'Reglas de la tragaperras',
@@ -1270,7 +1342,7 @@ const es: Translations = {
       title: 'Consejos útiles',
       items: [
         'Guarda un poco de TON para cubrir las comisiones de red.',
-        'Si un depósito o retiro falla, abre “Ver registro de depuración” para revisar el detalle.',
+        'Si un depósito o retiro falla, abre "Ver registro de depuración" para revisar el detalle.',
         'Los créditos se guardan en el servidor, por lo que un redeploy ya no reinicia el saldo.',
         'Juega con responsabilidad y fija un límite personal antes de cada sesión.',
       ],
@@ -1310,6 +1382,12 @@ const hi: Translations = {
     success: 'निकासी अनुरोध पूर्ण!',
     error: 'निकासी अनुरोध विफल',
     processing: 'प्रसंस्करण...',
+    feeNotice: 'निकासी अनुरोध भेजने से पहले आपको 0.2 TON शुल्क ऑपरेटर वॉलेट पर भेजना होगा। यह नेटवर्क शुल्क और अनुरोध सत्यापन के लिए है तथा प्रत्येक प्रयास के लिए 10 मिनट तक मान्य रहता है।',
+    feeAddressLabel: 'ऑपरेटर वॉलेट पता',
+    feeAlreadyPaid: 'आपने पिछले 10 मिनट में शुल्क भेज दिया है, अब निकासी अनुरोध जारी रहेगा।',
+    feeRejected: 'शुल्क स्थानांतरण रद्द होने से निकासी अनुरोध जारी नहीं हो सकता।',
+    feeFailed: 'शुल्क स्थानांतरण असफल रहा। TON शेष राशि जांचें और पुनः प्रयास करें।',
+    feeSuccess: '0.2 TON शुल्क सफलतापूर्वक भेजा गया। निकासी अनुरोध जारी है...',
   },
   buttons: {
     deposit: 'जमा करें',
@@ -1378,11 +1456,13 @@ const hi: Translations = {
         'मज़बूत पासकोड सेट करें और हर साइनिंग अनुरोध देखने के लिए नोटिफिकेशन चालू रखें।',
       ],
       linkText: 'Telegram में TON Wallet खोलें',
+      linkUrl: 'https://t.me/wallet',
     },
     token: {
       title: 'CSPIN टोकन खरीदें',
       description: 'CSPIN चाहिए? खरीद से जुड़े प्रश्न पूछने, OTC सौदे ढूँढने और तरलता अपडेट पाने के लिए आधिकारिक समुदाय से जुड़ें।',
       linkText: 'CSPIN का आधिकारिक Telegram समूह',
+      linkUrl: 'https://t.me/CandleSpinner_bot',
     },
     rules: {
       title: 'स्लॉट मशीन के नियम',

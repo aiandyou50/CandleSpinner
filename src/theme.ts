@@ -3,7 +3,19 @@
  * Google Material Design 3 스타일
  */
 
-import { createTheme } from '@mui/material/styles';
+import { createTheme, type Shadows } from '@mui/material/styles';
+
+const customShadows = Array.from({ length: 25 }, (_, index) => {
+  if (index === 0) {
+    return 'none';
+  }
+
+  const offsetY = Math.min(index * 2, 48);
+  const blurRadius = Math.min(offsetY * 2, 96);
+  const alpha = Math.min(0.08 + index * 0.01, 0.35);
+
+  return `0px ${offsetY}px ${blurRadius}px rgba(0, 0, 0, ${alpha.toFixed(2)})`;
+}) as Shadows;
 
 export const theme = createTheme({
   palette: {
@@ -109,15 +121,7 @@ export const theme = createTheme({
       xl: 1920,   // 대형 모니터
     },
   },
-  shadows: [
-    'none',
-    '0px 2px 4px rgba(0,0,0,0.1)',
-    '0px 4px 8px rgba(0,0,0,0.12)',
-    '0px 8px 16px rgba(0,0,0,0.14)',
-    '0px 16px 24px rgba(0,0,0,0.16)',
-    '0px 24px 32px rgba(0,0,0,0.18)',
-    // ... Material Design elevation levels
-  ] as any,
+  shadows: customShadows,
   components: {
     MuiButton: {
       styleOverrides: {
