@@ -216,8 +216,11 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
 
       // 백엔드에 입금 확인 요청 (금액 포함)
       logger.info('백엔드 입금 확인 요청...');
-      await verifyDeposit({ walletAddress, txHash, amount: depositAmount });
-
+      logger.debug('verifyDeposit 파라미터:', { walletAddress, txHashLength: txHash.length, amount: depositAmount });
+      
+      const depositResult = await verifyDeposit({ walletAddress, txHash, amount: depositAmount });
+      
+      logger.info('입금 검증 완료:', depositResult);
       logger.info('=== Deposit 완료 ===');
       alert(`${depositAmount} CSPIN 입금이 완료되었습니다!`);
       onSuccess();
