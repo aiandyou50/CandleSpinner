@@ -385,7 +385,7 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
     }
 
     // get_wallet_data 결과 파싱
-    // stack[0] = balance (number)
+    // stack[0] = balance (number - hex 또는 decimal)
     const balanceItem = tonCenterData.result.stack[0];
     if (!balanceItem || balanceItem.type !== 'num') {
       return new Response(JSON.stringify({ 
@@ -397,14 +397,25 @@ async function handleCheckBalance(request: Request, env: Env, corsHeaders: Recor
       });
     }
 
-    const balance = balanceItem.value;
-    const balanceCSPIN = Number(balance) / 1_000_000_000;
+    // ✅ hex 형식 (0x...) 또는 decimal 형식 처리
+    let balanceNano: number;
+    const balanceValue = balanceItem.value;
+    
+    if (typeof balanceValue === 'string' && balanceValue.startsWith('0x')) {
+      // hex to decimal 변환
+      balanceNano = parseInt(balanceValue, 16);
+      console.log('[CheckBalance] Hex balance converted:', balanceValue, '->', balanceNano);
+    } else {
+      balanceNano = Number(balanceValue);
+    }
+    
+    const balanceCSPIN = balanceNano / 1_000_000_000;
 
-    console.log('[CheckBalance] Success:', { balance, balanceCSPIN });
+    console.log('[CheckBalance] Success:', { balanceNano, balanceCSPIN });
 
     return new Response(JSON.stringify({
       success: true,
-      balance: balance,  // nano 단위
+      balance: balanceNano.toString(),  // nano 단위 (string으로 변환)
       balanceCSPIN: balanceCSPIN,  // CSPIN 단위
     }), {
       status: 200,

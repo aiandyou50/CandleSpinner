@@ -41,19 +41,31 @@ export async function verifyDeposit(data: VerifyDepositRequest): Promise<CreditR
     body: JSON.stringify(data),
   });
   
+  // ✅ 응답 텍스트 먼저 가져오기 (JSON 파싱 오류 방지)
+  const responseText = await response.text();
+  
   if (!response.ok) {
     // 상세한 에러 메시지 추출
     let errorMessage = 'Failed to verify deposit';
     try {
-      const errorData = await response.json() as { error?: string; message?: string };
+      const errorData = JSON.parse(responseText) as { error?: string; message?: string; details?: string };
       errorMessage = errorData.error || errorData.message || errorMessage;
+      if (errorData.details) {
+        errorMessage += ` (${errorData.details})`;
+      }
     } catch {
-      errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      errorMessage = `HTTP ${response.status}: ${response.statusText} - ${responseText.substring(0, 200)}`;
     }
     throw new Error(errorMessage);
   }
   
-  return response.json();
+  // ✅ JSON 파싱 오류 처리
+  try {
+    return JSON.parse(responseText);
+  } catch (parseError) {
+    console.error('[verifyDeposit] JSON 파싱 실패. 응답:', responseText);
+    throw new Error(`Invalid API response: "${responseText.substring(0, 100)}..." is not valid JSON`);
+  }
 }
 
 /**
