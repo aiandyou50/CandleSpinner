@@ -10,6 +10,7 @@ import { Address, beginCell, toNano, TonClient, JettonMaster } from '@ton/ton';
 import { verifyDeposit } from '@/api/client';
 import { GAME_WALLET_ADDRESS, CSPIN_TOKEN_ADDRESS, GAME_JETTON_WALLET } from '@/constants';
 import { logger } from '@/utils/logger';
+import { useLanguage } from '@/hooks/useLanguage';
 import { DebugLogModal } from './DebugLogModal';
 
 interface DepositProps {
@@ -49,6 +50,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDebugLog, setShowDebugLog] = useState(false);
+  const { t } = useLanguage();
 
   const handleDeposit = async () => {
     try {
@@ -57,7 +59,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
 
       const depositAmount = parseFloat(amount);
       if (isNaN(depositAmount) || depositAmount <= 0) {
-        throw new Error('잘못된 금액입니다');
+        throw new Error(t.errors.invalidAmount);
       }
 
       logger.info('=== Deposit 시작 ===');
@@ -222,11 +224,11 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
       
       logger.info('입금 검증 완료:', depositResult);
       logger.info('=== Deposit 완료 ===');
-      alert(`${depositAmount} CSPIN 입금이 완료되었습니다!`);
+  alert(`✅ ${t.deposit.success}\n${depositAmount} CSPIN`);
       onSuccess();
     } catch (err) {
       logger.error('Deposit 실패:', err);
-      setError(err instanceof Error ? err.message : '입금에 실패했습니다');
+  setError(err instanceof Error ? err.message : t.deposit.error);
     } finally {
       setIsLoading(false);
     }
@@ -235,11 +237,11 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
   return (
     <>
       <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
-        <h3 className="text-2xl font-bold text-white mb-4">💰 CSPIN 입금</h3>
+        <h3 className="text-2xl font-bold text-white mb-4">💰 {t.deposit.title}</h3>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-2">금액 (CSPIN)</label>
+            <label className="block text-sm text-gray-300 mb-2">{t.deposit.amount}</label>
             <input
               type="number"
               value={amount}
@@ -254,7 +256,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
             disabled={isLoading}
             className="w-full py-3 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl font-bold text-white hover:shadow-lg transition disabled:opacity-50"
           >
-            {isLoading ? '처리 중...' : '입금하기'}
+            {isLoading ? t.deposit.processing : t.buttons.deposit}
           </button>
 
           {/* 디버그 로그 버튼 */}
@@ -262,7 +264,7 @@ export function Deposit({ walletAddress, onSuccess }: DepositProps) {
             onClick={() => setShowDebugLog(true)}
             className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-xl text-sm text-white transition"
           >
-            🐛 디버그 로그 보기
+            🐛 {t.buttons.debugLog}
           </button>
 
           {error && (
