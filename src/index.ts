@@ -459,9 +459,12 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
     const apiKey = env.TONCENTER_API_KEY;
     if (!apiKey) {
       console.error('[VerifyDeposit] TONCENTER_API_KEY is not set!');
+      console.error('[VerifyDeposit] 💡 해결 방법: npx wrangler secret put TONCENTER_API_KEY');
+      console.error('[VerifyDeposit] 💡 또는 Cloudflare Dashboard → Workers → Settings → Variables에서 설정');
       return new Response(JSON.stringify({ 
         success: false,
-        error: 'TonCenter API Key not configured' 
+        error: 'TonCenter API Key not configured. Please contact administrator.',
+        details: 'TONCENTER_API_KEY environment variable is missing'
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

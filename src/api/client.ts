@@ -42,7 +42,15 @@ export async function verifyDeposit(data: VerifyDepositRequest): Promise<CreditR
   });
   
   if (!response.ok) {
-    throw new Error('Failed to verify deposit');
+    // 상세한 에러 메시지 추출
+    let errorMessage = 'Failed to verify deposit';
+    try {
+      const errorData = await response.json() as { error?: string; message?: string };
+      errorMessage = errorData.error || errorData.message || errorMessage;
+    } catch {
+      errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
   
   return response.json();
