@@ -101,8 +101,10 @@ export async function handleSpin(
     // 5. 당첨금 계산
     const { totalWin, isJackpot, reelPayouts, centerSymbols } = calculatePayout(reelResults, betAmount);
 
-    // 6. 크레딧 업데이트 (베팅액 차감 + 당첨금 추가)
-    const updatedCredit = currentCredit - betAmount + totalWin;
+    // 6. 크레딧 업데이트 (당첨 시 베팅액 포함 지급)
+    const updatedCredit = totalWin > 0
+      ? currentCredit + totalWin
+      : currentCredit - betAmount;
     const newCredit = await setCredit(env, walletAddress, updatedCredit);
 
     // 7. 게임 기록 저장

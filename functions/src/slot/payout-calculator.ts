@@ -47,23 +47,40 @@ export function calculatePayout(
   // 중앙 라인의 심볼만 추출 (인덱스 1)
   const centerSymbols = reelResults.map(reel => reel[1] || '⭐');
   
-  // 각 릴의 당첨금 계산
-  const reelPayouts = centerSymbols.map(symbol => {
-    const multiplier = SYMBOL_PAYOUTS[symbol] || 0;
-    return betAmount * multiplier;
+  const reelPayouts = [0, 0, 0];
+  const symbolCounts: Record<string, number> = {};
+
+  centerSymbols.forEach(symbol => {
+    symbolCounts[symbol] = (symbolCounts[symbol] || 0) + 1;
   });
-  
-  // 총 당첨금 (3개 릴 합산)
+
+  // 동일 심볼 2개 이상일 때만 당첨 인정
+  for (const [symbol, count] of Object.entries(symbolCounts)) {
+    if (count < 2) {
+      continue;
+    }
+
+    const payoutPerReel = betAmount * (SYMBOL_PAYOUTS[symbol] || 0);
+    centerSymbols.forEach((centerSymbol, index) => {
+      if (centerSymbol === symbol) {
+        reelPayouts[index] = payoutPerReel;
+      }
+    });
+  }
+
   let totalWin = reelPayouts.reduce((sum, payout) => sum + payout, 0);
-  
-  // 잭팟 체크 (3개 모두 동일한 심볼)
-  const isJackpot = centerSymbols.every(s => s === centerSymbols[0]);
-  
-  // 잭팟이면 100배
+  const isJackpot = centerSymbols.every(symbol => symbol === centerSymbols[0]);
   let multiplier = 1;
-  if (isJackpot) {
+
+  if (isJackpot && totalWin > 0) {
     multiplier = 100;
-    totalWin = totalWin * 100;
+    totalWin *= multiplier;
+    for (let i = 0; i < reelPayouts.length; i++) {
+      const payout = reelPayouts[i] ?? 0;
+      if (payout > 0) {
+        reelPayouts[i] = payout * multiplier;
+      }
+    }
   }
   
   return {
