@@ -20,6 +20,7 @@ import {
   handleDoubleUp as handleSlotDoubleUp, 
   handleGetDoubleUpHistory 
 } from '../functions/src/slot/doubleup-handler';
+import { getCredit, setCredit, type CreditRecord } from '../functions/src/slot/credit-utils';
 
 export interface Env {
   ASSETS: Fetcher;
@@ -191,12 +192,22 @@ async function handleGetCredit(request: Request, env: Env, corsHeaders: Record<s
   }
 
   const key = `credit:${address}`;
-  const data = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
-  
+  const credit = await getCredit(env, address);
+  let lastUpdated: string | null = null;
+
+  try {
+    const stored = await env.CREDIT_KV.get<CreditRecord | number>(key, 'json');
+    if (stored && typeof stored === 'object' && 'lastUpdated' in stored) {
+      lastUpdated = stored.lastUpdated;
+    }
+  } catch (error) {
+    console.warn('[GetCredit] JSON parse warning:', error);
+  }
+
   return new Response(JSON.stringify({
     success: true,
-    credit: data?.credit || 0,
-    lastUpdated: new Date().toISOString()
+    credit,
+    lastUpdated: lastUpdated || new Date().toISOString()
   }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -599,30 +610,8 @@ async function handleVerifyDeposit(request: Request, env: Env, corsHeaders: Reco
     }
     
     // 크레딧 업데이트
-    const key = `credit:${body.walletAddress}`;
-    let current: { credit: number } | null = null;
-    try {
-      current = await env.CREDIT_KV.get(key, 'json') as { credit: number } | null;
-    } catch (kvParseError) {
-      console.error('[VerifyDeposit] CREDIT_KV JSON 파싱 실패:', kvParseError);
-      const rawValue = await env.CREDIT_KV.get(key);
-      console.error('[VerifyDeposit] CREDIT_KV Raw 값:', rawValue);
-    }
-
-    const currentCredit = typeof current?.credit === 'number' && Number.isFinite(current.credit)
-      ? current.credit
-      : 0;
-
-    if (current && (!Number.isFinite(current.credit) || current.credit < 0)) {
-      console.warn('[VerifyDeposit] CREDIT_KV에 비정상 값이 저장되어 초기화합니다:', current);
-    }
-
-    const newCredit = currentCredit + depositAmount;
-    
-    await env.CREDIT_KV.put(key, JSON.stringify({
-      credit: newCredit,
-      lastUpdated: new Date().toISOString()
-    }));
+    const currentCredit = await getCredit(env, body.walletAddress);
+    const newCredit = await setCredit(env, body.walletAddress, currentCredit + depositAmount);
     
     console.log('[VerifyDeposit] ✅ 크레딧 업데이트:', newCredit, `(+${depositAmount} CSPIN)`);
     
@@ -758,10 +747,9 @@ async function handleWithdrawRequest(request: Request, env: Env, corsHeaders: Re
     console.log('[WithdrawRequest] ✅ 보안 검증 통과');
     
     // 1. 크레딧 확인
-    const creditKey = `credit:${body.userAddress}`;
-    const current = await env.CREDIT_KV.get(creditKey, 'json') as { credit: number } | null;
+    const currentCredit = await getCredit(env, body.userAddress);
     
-    if (!current || current.credit < body.amount) {
+    if (currentCredit < body.amount) {
       console.error('[WithdrawRequest] 크레딧 부족');
       return new Response(JSON.stringify({
         success: false,
@@ -772,16 +760,12 @@ async function handleWithdrawRequest(request: Request, env: Env, corsHeaders: Re
       });
     }
     
-    console.log(`[WithdrawRequest] 현재 크레딧: ${current.credit}`);
+    console.log(`[WithdrawRequest] 현재 크레딧: ${currentCredit}`);
     
     // 2. 크레딧 차감
-    const newCredit = current.credit - body.amount;
-    await env.CREDIT_KV.put(creditKey, JSON.stringify({
-      credit: newCredit,
-      lastUpdated: new Date().toISOString()
-    }));
+    const newCredit = await setCredit(env, body.userAddress, currentCredit - body.amount);
     
-    console.log(`[WithdrawRequest] 크레딧 차감 완료: ${current.credit} → ${newCredit}`);
+    console.log(`[WithdrawRequest] 크레딧 차감 완료: ${currentCredit} → ${newCredit}`);
     
     // 3. 대기열에 추가
     const withdrawalId = `withdraw_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

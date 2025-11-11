@@ -48,6 +48,7 @@ export interface Translations {
     refresh: string;
     process: string;
     back: string;
+    debugLog: string;
   };
   betting: {
     amount: string;
@@ -56,6 +57,7 @@ export interface Translations {
   errors: {
     insufficientBalance: string;
     generic: string;
+    invalidAmount: string;
   };
   results: {
     jackpot: string;
@@ -131,6 +133,7 @@ const en: Translations = {
     refresh: 'Refresh',
     process: 'Process',
     back: 'Back to Home',
+    debugLog: 'View Debug Log',
   },
   betting: {
     amount: 'Bet Amount',
@@ -139,6 +142,7 @@ const en: Translations = {
   errors: {
     insufficientBalance: 'Insufficient balance!',
     generic: 'Game failed',
+    invalidAmount: 'Invalid amount',
   },
   results: {
     jackpot: 'JACKPOT!',
@@ -214,6 +218,7 @@ const ko: Translations = {
     refresh: '새로고침',
     process: '처리하기',
     back: '홈으로 돌아가기',
+    debugLog: '디버그 로그 보기',
   },
   betting: {
     amount: '베팅 금액',
@@ -222,6 +227,7 @@ const ko: Translations = {
   errors: {
     insufficientBalance: '잔액 부족!',
     generic: '게임 실행 실패',
+    invalidAmount: '잘못된 금액입니다',
   },
   results: {
     jackpot: '대박!',
@@ -297,6 +303,7 @@ const zhCN: Translations = {
     refresh: '刷新',
     process: '处理',
     back: '返回首页',
+    debugLog: '查看调试日志',
   },
   betting: {
     amount: '投注金额',
@@ -305,6 +312,7 @@ const zhCN: Translations = {
   errors: {
     insufficientBalance: '余额不足！',
     generic: '游戏失败',
+    invalidAmount: '金额无效',
   },
   results: {
     jackpot: '大奖！',
@@ -380,6 +388,7 @@ const zhTW: Translations = {
     refresh: '刷新',
     process: '處理',
     back: '返回首頁',
+    debugLog: '查看除錯日誌',
   },
   betting: {
     amount: '投注金額',
@@ -388,6 +397,7 @@ const zhTW: Translations = {
   errors: {
     insufficientBalance: '餘額不足！',
     generic: '遊戲失敗',
+    invalidAmount: '金額無效',
   },
   results: {
     jackpot: '大獎！',
@@ -462,7 +472,8 @@ const vi: Translations = {
     decline: 'Bỏ qua',
     refresh: 'Làm mới',
     process: 'Xử lý',
-    back: 'Về trang chủ',
+    back: 'Quay lại Trang chủ',
+    debugLog: 'Xem Nhật ký Gỡ lỗi',
   },
   betting: {
     amount: 'Số tiền cược',
@@ -471,6 +482,7 @@ const vi: Translations = {
   errors: {
     insufficientBalance: 'Số dư không đủ!',
     generic: 'Trò chơi thất bại',
+    invalidAmount: 'Số tiền không hợp lệ',
   },
   results: {
     jackpot: 'ĐẠI THƯỞNG!',
@@ -546,6 +558,7 @@ const ja: Translations = {
     refresh: '更新',
     process: '処理',
     back: 'ホームに戻る',
+    debugLog: 'デバッグログを表示',
   },
   betting: {
     amount: 'ベット額',
@@ -554,6 +567,7 @@ const ja: Translations = {
   errors: {
     insufficientBalance: '残高不足！',
     generic: 'ゲーム失敗',
+    invalidAmount: '無効な金額です',
   },
   results: {
     jackpot: 'ジャックポット！',
@@ -629,6 +643,7 @@ const ru: Translations = {
     refresh: 'Обновить',
     process: 'Обработать',
     back: 'На главную',
+    debugLog: 'Посмотреть журнал отладки',
   },
   betting: {
     amount: 'Сумма ставки',
@@ -637,6 +652,7 @@ const ru: Translations = {
   errors: {
     insufficientBalance: 'Недостаточно средств!',
     generic: 'Игра провалилась',
+    invalidAmount: 'Недопустимая сумма',
   },
   results: {
     jackpot: 'ДЖЕКПОТ!',
@@ -712,6 +728,7 @@ const es: Translations = {
     refresh: 'Actualizar',
     process: 'Procesar',
     back: 'Volver al inicio',
+    debugLog: 'Ver registro de depuración',
   },
   betting: {
     amount: 'Cantidad de apuesta',
@@ -720,6 +737,7 @@ const es: Translations = {
   errors: {
     insufficientBalance: '¡Saldo insuficiente!',
     generic: 'Juego fallido',
+    invalidAmount: 'Cantidad no válida',
   },
   results: {
     jackpot: '¡PREMIO MAYOR!',
@@ -795,6 +813,7 @@ const hi: Translations = {
     refresh: 'रीफ्रेश करें',
     process: 'प्रक्रिया',
     back: 'होम पर वापस जाएं',
+    debugLog: 'डीबग लॉग देखें',
   },
   betting: {
     amount: 'दांव राशि',
@@ -803,6 +822,7 @@ const hi: Translations = {
   errors: {
     insufficientBalance: 'अपर्याप्त शेष राशि!',
     generic: 'खेल विफल',
+    invalidAmount: 'अमान्य राशि',
   },
   results: {
     jackpot: 'जैकपॉट!',

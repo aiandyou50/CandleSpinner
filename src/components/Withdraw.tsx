@@ -37,7 +37,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       const withdrawAmount = parseFloat(amount);
       if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
         logger.error('❌ 잘못된 금액:', amount);
-        throw new Error('잘못된 금액입니다');
+        throw new Error(t.errors.invalidAmount);
       }
 
       logger.info(`인출 금액: ${withdrawAmount} CSPIN`);
@@ -88,7 +88,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
 
       logger.info('=== 인출 요청 완료 ===');
       
-      const successMsg = `인출 요청이 완료되었습니다!\n\n` +
+      const successMsg = `✅ ${t.withdraw.success}\n\n` +
         `ID: ${result.withdrawalId.substring(0, 8)}...\n` +
         `${result.estimatedProcessTime}`;
       alert(successMsg);
@@ -104,7 +104,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
       }
       
       console.error('Withdraw failed:', err);
-      setError(err instanceof Error ? err.message : '인출 요청 실패');
+  setError(err instanceof Error ? err.message : t.withdraw.error);
     } finally {
       setIsLoading(false);
     }
@@ -113,19 +113,19 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
   return (
     <>
       <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-6 border border-white/20 shadow-2xl">
-        <h3 className="text-2xl font-bold text-white mb-4">💸 CSPIN 인출</h3>
+        <h3 className="text-2xl font-bold text-white mb-4">💸 {t.withdraw.title}</h3>
         
         {/* 안내 메시지 - 수동 처리 안내 */}
         <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/50 rounded-lg">
           <p className="text-sm text-blue-200 font-semibold mb-1">
-            📋 인출 요청 후 관리자 승인이 필요합니다
+            📋 {t.withdraw.description}
           </p>
         </div>
         
         <div className="space-y-4">
           <div>
             <label className="block text-sm text-gray-300 mb-2">
-              사용 가능: {currentCredit} CSPIN
+              {t.withdraw.available}: {currentCredit} CSPIN
             </label>
             <input
               type="number"
@@ -154,7 +154,7 @@ export function Withdraw({ walletAddress, currentCredit, onSuccess }: WithdrawPr
             onClick={() => setShowDebugLog(true)}
             className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-xl text-white text-sm transition"
           >
-            🐛 디버그 로그 보기
+            🐛 {t.buttons.debugLog}
           </button>
         </div>
       </div>
