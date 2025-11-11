@@ -1,7 +1,7 @@
 /* Language Selector Styles */
 .language-selector {
   position: relative;
-  z-index: 99999;  /* ✅ 최상단 z-index로 변경 */
+  z-index: 1100;
 }
 
 .language-selector-button {
@@ -53,7 +53,7 @@
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   overflow: hidden;
-  z-index: 100000;  /* ✅ 드롭다운도 최상단 */
+  z-index: 1110;
 }
 
 .language-option {
@@ -82,4 +82,13 @@
 .check-icon {
   margin-left: auto;
   color: #a78bfa;
+}
+
+.language-selector--disabled {
+  pointer-events: none;
+}
+
+.language-selector-button:disabled {
+  opacity: 1;
+  cursor: default;
 }

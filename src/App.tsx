@@ -83,7 +83,7 @@ function GamePage() {
             >
               {t.help.nav.help}
             </Button>
-            <LanguageSelector />
+            <LanguageSelector disabled={isMenuOpen} />
             <TonConnectButton />
           </Box>
         </Toolbar>
