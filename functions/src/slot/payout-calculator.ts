@@ -47,40 +47,40 @@ export function calculatePayout(
   // 중앙 라인의 심볼만 추출 (인덱스 1)
   const centerSymbols = reelResults.map(reel => reel[1] || '⭐');
   
-  const reelPayouts = [0, 0, 0];
+  // 최적화: 초기 배열 크기 지정
+  const reelPayouts: number[] = [0, 0, 0];
   const symbolCounts: Record<string, number> = {};
 
-  centerSymbols.forEach(symbol => {
+  // Count symbols in a single pass
+  for (const symbol of centerSymbols) {
     symbolCounts[symbol] = (symbolCounts[symbol] || 0) + 1;
-  });
-
-  // 동일 심볼 2개 이상일 때만 당첨 인정
-  for (const [symbol, count] of Object.entries(symbolCounts)) {
-    if (count < 2) {
-      continue;
-    }
-
-    const payoutPerReel = betAmount * (SYMBOL_PAYOUTS[symbol] || 0);
-    centerSymbols.forEach((centerSymbol, index) => {
-      if (centerSymbol === symbol) {
-        reelPayouts[index] = payoutPerReel;
-      }
-    });
   }
 
-  let totalWin = reelPayouts.reduce((sum, payout) => sum + payout, 0);
-  const isJackpot = centerSymbols.every(symbol => symbol === centerSymbols[0]);
+  // 동일 심볼 2개 이상일 때만 당첨 인정
+  for (const symbol in symbolCounts) {
+    const count = symbolCounts[symbol]!;
+    if (count < 2) continue;
+
+    const payoutPerReel = betAmount * (SYMBOL_PAYOUTS[symbol] || 0);
+    
+    // Apply payout to matching reels
+    for (let i = 0; i < centerSymbols.length; i++) {
+      if (centerSymbols[i] === symbol) {
+        reelPayouts[i] = payoutPerReel;
+      }
+    }
+  }
+
+  let totalWin = (reelPayouts[0] ?? 0) + (reelPayouts[1] ?? 0) + (reelPayouts[2] ?? 0);
+  const isJackpot = centerSymbols[0] === centerSymbols[1] && centerSymbols[1] === centerSymbols[2];
   let multiplier = 1;
 
   if (isJackpot && totalWin > 0) {
     multiplier = 100;
     totalWin *= multiplier;
-    for (let i = 0; i < reelPayouts.length; i++) {
-      const payout = reelPayouts[i] ?? 0;
-      if (payout > 0) {
-        reelPayouts[i] = payout * multiplier;
-      }
-    }
+    reelPayouts[0]! *= multiplier;
+    reelPayouts[1]! *= multiplier;
+    reelPayouts[2]! *= multiplier;
   }
   
   return {
