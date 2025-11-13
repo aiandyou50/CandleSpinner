@@ -2,7 +2,7 @@
  * 슬롯 머신 컴포넌트
  */
 
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { spin as spinApi } from '@/api/client';
 
 interface SlotMachineProps {
@@ -10,6 +10,8 @@ interface SlotMachineProps {
   currentCredit: number;
   onSuccess: () => void;
 }
+
+const ALL_SYMBOLS = ['🍒', '🍋', '🍊', '🍉', '⭐', '💎'];
 
 export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMachineProps) {
   const [symbols, setSymbols] = useState<string[][]>([
@@ -19,8 +21,9 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
   ]);
   const [isSpinning, setIsSpinning] = useState(false);
   const [lastWin, setLastWin] = useState<number | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleSpin = async () => {
+  const handleSpin = useCallback(async () => {
     if (currentCredit < 1) {
       alert('크레딧이 부족합니다! 먼저 CSPIN을 입금해주세요.');
       return;
@@ -30,14 +33,11 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
       setIsSpinning(true);
       setLastWin(null);
 
-      // 애니메이션 효과 (랜덤 심볼 표시)
-      const interval = setInterval(() => {
+      // 애니메이션 효과 (랜덤 심볼 표시) - 최적화: 상수 재사용
+      intervalRef.current = setInterval(() => {
         setSymbols(prevSymbols => 
           prevSymbols.map(row => 
-            row.map(() => {
-              const allSymbols = ['🍒', '🍋', '🍊', '🍉', '⭐', '💎'];
-              return allSymbols[Math.floor(Math.random() * allSymbols.length)]!;
-            })
+            row.map(() => ALL_SYMBOLS[Math.floor(Math.random() * ALL_SYMBOLS.length)]!)
           )
         );
       }, 100);
@@ -47,7 +47,10 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
 
       // 애니메이션 멈추고 결과 표시
       setTimeout(() => {
-        clearInterval(interval);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
         setSymbols(result.result);
         setLastWin(result.winAmount);
         setIsSpinning(false);
@@ -60,9 +63,16 @@ export function SlotMachine({ walletAddress, currentCredit, onSuccess }: SlotMac
     } catch (error) {
       console.error('Spin failed:', error);
       setIsSpinning(false);
+      
+      // Cleanup interval on error
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
       alert('게임 실행에 실패했습니다. 다시 시도해주세요.');
     }
-  };
+  }, [currentCredit, walletAddress, onSuccess]);
 
   return (
     <div className="backdrop-blur-lg bg-white/10 rounded-2xl p-8 border border-white/20 shadow-2xl">
