@@ -94,15 +94,14 @@ function selectSymbolFromHash(hash: string, reelIndex: number): string {
   // 0-99 범위로 정규화
   const normalized = hashValue % 100;
   
-  // 누적 확률 테이블에서 심볼 선택
-  for (const { symbol, threshold } of CUMULATIVE_PROBABILITIES) {
-    if (normalized < threshold) {
-      return symbol;
-    }
-  }
-  
-  // 기본값 (도달하지 않아야 함)
-  return SYMBOLS[0];
+  // 최적화: 조기 종료 - 가장 흔한 케이스부터 체크
+  if (normalized < 35) return '⭐';  // 35%
+  if (normalized < 60) return '🪐';  // 25%
+  if (normalized < 75) return '☄️';  // 15%
+  if (normalized < 85) return '🚀';  // 10%
+  if (normalized < 92) return '👽';  // 7%
+  if (normalized < 97) return '💎';  // 5%
+  return '👑';  // 3%
 }
 
 /**
