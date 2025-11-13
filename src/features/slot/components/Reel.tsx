@@ -3,6 +3,7 @@
  * Framer Motion + MUI Card를 사용한 반응형 스핀 애니메이션
  */
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, Box } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -80,7 +81,8 @@ const SymbolCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-export function Reel({ symbols, isSpinning, delay, isWinning = false }: ReelProps) {
+// Memoized component to prevent unnecessary re-renders
+export const Reel = memo(function Reel({ symbols, isSpinning, delay, isWinning = false }: ReelProps) {
   return (
     <Box
       component={motion.div}
@@ -122,5 +124,5 @@ export function Reel({ symbols, isSpinning, delay, isWinning = false }: ReelProp
       })}
     </Box>
   );
-}
+});
 

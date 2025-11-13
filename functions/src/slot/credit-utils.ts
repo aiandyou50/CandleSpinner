@@ -30,6 +30,7 @@ export async function getCredit(env: CreditEnv, walletAddress: string): Promise<
   const key = `credit:${walletAddress}`;
 
   try {
+    // First attempt: JSON parsing with type safety
     const stored = await env.CREDIT_KV.get<CreditRecord | number>(key, 'json');
 
     if (typeof stored === 'number') {
@@ -39,30 +40,16 @@ export async function getCredit(env: CreditEnv, walletAddress: string): Promise<
     if (stored && typeof stored === 'object' && typeof stored.credit === 'number') {
       return normalizeCredit(stored.credit);
     }
-  } catch (error) {
-    console.warn(`[Credit] JSON parse failed for ${walletAddress}:`, error);
-  }
-
-  const raw = await env.CREDIT_KV.get(key);
-  if (!raw) {
-    return 0;
-  }
-
-  const numeric = Number(raw);
-  if (Number.isFinite(numeric)) {
-    return normalizeCredit(numeric);
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as { credit?: number };
-    if (typeof parsed.credit === 'number') {
-      return normalizeCredit(parsed.credit);
+    
+    // If no valid JSON found, return default
+    if (!stored) {
+      return 0;
     }
-  } catch {
-    // ignore
+  } catch (error) {
+    console.warn(`[Credit] Failed to get credit for ${walletAddress}:`, error);
   }
 
-  console.warn(`[Credit] Unable to parse credit for ${walletAddress}, defaulting to 0. Raw value: ${raw}`);
+  // Fallback: shouldn't reach here in normal operation
   return 0;
 }
 

@@ -3,7 +3,7 @@
  * API를 통해 크레딧 조회/업데이트
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchCredit } from '@/api/client';
 
 export function useCredit(walletAddress: string | null) {
@@ -11,16 +11,7 @@ export function useCredit(walletAddress: string | null) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!walletAddress) {
-      setCredit(0);
-      return;
-    }
-
-    loadCredit();
-  }, [walletAddress]);
-
-  const loadCredit = async () => {
+  const loadCredit = useCallback(async () => {
     if (!walletAddress) return;
 
     setIsLoading(true);
@@ -35,11 +26,20 @@ export function useCredit(walletAddress: string | null) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [walletAddress]);
 
-  const refreshCredit = () => {
+  useEffect(() => {
+    if (!walletAddress) {
+      setCredit(0);
+      return;
+    }
+
     loadCredit();
-  };
+  }, [walletAddress, loadCredit]);
+
+  const refreshCredit = useCallback(() => {
+    loadCredit();
+  }, [loadCredit]);
 
   return { credit, isLoading, error, refreshCredit };
 }
