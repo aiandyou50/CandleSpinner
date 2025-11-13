@@ -4,7 +4,7 @@
  * 반응형 디자인 적용
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Box, Card, CardContent, Typography, Chip, Stack } from '@mui/material';
 import { Reel } from './Reel';
@@ -56,8 +56,18 @@ export function SlotMachineV2({
   // 애니메이션 상태
   const [showWinAnimation, setShowWinAnimation] = useState(false);
 
+  // Use ref to store interval ID for proper cleanup
+  const spinIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function to generate random symbols
+  const getRandomSymbols = useCallback(() => [
+    SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
+    SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
+    SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
+  ], []);
+
   // 스핀 핸들러
-  const handleSpin = async () => {
+  const handleSpin = useCallback(async () => {
     if (currentCredit < betAmount) {
       alert(t.errors.insufficientBalance);
       return;
@@ -72,24 +82,12 @@ export function SlotMachineV2({
       // 클라이언트 시드 생성
       const clientSeed = crypto.randomUUID();
 
-      // 스핀 애니메이션 중 랜덤 심볼 표시
-      const spinInterval = setInterval(() => {
+      // 스핀 애니메이션 중 랜덤 심볼 표시 - 최적화: 함수 재사용
+      spinIntervalRef.current = setInterval(() => {
         setReelResults([
-          [
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-          ],
-          [
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-          ],
-          [
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-            SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]!,
-          ],
+          getRandomSymbols(),
+          getRandomSymbols(),
+          getRandomSymbols(),
         ]);
       }, 100);
 
@@ -99,8 +97,11 @@ export function SlotMachineV2({
       // 애니메이션 완료 대기 (2초)
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // 애니메이션 중지
-      clearInterval(spinInterval);
+      // 애니메이션 중지 및 정리
+      if (spinIntervalRef.current) {
+        clearInterval(spinIntervalRef.current);
+        spinIntervalRef.current = null;
+      }
 
       // 결과 표시
       setReelResults(result.result || []);
@@ -130,16 +131,22 @@ export function SlotMachineV2({
     } catch (error) {
       console.error('Spin failed:', error);
       alert(error instanceof Error ? error.message : t.errors.generic);
+      
+      // Cleanup interval on error
+      if (spinIntervalRef.current) {
+        clearInterval(spinIntervalRef.current);
+        spinIntervalRef.current = null;
+      }
     } finally {
       setIsSpinning(false);
     }
-  };
+  }, [currentCredit, betAmount, t.errors, walletAddress, onCreditChange, getRandomSymbols]);
 
   // 잭팟 비디오 완료 후
-  const handleJackpotComplete = () => {
+  const handleJackpotComplete = useCallback(() => {
     setShowJackpot(false);
     // 잭팟은 더블업 불가
-  };
+  }, []);
 
   return (
     <Card
