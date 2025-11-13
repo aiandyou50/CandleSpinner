@@ -3,7 +3,7 @@
  * ButtonGroup + Slider + Stack을 사용한 반응형 베팅 컨트롤
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, memo } from 'react';
 import {
   Box,
   Button,
@@ -69,7 +69,7 @@ const GoldSlider = styled(Slider)(({ theme }) => ({
   },
 }));
 
-export function BettingControl({
+export const BettingControl = memo(function BettingControl({
   betAmount,
   onBetChange,
   maxCredit,
@@ -84,23 +84,23 @@ export function BettingControl({
     setLocalBet(betAmount);
   }, [betAmount]);
 
-  const handleSliderChange = (_event: Event, newValue: number | number[]) => {
+  const handleSliderChange = useCallback((_event: Event, newValue: number | number[]) => {
     const value = newValue as number;
     setLocalBet(value);
     onBetChange(value);
-  };
+  }, [onBetChange]);
 
-  const handleQuickBet = (amount: number) => {
+  const handleQuickBet = useCallback((amount: number) => {
     const finalAmount = Math.min(amount, maxCredit, 1000);
     setLocalBet(finalAmount);
     onBetChange(finalAmount);
-  };
+  }, [maxCredit, onBetChange]);
 
-  const handleMaxBet = () => {
+  const handleMaxBet = useCallback(() => {
     const maxBet = Math.min(maxCredit, 1000);
     setLocalBet(maxBet);
     onBetChange(maxBet);
-  };
+  }, [maxCredit, onBetChange]);
 
   const canSpin = maxCredit >= betAmount && betAmount >= 10 && !isSpinning;
   const quickBetOptions = [100, 500, 1000];
@@ -236,5 +236,5 @@ export function BettingControl({
       )}
     </Stack>
   );
-}
+});
 

@@ -3,7 +3,7 @@
  * 빨강/파랑 버튼 선택 + 결과 애니메이션
  */
 
-import { useState } from 'react';
+import { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doubleUp } from '../api/slot';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -18,7 +18,7 @@ interface DoubleUpModalProps {
 
 type ModalState = 'pending' | 'processing' | 'success' | 'fail';
 
-export function DoubleUpModal({
+export const DoubleUpModal = memo(function DoubleUpModal({
   currentWin,
   gameId,
   walletAddress,
@@ -31,7 +31,7 @@ export function DoubleUpModal({
   const [winningColor, setWinningColor] = useState<'red' | 'blue' | null>(null);
   const [finalAmount, setFinalAmount] = useState(0);
 
-  const handleChoice = async (choice: 'red' | 'blue') => {
+  const handleChoice = useCallback(async (choice: 'red' | 'blue') => {
     setSelectedColor(choice);
     setState('processing');
 
@@ -53,11 +53,11 @@ export function DoubleUpModal({
       alert(error instanceof Error ? error.message : t.errors.generic);
       onClose();
     }
-  };
+  }, [walletAddress, currentWin, gameId, onSuccess, onClose, t.errors.generic]);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     onClose();
-  };
+  }, [onClose]);
 
   return (
     <AnimatePresence>
@@ -185,4 +185,4 @@ export function DoubleUpModal({
       </motion.div>
     </AnimatePresence>
   );
-}
+});
