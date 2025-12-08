@@ -8,10 +8,12 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#4A00E0',
-          light: '#6B28E8',
-          dark: '#3500B0',
+          DEFAULT: '#2b8cee',
+          light: '#5ba3f0',
+          dark: '#1e6bb8',
         },
+        'background-light': '#f6f7f8',
+        'background-dark': '#101922',
         secondary: {
           DEFAULT: '#8E2DE2',
           light: '#A855F7',
@@ -58,7 +60,7 @@ export default {
       fontFamily: {
         heading: ['Poppins', 'Noto Sans', 'sans-serif'],
         body: ['Open Sans', 'Noto Sans', 'sans-serif'],
-        display: ['Orbitron', 'monospace'],
+        display: ['Plus Jakarta Sans', 'Noto Sans', 'sans-serif'],
         poppins: ['Poppins', 'sans-serif'],
         orbitron: ['Orbitron', 'sans-serif'],
         openSans: ['Open Sans', 'sans-serif'],

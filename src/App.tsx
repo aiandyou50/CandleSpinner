@@ -27,6 +27,8 @@ import { useTonConnect } from '@/hooks/useTonConnect';
 import { useCredit } from '@/hooks/useCredit';
 import { useLanguage } from '@/hooks/useLanguage';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { LandingPage } from '@/components/LandingPage';
+import { useAuth } from '@/hooks/useAuth';
 import { theme } from '@/theme';
 
 import MenuIcon from '@mui/icons-material/Menu';
@@ -43,6 +45,7 @@ function GamePage() {
   const { isConnected, walletAddress } = useTonConnect();
   const { credit, isLoading, refreshCredit } = useCredit(walletAddress);
   const { t } = useLanguage();
+  const { signOut, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
@@ -57,6 +60,14 @@ function GamePage() {
   const handleOpenHelp = () => {
     setIsHelpOpen(true);
     setIsMenuOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   return (
@@ -104,6 +115,15 @@ function GamePage() {
             >
               {t.help.nav.help}
             </Button>
+            {user && (
+              <Button
+                color='inherit'
+                onClick={handleSignOut}
+                sx={{ display: { xs: 'none', md: 'inline-flex' } }}
+              >
+                로그아웃
+              </Button>
+            )}
             <Box sx={{ flexShrink: 0 }}>
               <LanguageSelector disabled={isMenuOpen} />
             </Box>
@@ -254,12 +274,25 @@ function GamePage() {
 }
 
 function App() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+          <CircularProgress />
+        </Box>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
         <Routes>
-          <Route path='/' element={<GamePage />} />
+          <Route path='/' element={isAuthenticated ? <GamePage /> : <LandingPage />} />
           <Route
             path='/admin'
             element={
