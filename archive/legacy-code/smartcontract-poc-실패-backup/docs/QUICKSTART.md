@@ -46,7 +46,7 @@ node server.js
 **성공 메시지**:
 ```
 ✅ Owner 키 로드 완료
-📍 Public Key: 5889c3f6dada809b36e2fa53a6be362f...
+📍 Public Key: ***REDACTED***
 
 🚀 Signed Voucher API 서버 시작
 📍 포트: 3000

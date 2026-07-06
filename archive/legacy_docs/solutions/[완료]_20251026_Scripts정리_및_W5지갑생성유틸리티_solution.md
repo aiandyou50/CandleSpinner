@@ -136,7 +136,7 @@ node scripts/create-w5-wallet.mjs --mnemonic "bamboo release expand income shive
 
 ##***REMOVED***예시 2: 프라이빗 키로 검증
 ```bash
-node scripts/create-w5-wallet.mjs --privatekey "***REDACTED-TON-PRIVATE-KEY***"
+node scripts/create-w5-wallet.mjs --privatekey "***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***"
 ```
 
 ---

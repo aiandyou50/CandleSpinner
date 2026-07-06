@@ -162,7 +162,7 @@ ls -la contracts/build/
 ##***REMOVED*****Step 1: 프라이빗 키 준비**
 
 ```
-***REDACTED-TON-PRIVATE-KEY***
+***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***
 ```
 
 ##***REMOVED*****Step 2: 스마트컨트랙트 빌드**
@@ -183,7 +183,7 @@ npm run build
 ```bash
 ***REMOVED***테스트넷 배포 (프라이빗 키 사용)
 npx blueprint deploy \
-  --privkey "***REDACTED-TON-PRIVATE-KEY***" \
+  --privkey "***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***" \
   --testnet
 ```
 
@@ -318,7 +318,7 @@ npm run build
 
 ***REMOVED***3. 배포 (프라이빗 키 사용)
 npx blueprint deploy `
-  --privkey "***REDACTED-TON-PRIVATE-KEY***" `
+  --privkey "***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***" `
   --testnet
 ```
 

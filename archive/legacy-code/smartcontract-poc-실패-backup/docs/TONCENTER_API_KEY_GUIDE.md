@@ -26,7 +26,7 @@ AxiosError: Request failed with status code 429
 봇이 자동으로 API Key를 발급해줍니다:
 
 ```
-Your API key: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+Your API key: ***REDACTED-TONCENTER-API-KEY***
 ```
 
 ##***REMOVED***3단계: .env 파일에 추가
@@ -41,7 +41,7 @@ NETWORK=mainnet
 MAX_SINGLE_WITHDRAW=1000000
 
 ***REMOVED***추가 (방금 받은 API Key)
-TONCENTER_API_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+TONCENTER_API_KEY=***REDACTED-TONCENTER-API-KEY***
 ```
 
 ##***REMOVED***4단계: 서버 재시작

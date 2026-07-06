@@ -26,7 +26,7 @@ TON ED25519 개인키:
   크기: 32바이트
   Hex 표현: 32 × 2 = 64자
   
-예: 4e6568d1990bff34c3fc45a8b2c7d91e5f4c8b1a2d3e4f5c6b7a8d9e5f4c8b1
+예: ***REDACTED-MNEMONIC-SEED-ROTATE-IMMEDIATELY***
     ↑ 정확히 64자
 ```
 
@@ -112,10 +112,10 @@ Cloudflare 대시보드
 
 ```bash
 ***REMOVED***터미널에서 생성한 개인키 (이전 세션)
-***REMOVED***privateKey: 4e6568d1990bff34c3fc...ef7978fc
+***REMOVED***privateKey: ***REDACTED-MNEMONIC-SEED-ROTATE-IMMEDIATELY***...ef7978fc
 
 ***REMOVED***Cloudflare에 설정:
-***REMOVED***GAME_WALLET_PRIVATE_KEY = 4e6568d1990bff34c3fc...ef7978fc (64자)
+***REMOVED***GAME_WALLET_PRIVATE_KEY = ***REDACTED-MNEMONIC-SEED-ROTATE-IMMEDIATELY***...ef7978fc (64자)
 ```
 
 ##***REMOVED*****Step 3: RPC 키 설정**

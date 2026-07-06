@@ -15,7 +15,7 @@ bamboo release expand income shiver gift bounce cargo course kiss goat cram
 pledge relax rib furnace squirrel sugar find daughter load proof please speed
 
 프라이빗 키 (Hex - 64바이트):
-***REDACTED-TON-PRIVATE-KEY***
+***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***
 
 Public Key (Hex):
 4f917eef0fdd86900619af6183bb2e9bfc063f6ea082d00c86f046d7d434765b
@@ -52,7 +52,7 @@ pfqEVQ06rKlEY9sX
 ***REMOVED***✅ 배포자 지갑 (사용자 제공 니모닉에서 생성됨)
 DEPLOYER_WALLET_ADDRESS_TESTNET=0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
 DEPLOYER_WALLET_ADDRESS_MAINNET=UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
-DEPLOYER_PRIVATE_KEY=***REDACTED-TON-PRIVATE-KEY***
+DEPLOYER_PRIVATE_KEY=***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***
 
 ***REMOVED***CSPIN Jetton 마스터 주소 (메인넷 실제 주소)
 CSPIN_JETTON=EQBZ6nHfmT2wct9d4MoOdNPzhtUGXOds1y3NTmYUFHAA3uvV

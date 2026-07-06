@@ -37,12 +37,20 @@ sdk/
 ***REMOVED***Telegram TT SDK (cloned for analysis, not to be committed)
 temp_telegram_tt/
 
-***REMOVED***Security - Never commit private keys or sensitive data
+# Security - Never commit private keys or sensitive data
 wallet-tools/.env*
 *.private
 *.secret
 *.key
+*.pem
+*.mnemonic
+*.seed
 SECURITY.md.local
+secrets/
+*.bak
+*~
+wrangler.toml.local
+.dev.vars*
 
 ***REMOVED***Terminal history files
 .bash_history

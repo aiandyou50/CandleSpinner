@@ -157,6 +157,14 @@ export default {
     
     // ❌ ASSETS가 없는 경우 - 에러 페이지 반환
     console.error('[FATAL] ASSETS binding not configured!');
+    // ✅ XSS 방지: 사용자 제어 값(url.pathname)을 HTML 삽입 전 escape
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, '&amp;')
+       .replace(/</g, '&lt;')
+       .replace(/>/g, '&gt;')
+       .replace(/"/g, '&quot;')
+       .replace(/'/g, '&#39;');
+    const safePath = escapeHtml(url.pathname);
     return new Response(
       `<!DOCTYPE html>
       <html>
@@ -168,7 +176,7 @@ export default {
         <p>ASSETS binding is not configured.</p>
         <p>Please deploy using: <code>npx wrangler deploy</code></p>
         <hr>
-        <p>Requested: ${url.pathname}</p>
+        <p>Requested: ${safePath}</p>
       </body>
       </html>`,
       {

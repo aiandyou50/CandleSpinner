@@ -15,7 +15,7 @@ npm run generate-private-key
 **출력 예시**:
 ```
 ✅ 프라이빗 키 (Private Key):
-   ***REDACTED-TON-PRIVATE-KEY***
+   ***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***
 
 ✅ 테스트넷: 0QB_yGkOExm0kP1--22Kx7EwllpC67Fk2xpZcfjUt7vic87g
 ✅ 메인넷: UQC2DJ8yOisLaWh7J7xHAx6yppyZCoyf5cR5vbOVJcwVQZdC
@@ -33,7 +33,7 @@ npm run generate-private-key
 
 ```bash
 ***REMOVED***현재 (잘못됨):
-DEPLOYER_PRIVATE_KEY=***REDACTED-TON-PRIVATE-KEY***
+DEPLOYER_PRIVATE_KEY=***REDACTED-TON-PRIVATE-KEY-ROTATE-IMMEDIATELY***
 
 ***REMOVED***변경할 부분:
 ***REMOVED***Step 1에서 복사한 프라이빗 키 전체로 교체

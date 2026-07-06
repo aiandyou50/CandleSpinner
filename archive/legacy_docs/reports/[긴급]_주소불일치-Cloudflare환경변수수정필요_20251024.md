@@ -57,7 +57,7 @@
 ##***REMOVED*****상황 분석**
 
 ```
-✅ 개인키 (128자): 4e6568d1990bff34...ef7978fc
+✅ 개인키 (128자): ***REDACTED-MNEMONIC-SEED-ROTATE-IMMEDIATELY***...ef7978fc
    ├─ privateKeyValid: true
    ├─ 길이: 128자 ✅
    └─ 형식: 정상
@@ -106,7 +106,7 @@
 ```
 1. GAME_WALLET_PRIVATE_KEY
    Type: Encrypted
-   Value: 4e6568d1990bff34c3fc1e9243b8073262250bfab28d16a4d8c7ffd84479742d3a59677f67586df6a530023e054bfcd99e4cb2f7f134828d45905ba1ef7978fc
+   Value: ***REDACTED-MNEMONIC-SEED-ROTATE-IMMEDIATELY***
 
 2. GAME_WALLET_ADDRESS  ⚠️ 수정 필요
    Type: Secret
@@ -213,7 +213,7 @@ Bounceable:     EQBFPDdSlPgqPrn2XwhpVq0KQExN2kv83_batQ-dptaR8JaY
 
 **개인키 (128자):**
 ```
-4e6568d1990bff34c3fc1e9243b8073262250bfab28d16a4d8c7ffd84479742d3a59677f67586df6a530023e054bfcd99e4cb2f7f134828d45905ba1ef7978fc
+***REDACTED-MNEMONIC-SEED-ROTATE-IMMEDIATELY***
 ```
 
 ⚠️ **보안:** 이 값들을 Cloudflare 대시보드에만 입력하세요!

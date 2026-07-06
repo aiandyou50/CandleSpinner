@@ -195,7 +195,7 @@ export async function onRequestGet(context: { request: Request; env: Env }): Pro
 
 /**
  * 개인키 마스킹 함수
- * 예: 4e6568d1990bff34...ef7978fc
+ * 예: ***REDACTED-MNEMONIC-SEED-ROTATE-IMMEDIATELY***...ef7978fc
  */
 function maskPrivateKey(key: string): string {
   if (!key || key.length < 16) return '***';
